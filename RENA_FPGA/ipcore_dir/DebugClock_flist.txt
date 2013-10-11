@@ -1,0 +1,4 @@
+# Output products list for <DebugClock>
+DebugClock_flist.txt
+DebugClock_readme.txt
+DebugClock_xmdf.tcl

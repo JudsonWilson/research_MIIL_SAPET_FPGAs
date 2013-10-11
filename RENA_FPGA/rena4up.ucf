@@ -1,0 +1,132 @@
+# RenaBoard Rev 4
+
+#=========================================================================
+# Timing constraints
+#=========================================================================
+# Input clock
+NET "mclk" TNM_NET = "mclk";
+TIMESPEC TS_mclk = PERIOD "mclk" 20 ns HIGH 50 %;
+
+#=========================================================================
+# Electrical constraints
+#=========================================================================
+#communication pins from the modules
+NET "mclk" LOC = P88;
+#NET "MCLKp" LOC = "P88" | IOSTANDARD = LVDS_25; # positive
+#NET "MCLKn" LOC = "P89" | IOSTANDARD = LVDS_25; # negative
+
+# NET "debugClkOut" LOC = P78;
+#NET "ledOut1" LOC = P98;
+#NET "ledOut2" LOC = P99;
+
+#NET "TXp" LOC = "P85" | IOSTANDARD = LVDS_25; # positive
+#NET "TXn" LOC = "P86" | IOSTANDARD = LVDS_25; # negative
+
+#chip 1 pins
+
+# positive
+NET "nTF1p" IOSTANDARD = LVDS_25;
+# negative
+NET "nTF1n" IOSTANDARD = LVDS_25;
+
+# positive
+NET "nTS1p" IOSTANDARD = LVDS_25;
+# negative
+NET "nTS1n" IOSTANDARD = LVDS_25;
+						
+# positive
+NET "CLS1p" IOSTANDARD = LVDS_25;
+# negative
+NET "CLS1n" IOSTANDARD = LVDS_25;
+
+# positive
+NET "ACQUIRE1p" IOSTANDARD = LVDS_25;
+# negative
+NET "ACQUIRE1n" IOSTANDARD = LVDS_25;
+
+
+#chip 2 pins
+
+# positive
+NET "nTF2p" IOSTANDARD = LVDS_25;
+# negative
+NET "nTF2n" IOSTANDARD = LVDS_25;
+
+# positive
+NET "nTS2p" IOSTANDARD = LVDS_25;
+# negative
+NET "nTS2n" IOSTANDARD = LVDS_25;
+		
+# positive
+NET "CLS2p" IOSTANDARD = LVDS_25;
+# negative
+NET "CLS2n" IOSTANDARD = LVDS_25;
+
+# positive
+NET "ACQUIRE2p" IOSTANDARD = LVDS_25;
+# negative
+NET "ACQUIRE2n" IOSTANDARD = LVDS_25;
+
+#=========================================================================
+# Placement constraints
+#=========================================================================
+
+NET "ACQUIRE1p" LOC = P30;
+NET "ACQUIRE1n" LOC = P31;
+NET "ACQUIRE2p" LOC = P36;
+NET "ACQUIRE2n" LOC = P37;
+NET "ADDR[0]" LOC = P56;
+NET "ADDR[1]" LOC = P64;
+NET "ADDR[2]" LOC = P90;
+NET "ADDR[3]" LOC = P84;
+NET "ADDR[4]" LOC = P83;
+NET "ADDR[5]" LOC = P82;
+NET "CIN1" LOC = P12;
+NET "CIN2" LOC = P60;
+NET "CLF1" LOC = P10;
+NET "CLF2" LOC = P59;
+NET "CLS1p" LOC = P28;
+NET "CLS1n" LOC = P29;
+NET "CLS2p" LOC = P34;
+NET "CLS2n" LOC = P35;
+NET "CS1" LOC = P15;
+NET "CS2" LOC = P62;
+NET "CSHIFT1" LOC = P13;
+NET "CSHIFT2" LOC = P61;
+NET "FHRCLK_SHRCLK1" LOC = P6;
+NET "FHRCLK_SHRCLK2" LOC = P52;
+NET "FIN1" LOC = P93;
+NET "FIN2" LOC = P49;
+NET "FOUT1" LOC = P21;
+NET "FOUT2" LOC = P68;
+NET "ITRIG" LOC = P78;
+NET "RST" LOC = P98;
+NET "SCLK1" LOC = P33;
+NET "SCLK2" LOC = P73;
+NET "SDO1" LOC = P39;
+NET "SDO2" LOC = P72;
+NET "SIN1" LOC = P5;
+NET "SIN2" LOC = P50;
+NET "SOUT1" LOC = P16;
+NET "SOUT2" LOC = P65;
+NET "TCLK1" LOC = P9;
+NET "TCLK2" LOC = P57;
+NET "TIN1" LOC = P94;
+NET "TIN2" LOC = P46;
+NET "TOUT1" LOC = P27;
+NET "TOUT2" LOC = P70;
+NET "UTRIG" LOC = P7;
+NET "debugOutMain[0]" LOC = P99;
+#NET "mclk" LOC = P89;
+NET "nCS1" LOC = P32;
+NET "nCS2" LOC = P71;
+NET "nTF1p" LOC = P19;
+NET "nTF1n" LOC = P20;
+NET "nTF2p" LOC = P40;
+NET "nTF2n" LOC = P41;
+NET "nTS1p" LOC = P3;
+NET "nTS1n" LOC = P4;
+NET "nTS2p" LOC = P43;
+NET "nTS2n" LOC = P44;
+NET "rx" LOC = P77;
+NET "tx" LOC = P85;

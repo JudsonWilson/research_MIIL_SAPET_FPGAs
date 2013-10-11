@@ -1,0 +1,16 @@
+# Output products list for <TX_Fifo>
+TX_Fifo.asy
+TX_Fifo.gise
+TX_Fifo.ngc
+TX_Fifo.sym
+TX_Fifo.v
+TX_Fifo.veo
+TX_Fifo.vhd
+TX_Fifo.vho
+TX_Fifo.xco
+TX_Fifo.xise
+TX_Fifo_flist.txt
+TX_Fifo_readme.txt
+TX_Fifo_xmdf.tcl
+_xmsgs\pn_parser.xmsgs
+fifo_generator_ug175.pdf

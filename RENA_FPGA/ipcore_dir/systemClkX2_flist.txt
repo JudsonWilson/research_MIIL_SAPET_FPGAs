@@ -1,0 +1,4 @@
+# Output products list for <systemClkX2>
+systemClkX2_flist.txt
+systemClkX2_readme.txt
+systemClkX2_xmdf.tcl
