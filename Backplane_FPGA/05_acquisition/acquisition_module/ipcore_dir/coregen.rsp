@@ -1,0 +1,2 @@
+SETPROJECT "D:/Work_code/05_acquisition/acquisition_module/ipcore_dir/coregen.cgp"
+LAUNCHXCO "D:/Work_code/05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.xco"
