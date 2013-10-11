@@ -1,0 +1,2 @@
+SETPROJECT "D:/Work_code/03_GTP/GTP_module/ipcore_dir/coregen.cgp"
+LAUNCHXCO "D:/Work_code/03_GTP/GTP_module/ipcore_dir/gtp_wrapper.xco"

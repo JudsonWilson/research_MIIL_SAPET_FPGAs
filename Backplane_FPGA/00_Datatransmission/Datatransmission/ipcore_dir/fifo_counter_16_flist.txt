@@ -1,0 +1,16 @@
+# Output products list for <fifo_counter_16>
+_xmsgs\pn_parser.xmsgs
+fifo_counter_16.asy
+fifo_counter_16.gise
+fifo_counter_16.ngc
+fifo_counter_16.sym
+fifo_counter_16.v
+fifo_counter_16.veo
+fifo_counter_16.vhd
+fifo_counter_16.vho
+fifo_counter_16.xco
+fifo_counter_16.xise
+fifo_counter_16_flist.txt
+fifo_counter_16_xmdf.tcl
+fifo_generator_readme.txt
+fifo_generator_ug175.pdf

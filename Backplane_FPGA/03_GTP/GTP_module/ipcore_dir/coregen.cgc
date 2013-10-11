@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spirit:design xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1.4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xilinx="http://www.xilinx.com" >
+   <spirit:vendor>xilinx.com</spirit:vendor>
+   <spirit:library>project</spirit:library>
+   <spirit:name>coregen</spirit:name>
+   <spirit:version>1.0</spirit:version>
+   <spirit:componentInstances>
+      <spirit:componentInstance>
+         <spirit:instanceName>gtp_wrapper</spirit:instanceName>
+         <spirit:displayName></spirit:displayName>
+         <spirit:description></spirit:description>
+         <spirit:componentRef spirit:vendor="xilinx.com" spirit:library="ip" spirit:name="v5_gtpwizard" spirit:version="2.1" />
+         <spirit:configurableElementValues>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_1_k">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_clk_cor_repeat_wait">0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_pci_express_mode">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_com_burst_val">15</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_enmcommaalign">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txcomstart">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_comma_alignment">Even_Byte_Boundaries</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxcharisk">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_ppm_offset">0_(Synchronous)</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_sequence_1_max_skew">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_oob_clk_divider">0000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_1_mask">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rxusrclk_source">RXRECCLK</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_pll_sata">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rxrundisp_indicates_cc">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_mcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_dec_valid_comma_only">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_termination_ctrl">10100</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_termination_ovrd">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_1_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_silicon_version">PRODUCTION</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_port_pllpowerdown">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_comma_alignment">Even_Byte_Boundaries</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_dec_mcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_bytes_to_reduce_error">8</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y0">CLK_Y0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_preemphasis_level">000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_trans_time_from_p2">60</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y1">CLK_Y1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_fifo_lower_bounds">16</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y2">CLK_Y2</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxpowerdown">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y3">CLK_Y3</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y4">CLK_Y4</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_1_mask">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y5">CLK_Y5</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y6">CLK_Y6</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rxlossofsyncport">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y7">CLK_Y7</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_rxbuffer">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_decoding">8B/10B</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rxusrclk_source">RXRECCLK</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y8">------</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y9">------</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_disable_ac_coupling">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_2_mask">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_minus_comma">1010000011</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_plus_comma">0101111100</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_txrx_invert">00000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_line_rate">3.0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_stepvalue">74236998</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_port_refclkpowerdown">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxrecclk">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxreset">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_status_fmt">PCIe</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txbufstatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_1_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_2_mask">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_pma_rx_cfg">0DCE088</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_loopback">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_minus_comma">1010000011</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_txrx_invert">00000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_tx_datapath_width">16</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_1_k">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txinhibit">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_cb">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_cc">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_pll_sata">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_pcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txchardispmode">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_fifo_upper_bounds">18</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_clk_cor_precedence">CC</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_sequence_length">2</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_prbs_detector">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_dec_pcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_comma_double">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxvalid">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_port_plllkdeten">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_decode_seq_match">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y0">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y1">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y2">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y3">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y4">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y5">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_1_k">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_two_cb_sequences">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y6">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_trans_time_to_p2">100</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y7">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y8">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y9">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_datapath_width">16</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_rx_eq">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_slide_mode">PCS</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_sequence_length">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_protocol_file">Use_GTP0_settings</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_enmcommaalign">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txenprbstst">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_divider">/1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_comma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txpowerdown">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_sata_idle_val">4</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxpolarity">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_1_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_bytes_to_reduce_error">8</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxlossofsync">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_tx_line_rate">3.0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxchariscomma">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txdetectrx">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_1_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_errors_to_lose_sync">128</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rxlossofsyncport">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txrundisp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_rxbuffer">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_encoding">8B/10B</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_phystatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_trans_time_non_p2">25</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_enpcommaalign">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_resistor_cal_circuit">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_prbs_error_threshold">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_preemphasis_level">000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxstatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_fifo_lower_bounds">16</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_port_drp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_two_cc_sequences">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_1_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_line_rate">3.0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_resistor_cal_circuit">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_rx_eq">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_port_refclkout">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_2_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxcommadet">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxrundisp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxcdrreset">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y10">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_gtp_dual_x0_y11">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_mcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxbufstatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_1_k">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_comma_mask">1111111111</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_2_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txcomtype">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txelecidle">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxslide">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_pll_rate">1.5</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txpolarity">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_tx_datapath_width">16</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxbufreset">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_dec_valid_comma_only">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_rx_oob">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txcomstart">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_clk_cor_repeat_wait">0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txreset">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxvalid">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y10">------</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_x0_y11">------</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxcharisk">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txbypass8b10b">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_comma_double">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_trans_time_to_p2">100</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_driver_swing">000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_prbs_detector">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_2_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_txbuffer">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_encoding">8B/10B</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_tx_divider">/1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_oob_threshold">001</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_sequence_2_max_skew">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_turbo_mode">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxbyterealign">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_comma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_trans_time_from_p2">60</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_keep_one_idle">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_datapath_width">16</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_turbo_mode">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_disable_ac_coupling">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxlossofsync">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txoutclk">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_com_burst_val">15</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_pcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txchardispval">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_tx_line_rate">3.0</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxchariscomma">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_1_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxpowerdown">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_ppm_offset">0_(Synchronous)</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_enpcommaalign">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_pref_int_width">10</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_trans_time_non_p2">25</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_1_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxstatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y10">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y11">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txinhibit">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_2_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_highpass_pole_location">0%</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_termination_voltage">GND</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txbufstatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxoversampleerr">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_termination_imp">50</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_reference_clock">150.00</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_int_data_width">10</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_two_cb_sequences">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_wideband_highpass_mix">50/50</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxoversampleerr">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_use_port_plllkdet">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_plus_comma">0101111100</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_sata_idle_val">4</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxslide">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_pci_express_mode">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_clk_cor_precedence">CC</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_sequence_length">2</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_2_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_status_fmt">PCIe</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_sequence_1_max_skew">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_decode_seq_match">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_1_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_termination_imp">50</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rxrundisp_indicates_cc">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txreset">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_pma_rx_cfg">0DCE088</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_dec_mcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_sequence_length">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_1">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_2">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_3">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_4">00000000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_4_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_cb">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txbypass8b10b">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_cc">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_1_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_driver_swing">000</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_2_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_2_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txchardispmode">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxpolarity">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_oob_threshold">001</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxrecclk">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_txusrclk_source">TXOUTCLK</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_errors_to_lose_sync">128</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txdetectrx">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_keep_one_idle">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_two_cc_sequences">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txenprbstst">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_sequence_2_max_skew">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_comma_mask">1111111111</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxbyterealign">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txrundisp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_1_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_loopback">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_2_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_2_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxreset">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_phystatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txpowerdown">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_txusrclk_source">TXOUTCLK</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_rx_slide_mode">PCS</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_1_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_rx_oob">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txoutclk">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_protocol_file">Start_from_scratch</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_2_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxbufstatus">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txchardispval">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxcommadet">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_sata_burst_val">4</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_divider">/1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y0">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_decoding">8B/10B</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y1">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y2">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxcdrreset">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y3">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y4">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y5">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y6">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_sata_burst_val">4</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y7">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y8">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxrundisp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_refclk_ac_coupling_x0_y9">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_prbs_error_threshold">1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_3_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_1_3_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_fifo_upper_bounds">18</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_txkerr">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_dec_pcomma_detect">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cb_seq_1_4_mask">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_rxbyteisaligned">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_tx_divider">/1</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cc_seq_1_2_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_cc_seq_1_3_disp">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_cb_seq_2_4_k">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_pll_clock">3</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txcomtype">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxbyteisaligned">true</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_highpass_pole_location">0%</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_rx_termination_voltage">GND</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_use_port_rxbufreset">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txelecidle">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp1_wideband_highpass_mix">50/50</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txpolarity">false</spirit:configurableElementValue>
+            <spirit:configurableElementValue spirit:referenceId="parameter_gtp0_use_port_txkerr">false</spirit:configurableElementValue>
+         </spirit:configurableElementValues>
+         <spirit:vendorExtensions>
+            <xilinx:instanceProperties>
+             <xilinx:projectOptions>
+               <xilinx:projectName>coregen</xilinx:projectName>
+               <xilinx:outputDirectory>./</xilinx:outputDirectory>
+               <xilinx:workingDirectory>./tmp/</xilinx:workingDirectory>
+               <xilinx:subWorkingDirectory>./tmp/_cg</xilinx:subWorkingDirectory>
+             </xilinx:projectOptions>
+             <xilinx:part>
+               <xilinx:device>xc5vlx110t</xilinx:device>
+               <xilinx:deviceFamily>virtex5</xilinx:deviceFamily>
+               <xilinx:package>ff1136</xilinx:package>
+               <xilinx:speedGrade>-1</xilinx:speedGrade>
+             </xilinx:part>
+             <xilinx:flowOptions>
+               <xilinx:busFormat>BusFormatAngleBracketNotRipped</xilinx:busFormat>
+               <xilinx:designEntry>VHDL</xilinx:designEntry>
+               <xilinx:asySymbol>true</xilinx:asySymbol>
+               <xilinx:flowVendor>Foundation_ISE</xilinx:flowVendor>
+               <xilinx:addPads>false</xilinx:addPads>
+               <xilinx:removeRPMs>false</xilinx:removeRPMs>
+               <xilinx:createNDF>false</xilinx:createNDF>
+               <xilinx:implementationFileType>Ngc</xilinx:implementationFileType>
+               <xilinx:formalVerification>false</xilinx:formalVerification>
+             </xilinx:flowOptions>
+             <xilinx:simulationOptions>
+               <xilinx:simulationModel>Behavioral</xilinx:simulationModel>
+               <xilinx:simulationLanguage>VHDL_and_Verilog</xilinx:simulationLanguage>
+               <xilinx:foundationSym>false</xilinx:foundationSym>
+             </xilinx:simulationOptions>
+           </xilinx:instanceProperties>
+         </spirit:vendorExtensions>
+      </spirit:componentInstance>
+   </spirit:componentInstances>
+   <spirit:description></spirit:description>
+   <spirit:vendorExtensions>
+      <xilinx:instanceProperties>
+       <xilinx:projectOptions>
+         <xilinx:projectName>coregen</xilinx:projectName>
+         <xilinx:outputDirectory>./</xilinx:outputDirectory>
+         <xilinx:workingDirectory>./tmp/</xilinx:workingDirectory>
+         <xilinx:subWorkingDirectory>./tmp/_cg</xilinx:subWorkingDirectory>
+       </xilinx:projectOptions>
+       <xilinx:part>
+         <xilinx:device>xc5vlx20t</xilinx:device>
+         <xilinx:deviceFamily>virtex5</xilinx:deviceFamily>
+         <xilinx:package>ff323</xilinx:package>
+         <xilinx:speedGrade>-2</xilinx:speedGrade>
+       </xilinx:part>
+       <xilinx:flowOptions>
+         <xilinx:busFormat>BusFormatAngleBracketNotRipped</xilinx:busFormat>
+         <xilinx:designEntry>VHDL</xilinx:designEntry>
+         <xilinx:asySymbol>true</xilinx:asySymbol>
+         <xilinx:flowVendor>Other</xilinx:flowVendor>
+         <xilinx:addPads>false</xilinx:addPads>
+         <xilinx:removeRPMs>false</xilinx:removeRPMs>
+         <xilinx:createNDF>false</xilinx:createNDF>
+         <xilinx:implementationFileType>Ngc</xilinx:implementationFileType>
+         <xilinx:formalVerification>false</xilinx:formalVerification>
+       </xilinx:flowOptions>
+       <xilinx:simulationOptions>
+         <xilinx:simulationModel>Behavioral</xilinx:simulationModel>
+         <xilinx:simulationLanguage>VHDL</xilinx:simulationLanguage>
+         <xilinx:foundationSym>false</xilinx:foundationSym>
+       </xilinx:simulationOptions>
+     </xilinx:instanceProperties>
+   </spirit:vendorExtensions>
+</spirit:design>
