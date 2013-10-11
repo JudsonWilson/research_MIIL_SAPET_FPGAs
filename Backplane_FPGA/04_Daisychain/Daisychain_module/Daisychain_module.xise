@@ -25,11 +25,11 @@
       <association xil_pn:name="PostRouteSimulation"/>
       <association xil_pn:name="PostTranslateSimulation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.xise" xil_pn:type="FILE_ISE">
       <association xil_pn:name="Implementation"/>
     </file>
   </files>
@@ -360,8 +360,8 @@
     <property xil_pn:name="PROP_PostXlateSimTop" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2012-10-22T16:49:57" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="BDEE249613F545D98E37008DA6D6EE8D" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="Same" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="No" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="UnderProjDir" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="Yes" xil_pn:valueState="non-default"/>
   </properties>
 
   <bindings/>

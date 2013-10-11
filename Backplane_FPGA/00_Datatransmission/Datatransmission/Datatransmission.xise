@@ -18,11 +18,11 @@
     <file xil_pn:name="datatransmission.ucf" xil_pn:type="FILE_UCF">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/01_Clock/Clock_module/Clock_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../01_Clock/Clock_module/Clock_module.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/03_GTP/GTP_module/GTP_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../03_GTP/GTP_module/GTP_module.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
@@ -38,30 +38,27 @@
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal_flist.txt" xil_pn:type="FILE_USERDOC"/>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal_flist.txt" xil_pn:type="FILE_USERDOC"/>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/COUNTER_6B_LUT_FIFO_MODE.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal_flist.txt" xil_pn:type="FILE_USERDOC"/>
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal_flist.txt" xil_pn:type="FILE_USERDOC"/>
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/COUNTER_6B_LUT_FIFO_MODE.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8_flist.txt" xil_pn:type="FILE_USERDOC"/>
-    <file xil_pn:name="remote_sources/_/_/01_Clock/Clock_module/PLL_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8_flist.txt" xil_pn:type="FILE_USERDOC"/>
+    <file xil_pn:name="../../01_Clock/Clock_module/PLL_module.vhd" xil_pn:type="FILE_VHDL"/>
+    <file xil_pn:name="../../03_GTP/GTP_module/ipcore_dir/gtp_wrapper.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/03_GTP/GTP_module/ipcore_dir/gtp_wrapper.vhd" xil_pn:type="FILE_VHDL">
-      <association xil_pn:name="BehavioralSimulation"/>
-      <association xil_pn:name="Implementation"/>
-    </file>
-    <file xil_pn:name="remote_sources/_/_/03_GTP/GTP_module/ipcore_dir/gtp_wrapper.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../03_GTP/GTP_module/ipcore_dir/gtp_wrapper.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
@@ -93,126 +90,130 @@
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/UDP_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/UDP_module.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/ALLOW_ZERO_UDP_CHECKSUM.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/ALLOW_ZERO_UDP_CHECKSUM.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.ngc" xil_pn:type="FILE_NGC">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.ngc" xil_pn:type="FILE_NGC">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.v" xil_pn:type="FILE_VERILOG">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/COUNTER_11B_EN_RECEIV.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/COUNTER_11B_EN_RECEIV.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/COUNTER_11B_EN_TRANS.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/COUNTER_11B_EN_TRANS.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8_2.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8_2.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/ENABLE_USER_DATA_TRANSMISSION.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/ENABLE_USER_DATA_TRANSMISSION.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/IPV4_LUT_INDEXER.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/IPV4_LUT_INDEXER.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/IPv4_PACKET_RECEIVER.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/IPv4_PACKET_RECEIVER.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/IPV4_PACKET_TRANSMITTER.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/IPV4_PACKET_TRANSMITTER.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/OVERRIDE_LUT_CONTROL.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/OVERRIDE_LUT_CONTROL.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/PACKET_RECEIVER_FSM.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/PACKET_RECEIVER_FSM.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/REG_8b_wren.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/REG_8b_wren.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/REG_16B_WREN.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/REG_16B_WREN.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/TARGET_EOF.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/TARGET_EOF.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/UDP_IP_Core.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/UDP_IP_Core.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/ethernetmac.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/ethernetmac.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/ethernetmac_block.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/ethernetmac_block.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/ethernetmac_locallink.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/ethernetmac_locallink.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/physical/gmii_if.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/physical/gmii_if.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/client/fifo/eth_fifo_8.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/client/fifo/eth_fifo_8.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/client/fifo/rx_client_fifo_8.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/client/fifo/rx_client_fifo_8.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/client/fifo/tx_client_fifo_8.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/ethernetmac/example_design/client/fifo/tx_client_fifo_8.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/fifo_block_1024_8.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/fifo_block_1024_8.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/05_acquisition/acquisition_module/Acquisition_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../05_acquisition/acquisition_module/Acquisition_module.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/06_serializing/Serializing_module/Serializing_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../06_serializing/Serializing_module/Serializing_module.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/04_Daisychain/Daisychain_module/Daisychain_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/Daisychain_module.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.ngc" xil_pn:type="FILE_NGC">
+    <file xil_pn:name="../../05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.ngc" xil_pn:type="FILE_NGC">
+      <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../01_Clock/Clock_module/ipcore_dir/PLL_module.xaw" xil_pn:type="FILE_XAW">
+      <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
     <file xil_pn:name="ipcore_dir/fifo_8.xise" xil_pn:type="FILE_COREGENISE">
@@ -224,13 +225,13 @@
     <file xil_pn:name="ipcore_dir/fifo_16.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/03_GTP/GTP_module/ipcore_dir/gtp_wrapper.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../03_GTP/GTP_module/ipcore_dir/gtp_wrapper.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
     <file xil_pn:name="ipcore_dir/fifo_block_8.xise" xil_pn:type="FILE_COREGENISE">
@@ -251,10 +252,10 @@
     <file xil_pn:name="ipcore_dir/fifo_block_256_16.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_11b_equal.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/02_UDP/UDP_module/ipcore_dir/fifo_block_1024_8.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/fifo_block_1024_8.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>
     </file>
   </files>
@@ -586,8 +587,8 @@
     <property xil_pn:name="PROP_PostXlateSimTop" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2012-11-14T15:15:05" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="CE9326BA4F77471FB4156AA22C257D9A" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="Same" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="No" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="UnderProjDir" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="Yes" xil_pn:valueState="non-default"/>
   </properties>
 
   <bindings/>

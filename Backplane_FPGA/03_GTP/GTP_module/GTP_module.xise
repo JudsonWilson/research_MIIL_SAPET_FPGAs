@@ -19,7 +19,7 @@
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/00_Datatransmission/Datatransmission/ipcore_dir/fifo_16.xco" xil_pn:type="FILE_COREGEN">
+    <file xil_pn:name="../../00_Datatransmission/Datatransmission/ipcore_dir/fifo_16.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
@@ -27,7 +27,7 @@
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="remote_sources/_/_/00_Datatransmission/Datatransmission/ipcore_dir/fifo_16.xise" xil_pn:type="FILE_COREGENISE">
+    <file xil_pn:name="../../00_Datatransmission/Datatransmission/ipcore_dir/fifo_16.xise" xil_pn:type="FILE_ISE">
       <association xil_pn:name="Implementation"/>
     </file>
     <file xil_pn:name="ipcore_dir/gtp_wrapper.xise" xil_pn:type="FILE_COREGENISE">
@@ -356,8 +356,8 @@
     <property xil_pn:name="PROP_PostXlateSimTop" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2012-10-24T19:12:15" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="0F198821B0FA4FD8B9C4A3F7C2912977" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="Same" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="No" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="UnderProjDir" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="Yes" xil_pn:valueState="non-default"/>
   </properties>
 
   <bindings/>

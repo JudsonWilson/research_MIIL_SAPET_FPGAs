@@ -8,10 +8,10 @@
 <!-- Copyright (c) 1995-2010 Xilinx, Inc.  All rights reserved.    -->
 
 <messages>
-<msg type="info" file="ProjectMgmt" num="1574" ><arg fmt="%s" index="1">Analyzing Verilog file \&quot;C:/Users/Judson/Desktop/research/ForJudson/Work_code(20130626-stable-version)/02_UDP/UDP_module/ipcore_dir/fifo_block_counter_512_16.v\&quot; into library work</arg>
+<msg type="info" file="ProjectMgmt" num="1574" ><arg fmt="%s" index="1">Analyzing Verilog file \&quot;C:/Users/Judson/Desktop/research/Repository/Backplane_FPGA/02_UDP/UDP_module/ipcore_dir/fifo_block_1024_8.v\&quot; into library work</arg>
 </msg>
 
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;C:/Users/Judson/Desktop/research/ForJudson/Work_code(20130626-stable-version)/02_UDP/UDP_module/ipcore_dir/fifo_block_counter_512_16.vhd&quot; into library work</arg>
+<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;C:/Users/Judson/Desktop/research/Repository/Backplane_FPGA/02_UDP/UDP_module/ipcore_dir/fifo_block_1024_8.vhd&quot; into library work</arg>
 </msg>
 
 </messages>
