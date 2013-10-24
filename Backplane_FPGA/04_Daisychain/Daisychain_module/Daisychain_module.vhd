@@ -40,7 +40,6 @@ entity Daisychain_module is
 		     bug_out_put_from_Acquisition_to_Daisychain			: out std_logic;
 		     reset				: in std_logic;
 		     clk_50MHz				: in std_logic;
-		     clk_12MHz				: in std_logic;
 		     boardid				: in std_logic_vector(2 downto 0);
 		     -- to get the config data and acquisition data from GTP interface for serializing
 		-- data receiving from GTP interface

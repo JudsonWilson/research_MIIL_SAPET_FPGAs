@@ -38,7 +38,6 @@ entity Serializing_module is
 	port (
 		reset 				: in std_logic;
 		clk_50MHz			: in std_logic;
-		clk_12MHz			: in std_logic;
 		-- configure data of the current board from Daisychain
 		din_from_Daisychain_to_serialzing_wr : in std_logic;
 	        din_from_Daisychain_to_serialzing   : in std_logic_vector(15 downto 0);

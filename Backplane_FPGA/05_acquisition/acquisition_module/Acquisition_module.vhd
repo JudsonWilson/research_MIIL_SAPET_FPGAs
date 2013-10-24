@@ -43,7 +43,6 @@ entity acquisition_module is
 		reset 					: in std_logic;
 		boardid					: in std_logic_vector(2 downto 0);
 		clk_50MHz				: in std_logic;
-		clk_12MHz				: in std_logic;
 		-- Interface with Daisychain
 		local_acquisition_data_dout_to_Daisychain_wr : out std_logic;
 		local_acquisition_data_dout_to_Daisychain : out std_logic_vector(15 downto 0);

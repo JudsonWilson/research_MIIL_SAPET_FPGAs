@@ -1,15 +1,7 @@
-# Timing constraints 
-#NET "clk_12MHz" TNM_NET = "clk_12MHz";
-#TIMEGRP Grpclk_12MHz =  "clk_12MHz";
-#TIMESPEC TS_clk_12 = PERIOD "Grpclk_12MHz" 83 ns HIGH 50 %
 
 #NET "." TNM_NET = "clk_50MHz";
 #TIMEGRP Grpclk_50MHz =  "clk_50MHz";
 #TIMESPEC TS_clk_50 = PERIOD "Grpclk_50MHz" 12 ns HIGH 50 %
-
-#NET "clk_12MHz" TNM_NET = "clk_12MHz";
-#TIMEGRP Grpclk_12MHz =  "clk_12MHz";
-#TIMESPEC TS_clk_12 = PERIOD "Grpclk_12MHz" 12 ns HIGH 50 %
 
 
 NET "reset" LOC = AN33;
@@ -38,7 +30,6 @@ NET "rena1_tx" LOC = AL33;        # HDR J6 - Pin 54
 
 
 NET "reset" CLOCK_DEDICATED_ROUTE = "FALSE";
-#NET "clk_12MHz_1" LOC = AG32;
 
 NET "clock_200MHz" LOC = L19;
 

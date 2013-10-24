@@ -38,7 +38,6 @@ entity GTP_module is
 		bug_out_put_from_Daisychain_to_GTP : out std_logic;
 	bug_in_xx_8102_xx_from_Daisychain_to_GTP : out std_logic;
 		clk_50MHz		: in std_logic;
-		clk_12MHz		: in std_logic;
 		reset			: in std_logic;
 		GTP_receive_byte_number : out std_logic_vector(15 downto 0);
 		GTP_transmit_byte_number : out std_logic_vector(15 downto 0);

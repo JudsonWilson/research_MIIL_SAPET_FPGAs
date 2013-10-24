@@ -35,7 +35,6 @@ entity datatransmission is
 		     clock_125MHz					: in std_logic;
 		     clock_200MHz					: in std_logic;
 		     clk_sample						: out std_logic;
-		     clk_12MHz_1					: out std_logic;
 		     -- UDP relative interface
 		     compare_result					: out std_logic;
 		     -- Ethernet physical chip device interface
@@ -70,8 +69,7 @@ entity datatransmission is
 		     -- My custom spartan board
 		     Reset_out						: out std_logic;
 		     Spartan_signal_input				: in std_logic;
-		     Spartan_signal_output				: out std_logic;
-		     clk_12MHz						: out std_logic
+		     Spartan_signal_output				: out std_logic
 	     );
 
 end datatransmission;
@@ -105,7 +103,6 @@ architecture Behavioral of datatransmission is
 	signal clk_200MHz_i			: std_logic;
 	signal clk_sample_i			: std_logic;
 	signal clk_50MHz_i			: std_logic;
-	signal clk_12MHz_i			: std_logic;
 
 	-- Daisychain relative
 	signal din_from_GTP			: std_logic_vector(15 downto 0);
@@ -149,7 +146,7 @@ architecture Behavioral of datatransmission is
 			     clk_125MHz				: out std_logic;
 		-- for Spartan3 in current phase
 			     clk_50MHz	        	: out std_logic;
-		-- for USB commnunication
+		-- for USB commnunication (no longer used)
 			     clk_12MHz	 		: out std_logic
 		     );
 	end component;
@@ -164,7 +161,6 @@ architecture Behavioral of datatransmission is
 			     reset			: in std_logic;
 			     clk_125MHz			: in std_logic;
 			     clk_50MHz			: in std_logic;
-			     clk_12MHz			: in std_logic;
 			     compare_result		: out std_logic;
 			     GTP_receive_byte_number	: in std_logic_vector(15 downto 0);
 			     GTP_transmit_byte_number   : in std_logic_vector(15 downto 0);
@@ -193,7 +189,6 @@ architecture Behavioral of datatransmission is
 				bug_in_xx_8102_xx_from_Daisychain_to_GTP : out std_logic;
 			     reset			: in std_logic;
 			     clk_50MHz			: in std_logic;
-			     clk_12MHz			: in std_logic;
 			     GTP_receive_byte_number    : out std_logic_vector(15 downto 0);
 			     GTP_transmit_byte_number   : out std_logic_vector(15 downto 0);
 		--transmit
@@ -219,7 +214,6 @@ architecture Behavioral of datatransmission is
 				bug_out_put_from_Acquisition_to_Daisychain			: out std_logic;
 			     reset				: in std_logic;
 			     clk_50MHz				: in std_logic;
-			     clk_12MHz				: in std_logic;
 			     boardid				: in std_logic_vector(2 downto 0);
 		     -- to get the config data and acquisition data from GTP interface for serializing
 		     -- data receiving from GTP interface
@@ -254,7 +248,6 @@ architecture Behavioral of datatransmission is
 			     reset 				: in std_logic;
 			     boardid				: in std_logic_vector(2 downto 0);
 			     clk_50MHz				: in std_logic;
-			     clk_12MHz				: in std_logic;
 		-- Interface with Daisychain
 			     local_acquisition_data_dout_to_Daisychain_wr : out std_logic;
 			     local_acquisition_data_dout_to_Daisychain : out std_logic_vector(15 downto 0);
@@ -267,7 +260,6 @@ architecture Behavioral of datatransmission is
 		port (
 			     reset 				: in std_logic;
 			     clk_50MHz				: in std_logic;
-			     clk_12MHz				: in std_logic;
 		-- configure data of the current board from Daisychain
 			     din_from_Daisychain_to_serialzing_wr : in std_logic;
 			     din_from_Daisychain_to_serialzing  : in std_logic_vector(15 downto 0);
@@ -282,11 +274,9 @@ begin
 	clk_200MHz_i		<= clock_200MHz;
 	clk_sample 		<= clk_sample_i;
 	compare_result 		<= compare_result_i;
-	clk_12MHz_1		<= clk_12MHz_i;
 	Spartan_signal_input_i  <= Spartan_signal_input;
 	Spartan_signal_output   <= Spartan_signal_input_i;
 	Reset_out		<= reset_i;
-	clk_12MHz		<= clk_12MHz_i;
 	error_check_output <= fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin;
 	-- RENA Board port connections
 	rena0_clk_50MHz  <= clk_50MHz_i;
@@ -309,7 +299,7 @@ begin
 			clk_sample	=> clk_sample_i,
 			clk_125MHz	=> clk_125MHz_i,
 			clk_50MHz	=> clk_50MHz_i,
-			clk_12MHz	=> clk_12MHz_i
+			clk_12MHz	=> open
 		);
 	Inst_UDP_module: UDP_module
 	port map (
@@ -322,7 +312,6 @@ begin
 --			clk_125MHz	=> clock_125MHz_i,
 			clk_125MHz       => clk_125MHz_i,
 			clk_50MHz	=> clk_50MHz_i,
-			clk_12MHz 	=> clk_12MHz_i,
 			compare_result  => compare_result_i,
 			GTP_receive_byte_number => GTP_receive_byte_number_i,
 			GTP_transmit_byte_number => GTP_transmit_byte_number_i,
@@ -349,7 +338,6 @@ begin
 			GTP_transmit_byte_number => GTP_transmit_byte_number_i,
 			reset 		=> reset_i,
 			clk_50MHz	=> clk_50MHz_i,
-			clk_12MHz	=> clk_12MHz_i,
 			din		=> dout_to_GTP,
 			din_wr 		=> dout_to_GTP_wr,
 			gtp_txp		=> gtp_txp,
@@ -368,7 +356,6 @@ begin
 		     bug_out_put_from_Acquisition_to_Daisychain		=> bug_out_put_from_Acquisition_to_Daisychain_i,
 			 reset			=> reset_i,
 			 clk_50MHz		=> clk_50MHz_i,
-			 clk_12MHz		=> clk_12MHz_i,
 			 boardid		=> boardid,
 			 din_from_GTP		=> din_from_GTP,
 			 din_from_GTP_wr	=> din_from_GTP_wr,
@@ -397,7 +384,6 @@ begin
 			reset			=> reset_i,
 			boardid			=> boardid,
 			clk_50MHz		=> clk_50MHz_i,
-			clk_12MHz		=> clk_12MHz_i,
 			local_acquisition_data_dout_to_Daisychain => acquisition_data_from_local_to_GTP,
 			local_acquisition_data_dout_to_Daisychain_wr => acquisition_data_from_local_to_GTP_wr,
 			Rx0			=> rena0_rx_i,
@@ -407,7 +393,6 @@ begin
 	port map (
 			reset 			=> reset_i,
 			clk_50MHz		=> clk_50MHz_i,
-			clk_12MHz		=> clk_12MHz_i,
 		-- configure data of the current board from Daisychain
 			din_from_Daisychain_to_serialzing_wr => current_board_configure_data_wr,
 			din_from_Daisychain_to_serialzing => current_board_configure_data,

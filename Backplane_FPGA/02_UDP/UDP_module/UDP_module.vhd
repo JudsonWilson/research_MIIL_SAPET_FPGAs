@@ -44,7 +44,6 @@ entity UDP_module is
 		    reset			: in std_logic;
 		    clk_125MHz			: in std_logic;
 		    clk_50MHz			: in std_logic;
-		    clk_12MHz			: in std_logic;
 		    compare_result		: out std_logic;
 		    GTP_receive_byte_number	: in std_logic_vector(15 downto 0);
 		    GTP_transmit_byte_number 	: in std_logic_vector(15 downto 0);
