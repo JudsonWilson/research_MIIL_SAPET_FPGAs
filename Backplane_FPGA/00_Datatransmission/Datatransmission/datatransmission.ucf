@@ -28,17 +28,16 @@ NET "reset" LOC = AN33;
 NET "compare_result" LOC = L34;
 
 # for Yi's Spartan board
-# Pin 10
-NET "rena0_clk_50MHz" LOC = G32;
-# Pin 20
-NET "rena0_rx" LOC = M32;
-# Pin 30
-NET "rena0_tx" LOC = Y34;
+NET "rena0_clk_50MHz" LOC = G32;  # HDR J6 - Pin 10
+NET "rena0_rx" LOC = M32;         # HDR J6 - Pin 20
+NET "rena0_tx" LOC = Y34;         # HDR J6 - Pin 30
+
+NET "rena1_clk_50MHz" LOC = AK32; # HDR J6 - Pin 50
+NET "rena1_rx" LOC = AL34;        # HDR J6 - Pin 52
+NET "rena1_tx" LOC = AL33;        # HDR J6 - Pin 54
+
 
 NET "reset" CLOCK_DEDICATED_ROUTE = "FALSE";
-NET "rena1_clk_50MHz" LOC = AK32;
-NET "rena1_rx" LOC = AL34;
-NET "rena1_tx" LOC = AL33;
 #NET "clk_12MHz_1" LOC = AG32;
 
 NET "clock_200MHz" LOC = L19;
