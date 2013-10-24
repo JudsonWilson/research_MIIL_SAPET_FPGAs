@@ -48,8 +48,8 @@ entity datatransmission is
 		     clock_125MHz					: in std_logic;
 		     clock_200MHz					: in std_logic;
 		     clk_sample						: out std_logic;
-		     clk_50MHz						: out std_logic;
-		     clk_50MHz_1				 	: out std_logic;
+		     rena0_clk_50MHz						: out std_logic;
+		     rena1_clk_50MHz						: out std_logic;
 		     clk_12MHz_1					: out std_logic;
 		     -- UDP relative interface
 		     compare_result					: out std_logic;
@@ -74,12 +74,12 @@ entity datatransmission is
 		     gtp_clkp_pin					: in std_logic;
 		     gtp_clkn_pin					: in std_logic;	
 		     -- Daisychain relative
-		     Tx0						: out std_logic;
-		     Tx1						: out std_logic;
-		     Tx2						: out std_logic;
+		     rena0_tx						: out std_logic;
+		     rena1_tx						: out std_logic;
+--		     Tx2						: out std_logic;
 		    -- Rx							: in std_logic_vector(1 downto 0);
-		     Rx0						: in std_logic;
-		     Rx1						: in std_logic;
+		     rena0_rx						: in std_logic;
+		     rena1_rx						: in std_logic;
 		     boardid						: in std_logic_vector(2 downto 0);
 		     -- My custom spartan board
 		     Reset_out						: out std_logic;
@@ -145,10 +145,9 @@ architecture Behavioral of datatransmission is
 	signal current_board_configure_data_wr  : std_logic;
 	signal current_board_configure_data     : std_logic_vector(15 downto 0);
 
-	--signal Rx_i				: std_logic_vector(1 downto 0);
-	signal Tx_i				: std_logic;
-	signal Rx0_i				: std_logic;
-	signal Rx1_i				: std_logic;
+	signal rena_tx_i				: std_logic; -- Shared tx amongst all rena boards.
+	signal rena0_rx_i				: std_logic;
+	signal rena1_rx_i				: std_logic;
 	component clock_module
 		port (
 		-- global input
@@ -303,16 +302,14 @@ begin
 	clock_125MHz_i		<= clock_125MHz;
 	clk_200MHz_i		<= clock_200MHz;
 	clk_sample 		<= clk_sample_i;
-	Tx0			<= Tx_i;
-	Tx1			<= Tx_i;
-	Tx2			<= Tx_i;
-	clk_50MHz		<= clk_50MHz_i;
+	rena0_tx			<= rena_tx_i;
+	rena1_tx			<= rena_tx_i;
+	rena0_clk_50MHz		<= clk_50MHz_i;
 	compare_result 		<= compare_result_i;
-	clk_50MHz_1		<= clk_50MHz_i;
+	rena1_clk_50MHz		<= clk_50MHz_i;
 	clk_12MHz_1		<= clk_12MHz_i;
---	Rx_i			<= Rx;
-	Rx0_i			<= Rx0;
-	Rx1_i			<= Rx1;
+	rena0_rx_i			<= rena0_rx;
+	rena1_rx_i			<= rena1_rx;
 	Spartan_signal_input_i  <= Spartan_signal_input;
 	Spartan_signal_output   <= Spartan_signal_input_i;
 	Reset_out		<= reset_i;
@@ -425,8 +422,8 @@ begin
 			local_acquisition_data_dout_to_Daisychain => acquisition_data_from_local_to_GTP,
 			local_acquisition_data_dout_to_Daisychain_wr => acquisition_data_from_local_to_GTP_wr,
 --			Rx			=> Rx_i
-			Rx0			=> Rx0_i,
-			Rx1			=> Rx1_i
+			Rx0			=> rena0_rx_i,
+			Rx1			=> rena1_rx_i
 		);
 	Inst_Serializing_module: Serializing_module
 	port map (
@@ -437,7 +434,7 @@ begin
 			din_from_Daisychain_to_serialzing_wr => current_board_configure_data_wr,
 			din_from_Daisychain_to_serialzing => current_board_configure_data,
 		-- Serialing pin
-			Tx			=> Tx_i
+			Tx			=> rena_tx_i
 		);
 
 end Behavioral;

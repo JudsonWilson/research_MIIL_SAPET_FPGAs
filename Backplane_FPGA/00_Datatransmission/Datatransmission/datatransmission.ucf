@@ -29,16 +29,16 @@ NET "compare_result" LOC = L34;
 
 # for Yi's Spartan board
 # Pin 10
-NET "clk_50MHz" LOC = G32;
+NET "rena0_clk_50MHz" LOC = G32;
 # Pin 20
-NET "Rx0" LOC = M32;
+NET "rena0_rx" LOC = M32;
 # Pin 30
-NET "Tx0" LOC = Y34;
+NET "rena0_tx" LOC = Y34;
 
 NET "reset" CLOCK_DEDICATED_ROUTE = "FALSE";
-NET "clk_50MHz_1" LOC = AK32;
-NET "Rx1" LOC = AL34;
-NET "Tx1" LOC = AL33;
+NET "rena1_clk_50MHz" LOC = AK32;
+NET "rena1_rx" LOC = AL34;
+NET "rena1_tx" LOC = AL33;
 #NET "clk_12MHz_1" LOC = AG32;
 NET "bug_in_UDP_transfer" LOC = AM32;
 
