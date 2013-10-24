@@ -31,19 +31,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity datatransmission is
 	port (
-	bug_from_GTP_to_Daisychain			: out std_logic;
-	bug_in_UDP_transfer				: out std_logic;
-	bug_in_acqusition_process			: out std_logic;
-	bug_in_acqusition_write_fifo 			: out std_logic;
-	bug_in_xx_8102_xx_from_Daisychain_to_UDP	: out std_logic;
-	bug_in_xx_8102_xx_from_Daisychain_to_GTP	: out std_logic;
-	bug_in_write_number_over_flow			: out std_logic;
-	bug_in_xx_8102_xx_in_acquisition		: out std_logic;
-
-		     bug_out_put_from_Acquisition_to_Daisychain					: out std_logic;
-			bug_out_put_from_Daisychain_to_GTP		: out std_logic;
-		     bug_out_put_from_Daisychain_to_UDP			: out std_logic;
-
 		     reset 						: in std_logic;
 		     clock_125MHz					: in std_logic;
 		     clock_200MHz					: in std_logic;
@@ -91,6 +78,7 @@ entity datatransmission is
 end datatransmission;
 
 architecture Behavioral of datatransmission is
+	-- Debug Nets - To access from chipscope, may need to set the "keep" and "S" (save net) attributes
 	signal bug_in_xx_8102_xx_from_Daisychain_to_UDP_i : std_logic;
 	signal bug_in_xx_8102_xx_from_Daisychain_to_GTP_i : std_logic;
 	signal bug_in_write_number_over_flow_i		: std_logic;
@@ -101,7 +89,7 @@ architecture Behavioral of datatransmission is
 	signal bug_in_acqusition_process_i	: std_logic;
 	signal bug_in_acqusition_write_fifo_i 	: std_logic;
 	signal acquisition_data_number_i	: std_logic_vector(15 downto 0);
-	-- bug_capture
+
 	signal bug_out_put_from_Acquisition_to_Daisychain_i			: std_logic;
 	signal bug_out_put_from_Daisychain_to_UDP_i		: std_logic;
 	signal bug_out_put_from_Daisychain_to_GTP_i : std_logic;
@@ -110,6 +98,7 @@ architecture Behavioral of datatransmission is
 	signal acquisition_data_read_fifo_number_i : std_logic_vector(15 downto 0);
 	signal error_check_output		: std_logic_vector(7 downto 0);
 	signal Spartan_signal_input_i		: std_logic;
+
 	-- toplevel signal (pin realted)
 	signal reset_i				: std_logic;
 	signal clk_125MHz_i		: std_logic;
@@ -287,17 +276,6 @@ architecture Behavioral of datatransmission is
 
 	end component;
 begin
-	bug_in_xx_8102_xx_from_Daisychain_to_UDP <= bug_in_xx_8102_xx_from_Daisychain_to_UDP_i;
-	bug_in_xx_8102_xx_from_Daisychain_to_GTP <= bug_in_xx_8102_xx_from_Daisychain_to_GTP_i;
-	bug_in_write_number_over_flow		 <= bug_in_write_number_over_flow_i;
-	bug_in_xx_8102_xx_in_acquisition	 <= bug_in_xx_8102_xx_in_acquisition_i;
-	bug_from_GTP_to_Daisychain <= bug_from_GTP_to_Daisychain_i;
-	bug_in_UDP_transfer <= bug_in_UDP_transfer_i;
-	bug_in_acqusition_write_fifo <= bug_in_acqusition_write_fifo_i;
-	bug_in_acqusition_process <= bug_in_acqusition_process_i;
-	bug_out_put_from_Daisychain_to_UDP <= bug_out_put_from_Daisychain_to_UDP_i;
-	bug_out_put_from_Acquisition_to_Daisychain		<= bug_out_put_from_Acquisition_to_Daisychain_i;
-	bug_out_put_from_Daisychain_to_GTP <= bug_out_put_from_Daisychain_to_GTP_i;
 	reset_i			<= reset;
 	clock_125MHz_i		<= clock_125MHz;
 	clk_200MHz_i		<= clock_200MHz;

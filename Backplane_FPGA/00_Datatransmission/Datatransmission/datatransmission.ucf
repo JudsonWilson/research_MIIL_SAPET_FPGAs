@@ -40,7 +40,6 @@ NET "rena1_clk_50MHz" LOC = AK32;
 NET "rena1_rx" LOC = AL34;
 NET "rena1_tx" LOC = AL33;
 #NET "clk_12MHz_1" LOC = AG32;
-NET "bug_in_UDP_transfer" LOC = AM32;
 
 NET "clock_200MHz" LOC = L19;
 
