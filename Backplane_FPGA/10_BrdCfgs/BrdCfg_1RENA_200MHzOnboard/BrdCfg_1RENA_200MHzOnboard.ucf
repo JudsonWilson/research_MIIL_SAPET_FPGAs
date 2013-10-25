@@ -31,13 +31,13 @@ NET "rena1_tx" LOC = AL33;        # HDR J6 - Pin 54
 
 NET "reset" CLOCK_DEDICATED_ROUTE = "FALSE";
 
-NET "clock_200MHz" LOC = L19;
+NET "clk_200MHz" LOC = L19;
 
-NET "clock_125MHz" IOSTANDARD = LVCMOS25;
-NET "clock_125MHz" LOC = K18;
-NET "clk_sample" LOC = AM33;
+#NET "clock_125MHz" IOSTANDARD = LVCMOS25;
+#NET "clock_125MHz" LOC = K18;
+#NET "clk_sample" LOC = AM33;
 
-NET "clock_200MHz" TNM_NET = "clk_200MHz";
+NET "clk_200MHz" TNM_NET = "clk_200MHz";
 TIMEGRP Grpclk_200MHz =  "clk_200MHz";
 TIMESPEC TS_clk_200 = PERIOD "Grpclk_200MHz" 5000 ps HIGH 50 %;
 
@@ -45,11 +45,11 @@ TIMESPEC TS_clk_200 = PERIOD "Grpclk_200MHz" 5000 ps HIGH 50 %;
 #TIMEGRP ethernet_gtx_clk_125 =  "clk_125";
 #TIMESPEC TS_ethernet_gtx_clk_125 = PERIOD "ethernet_gtx_clk_125" 8000 ps HIGH 50 %;
 
-INST "Inst_GTP_module/inst_diff" LOC = BUFDS_X0Y3;
+INST "Inst_datatransmission/Inst_GTP_module/inst_diff" LOC = BUFDS_X0Y3;
 NET "gtp_clkp_pin" LOC = Y4;
 NET "gtp_clkn_pin" LOC = Y3;
 
-INST "Inst_GTP_module/GTPwrapper_i/tile0_gtp_wrapper_i/gtp_dual_i" LOC = GTP_DUAL_X0Y3;
+INST "Inst_datatransmission/Inst_GTP_module/GTPwrapper_i/tile0_gtp_wrapper_i/gtp_dual_i" LOC = GTP_DUAL_X0Y3;
 NET "gtp_txp" LOC = AC2;
 NET "gtp_rxp" LOC = W1;
 NET "gtp_rxn" LOC = Y1;

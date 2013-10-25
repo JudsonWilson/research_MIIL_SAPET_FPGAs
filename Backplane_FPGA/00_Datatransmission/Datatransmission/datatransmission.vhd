@@ -32,12 +32,11 @@ use IEEE.STD_LOGIC_1164.ALL;
 entity datatransmission is
 	port (
 		     reset 						: in std_logic;
-		     clock_125MHz					: in std_logic;
-		     clock_200MHz					: in std_logic;
-		     clk_sample						: out std_logic;
+		     clk_50MHz                : in std_logic;
+		     clk_125MHz               : in std_logic;
 		     -- UDP relative interface
 		     compare_result					: out std_logic;
-		     -- Ethernet physical chip device interface
+		     -- Ethernet physical chip device interface	
 		     fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin 	: out std_logic;
 		     fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin		: out std_logic_vector(7 downto 0);
 		     fpga_0_Hard_Ethernet_MAC_GMII_TX_EN_0_pin		: out std_logic;
@@ -98,11 +97,8 @@ architecture Behavioral of datatransmission is
 
 	-- toplevel signal (pin realted)
 	signal reset_i				: std_logic;
-	signal clk_125MHz_i		: std_logic;
-	signal clock_125MHz_i			: std_logic;
-	signal clk_200MHz_i			: std_logic;
-	signal clk_sample_i			: std_logic;
-	signal clk_50MHz_i			: std_logic;
+	signal clk_125MHz_i        : std_logic;
+	signal clk_50MHz_i         : std_logic;
 
 	-- Daisychain relative
 	signal din_from_GTP			: std_logic_vector(15 downto 0);
@@ -134,22 +130,6 @@ architecture Behavioral of datatransmission is
 	signal rena_tx_i				: std_logic; -- Shared tx amongst all RENA Boards.
 	signal rena0_rx_i				: std_logic;
 	signal rena1_rx_i				: std_logic;
-
-	component clock_module
-		port (
-		-- global input
-			     reset			: in std_logic;
-			     clk_source         	: in std_logic;
-		-- global output
-			     clk_sample	        	: out std_logic;
-		-- for 125MHz
-			     clk_125MHz				: out std_logic;
-		-- for Spartan3 in current phase
-			     clk_50MHz	        	: out std_logic;
-		-- for USB commnunication (no longer used)
-			     clk_12MHz	 		: out std_logic
-		     );
-	end component;
 
 	component UDP_module
 		port (
@@ -270,9 +250,8 @@ architecture Behavioral of datatransmission is
 	end component;
 begin
 	reset_i			<= reset;
-	clock_125MHz_i		<= clock_125MHz;
-	clk_200MHz_i		<= clock_200MHz;
-	clk_sample 		<= clk_sample_i;
+	clk_125MHz_i      <= clk_125MHz;
+	clk_50MHz_i       <= clk_50MHz;
 	compare_result 		<= compare_result_i;
 	Spartan_signal_input_i  <= Spartan_signal_input;
 	Spartan_signal_output   <= Spartan_signal_input_i;
@@ -290,17 +269,6 @@ begin
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation
 	-------------------------------------------------------------------------------------------
-	Inst_ClockModule: clock_module
-	port map (
-		-- global input
-			reset 		=> reset_i,
-			clk_source	=> clk_200MHz_i,	
-		-- global output
-			clk_sample	=> clk_sample_i,
-			clk_125MHz	=> clk_125MHz_i,
-			clk_50MHz	=> clk_50MHz_i,
-			clk_12MHz	=> open
-		);
 	Inst_UDP_module: UDP_module
 	port map (
 						bug_in_xx_8102_xx_from_Daisychain_to_UDP => bug_in_xx_8102_xx_from_Daisychain_to_UDP_i,
@@ -309,7 +277,6 @@ begin
 						    acquisition_data_number		=> acquisition_data_number_i,	
 						    acquisition_data_receive_data_number => acquisition_data_receive_data_number_i,
 			reset		=> reset_i,
---			clk_125MHz	=> clock_125MHz_i,
 			clk_125MHz       => clk_125MHz_i,
 			clk_50MHz	=> clk_50MHz_i,
 			compare_result  => compare_result_i,
