@@ -3,8 +3,13 @@
 #TIMEGRP Grpclk_50MHz =  "clk_50MHz";
 #TIMESPEC TS_clk_50 = PERIOD "Grpclk_50MHz" 12 ns HIGH 50 %
 
+# Reset
+NET "reset" LOC = AN33 | CLOCK_DEDICATED_ROUTE = "FALSE"; # HDR J6 - Pin 64
 
-NET "reset" LOC = AN33;
+# Clocks
+NET "clk_200MHz" LOC = L19 | TNM_NET = "clk_200MHz";
+TIMEGRP Grpclk_200MHz =  "clk_200MHz";
+TIMESPEC TS_clk_200 = PERIOD "Grpclk_200MHz" 5000 ps HIGH 50 %;
 
 # for my Spartan board
 #NET "Tx" LOC = L33;
@@ -29,32 +34,19 @@ NET "rena1_rx" LOC = AL34;        # HDR J6 - Pin 52
 NET "rena1_tx" LOC = AL33;        # HDR J6 - Pin 54
 
 
-NET "reset" CLOCK_DEDICATED_ROUTE = "FALSE";
 
-NET "clk_200MHz" LOC = L19;
 
-#NET "clock_125MHz" IOSTANDARD = LVCMOS25;
-#NET "clock_125MHz" LOC = K18;
-#NET "clk_sample" LOC = AM33;
-
-NET "clk_200MHz" TNM_NET = "clk_200MHz";
-TIMEGRP Grpclk_200MHz =  "clk_200MHz";
-TIMESPEC TS_clk_200 = PERIOD "Grpclk_200MHz" 5000 ps HIGH 50 %;
-
-#NET "clock_125MHz" TNM_NET = "clk_125";
-#TIMEGRP ethernet_gtx_clk_125 =  "clk_125";
-#TIMESPEC TS_ethernet_gtx_clk_125 = PERIOD "ethernet_gtx_clk_125" 8000 ps HIGH 50 %;
-
+# GTP
 INST "Inst_datatransmission/Inst_GTP_module/inst_diff" LOC = BUFDS_X0Y3;
 NET "gtp_clkp_pin" LOC = Y4;
 NET "gtp_clkn_pin" LOC = Y3;
-
 INST "Inst_datatransmission/Inst_GTP_module/GTPwrapper_i/tile0_gtp_wrapper_i/gtp_dual_i" LOC = GTP_DUAL_X0Y3;
 NET "gtp_txp" LOC = AC2;
 NET "gtp_rxp" LOC = W1;
 NET "gtp_rxn" LOC = Y1;
 NET "gtp_txn" LOC = AB2;
 
+# Ethernet
 NET "fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin" TIG;
 NET "fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin" IOSTANDARD = LVCMOS25;
 NET "fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin" LOC = J14;
