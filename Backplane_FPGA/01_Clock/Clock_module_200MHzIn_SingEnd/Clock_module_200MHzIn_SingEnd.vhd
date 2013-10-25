@@ -29,7 +29,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity Clock_module is
+entity Clock_module_200MHzIn_SingEnd is
 	port(
 		-- global input
 		reset		: in std_logic;
@@ -43,9 +43,9 @@ entity Clock_module is
 		-- for USB commnunication
 		clk_12MHz	: out std_logic
 	);
-end Clock_module;
+end Clock_module_200MHzIn_SingEnd;
 
-architecture Behavioral of Clock_module is
+architecture Behavioral of Clock_module_200MHzIn_SingEnd is
 	signal reset_i		: std_logic;
 	signal reset_l_i	: std_logic;
 	signal clk_sample_i	: std_logic;

@@ -117,7 +117,7 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 	signal Spartan_signal_input_i   : std_logic;
 	signal Spartan_signal_output_i  : std_logic;
 
-	component clock_module
+	component Clock_module_200MHzIn_SingEnd
 		port (
 			-- global input
 			reset			  : in std_logic;
@@ -221,7 +221,7 @@ begin
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation
 	-------------------------------------------------------------------------------------------
-	Inst_ClockModule: clock_module
+	Inst_ClockModule: Clock_module_200MHzIn_SingEnd
 		port map (
 			-- global input
 			reset 		=> reset_i,

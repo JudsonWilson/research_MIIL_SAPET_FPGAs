@@ -15,7 +15,7 @@
   <version xil_pn:ise_version="12.2" xil_pn:schema_version="2"/>
 
   <files>
-    <file xil_pn:name="../../01_Clock/Clock_module/Clock_module.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="BrdCfg_1RENA_200MHzOnboard.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
@@ -38,7 +38,7 @@
       <association xil_pn:name="Implementation"/>
     </file>
     <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8_flist.txt" xil_pn:type="FILE_USERDOC"/>
-    <file xil_pn:name="../../01_Clock/Clock_module/working/PLL_module.vhd" xil_pn:type="FILE_VHDL"/>
+    <file xil_pn:name="working/PLL_module.vhd" xil_pn:type="FILE_VHDL"/>
     <file xil_pn:name="../../03_GTP/GTP_module/ipcore_dir/gtp_wrapper.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
@@ -169,7 +169,7 @@
     <file xil_pn:name="../../05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.ngc" xil_pn:type="FILE_NGC">
       <association xil_pn:name="Implementation"/>
     </file>
-    <file xil_pn:name="../../01_Clock/Clock_module/ipcore_dir/PLL_module.xaw" xil_pn:type="FILE_XAW">
+    <file xil_pn:name="../../01_Clock/Clock_module_200MHzIn_SingEnd/ipcore_dir/PLL_module.xaw" xil_pn:type="FILE_XAW">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
@@ -181,6 +181,10 @@
       <association xil_pn:name="Implementation"/>
     </file>
     <file xil_pn:name="BrdCfg_1RENA_200MHzOnboard.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../01_Clock/Clock_module_200MHzIn_SingEnd/Clock_module_200MHzIn_SingEnd.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
