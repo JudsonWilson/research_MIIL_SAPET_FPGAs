@@ -1,0 +1,96 @@
+diff --git a/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.ucf b/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.ucf
+index 0d63e8c..688d024 100644
+--- a/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.ucf
++++ b/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.ucf
+@@ -11,6 +11,9 @@ NET "clk_200MHz" LOC = L19 | TNM_NET = "clk_200MHz";
+ TIMEGRP Grpclk_200MHz =  "clk_200MHz";
+ TIMESPEC TS_clk_200 = PERIOD "Grpclk_200MHz" 5000 ps HIGH 50 %;
+ 
++NET "clk_50MHzDiff_p" LOC = "J20" | IOSTANDARD=LVDS_25;
++NET "clk_50MHzDiff_n" LOC = "J21" | IOSTANDARD=LVDS_25;
++
+ # for my Spartan board
+ #NET "Tx" LOC = L33;
+ #NET "Rx[0]" LOC = M32;
+diff --git a/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.vhd b/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.vhd
+index 571f718..24a5187 100644
+--- a/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.vhd
++++ b/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.vhd
+@@ -30,13 +30,15 @@ use IEEE.STD_LOGIC_1164.ALL;
+ 
+ -- Uncomment the following library declaration if instantiating
+ -- any Xilinx primitives in this code.
+---library UNISIM;
+---use UNISIM.VComponents.all;
++library UNISIM;
++use UNISIM.VComponents.all;
+ 
+ entity BrdCfg_1RENA_200MHzOnBoard is
+ 	port (
+ 		reset                    : in std_logic;
+ 		clk_200MHz               : in std_logic;
++		clk_50MHzDiff_p          : inout std_logic;
++		clk_50MHzDiff_n          : inout std_logic;
+ 		-- UDP relative interface
+ 		compare_result           : out std_logic;
+ 		-- Ethernet physical chip device interface
+@@ -117,6 +119,8 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
+ 	signal Spartan_signal_input_i   : std_logic;
+ 	signal Spartan_signal_output_i  : std_logic;
+ 
++	signal lowsig : std_logic;
++
+ 	component Clock_module_200MHzIn_SingEnd
+ 		port (
+ 			-- global input
+@@ -221,6 +225,27 @@ begin
+ 	-------------------------------------------------------------------------------------------
+ 	-- Internal module instantiation
+ 	-------------------------------------------------------------------------------------------
++	lowsig <= '0';
++	-- IOBUFDS: Differential Bi-directional Buffer
++	-- Drives an LVDS clock output
++	IOBUFDS_inst : IOBUFDS
++		generic map (
++			IBUF_DELAY_VALUE => "0", -- Specify the amount of added input delay for buffer,
++			-- "0"-"12" (Spartan-3E)
++			-- "0"-"16" (Spartan-3A)
++			IFD_DELAY_VALUE => "AUTO", -- Specify the amount of added delay for input register,
++			-- "AUTO", "0"-"6" (Spartan-3E)
++			-- "AUTO", "0"-"8" (Spartan-3A)
++			IOSTANDARD => "LVDS25"
++		)
++		port map (
++			O => open, -- Buffer output
++			IO => clk_50MHzDiff_p, -- Diff_p inout (connect directly to top-level port)
++			IOB => clk_50MHzDiff_n, -- Diff_n inout (connect directly to top-level port)
++			I => clk_50MHz_i, -- Buffer input
++			T => lowsig -- 3-state enable input, high=input, low=output
++		);
++
+ 	Inst_ClockModule: Clock_module_200MHzIn_SingEnd
+ 		port map (
+ 			-- global input
+diff --git a/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.xise b/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.xise
+index 41bbd08..b09f5cf 100644
+--- a/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.xise
++++ b/Backplane_FPGA/10_BrdCfgs/BrdCfg_1RENA_200MHzOnboard/BrdCfg_1RENA_200MHzOnboard.xise
+@@ -38,7 +38,6 @@
+       <association xil_pn:name="Implementation"/>
+     </file>
+     <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/dist_mem_64x8_flist.txt" xil_pn:type="FILE_USERDOC"/>
+-    <file xil_pn:name="working/PLL_module.vhd" xil_pn:type="FILE_VHDL"/>
+     <file xil_pn:name="../../03_GTP/GTP_module/ipcore_dir/gtp_wrapper.vhd" xil_pn:type="FILE_VHDL">
+       <association xil_pn:name="BehavioralSimulation"/>
+       <association xil_pn:name="Implementation"/>
+@@ -180,10 +179,6 @@
+     <file xil_pn:name="BrdCfg_1RENA_200MHzOnboard.ucf" xil_pn:type="FILE_UCF">
+       <association xil_pn:name="Implementation"/>
+     </file>
+-    <file xil_pn:name="BrdCfg_1RENA_200MHzOnboard.vhd" xil_pn:type="FILE_VHDL">
+-      <association xil_pn:name="BehavioralSimulation"/>
+-      <association xil_pn:name="Implementation"/>
+-    </file>
+     <file xil_pn:name="../../01_Clock/Clock_module_200MHzIn_SingEnd/Clock_module_200MHzIn_SingEnd.vhd" xil_pn:type="FILE_VHDL">
+       <association xil_pn:name="BehavioralSimulation"/>
+       <association xil_pn:name="Implementation"/>
