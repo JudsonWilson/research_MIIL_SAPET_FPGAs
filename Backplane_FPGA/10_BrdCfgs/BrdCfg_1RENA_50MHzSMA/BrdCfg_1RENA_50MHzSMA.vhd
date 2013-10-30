@@ -1,4 +1,4 @@
-	----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 -- Company: 
 -- Engineer: 
 -- 
@@ -116,8 +116,7 @@ architecture Structural of BrdCfg_1RENA_50MHzSMA is
 		port (
 			-- global input
 			reset			  : in std_logic;
-			clk_source_p  : in std_logic;
-			clk_source_n  : in std_logic;
+			clk_source    : in std_logic;
 			-- global output
 			clk_sample    : out std_logic;
 			-- for 125MHz
@@ -216,16 +215,28 @@ begin
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation
 	-------------------------------------------------------------------------------------------
+
+	-- IBUFGDS: Differential Global Clock Input Buffer - Used for LVDS clock input.
+	IBUFGDS_inst : IBUFGDS
+		generic map (
+			DIFF_TERM => TRUE, -- Differential Termination
+			IOSTANDARD => "LVDS_25"
+		)
+		port map (
+			O =>  clk_50MHz_i, -- Clock buffer output
+			I =>  clk_50MHz_p, -- Diff_p clock buffer input (connect to top-level port)
+			IB => clk_50MHz_n  -- Diff_n clock buffer input (connect to top-level port)
+		);
+
 	Inst_ClockModule: Clock_module_50MHzIn_Differential
 		port map (
 			-- global input
 			reset 		=> reset_i,
-			clk_source_p    => clk_50MHz_p,	
-			clk_source_n    => clk_50MHz_n,	
+			clk_source      => clk_50MHz_i,	
 			-- global output
 			clk_sample	=> open, --250MHz clock
 			clk_125MHz	=> clk_125MHz_i,
-			clk_50MHz	=> clk_50MHz_i,
+			clk_50MHz	=> open,
 			clk_12MHz	=> open
 		);
 

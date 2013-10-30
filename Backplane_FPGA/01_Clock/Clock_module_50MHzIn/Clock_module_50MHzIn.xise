@@ -15,7 +15,7 @@
   <version xil_pn:ise_version="12.2" xil_pn:schema_version="2"/>
 
   <files>
-    <file xil_pn:name="Clock_module_50MHzIn_Differential.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="Clock_module_50MHzIn.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
@@ -149,7 +149,7 @@
     <property xil_pn:name="Ignore User Timing Constraints Map" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Ignore User Timing Constraints Par" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Implementation Top" xil_pn:value="Architecture|Clock_module_50MHzIn_Differential|Behavioral" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="Implementation Top File" xil_pn:value="../Clock_module_50MHzIn_Differential.vhd" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="Implementation Top File" xil_pn:value="../Clock_module_50MHzIn.vhd" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Implementation Top Instance Path" xil_pn:value="/Clock_module_50MHzIn_Differential" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Include 'uselib Directive in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Include SIMPRIM Models in Verilog File" xil_pn:value="false" xil_pn:valueState="default"/>

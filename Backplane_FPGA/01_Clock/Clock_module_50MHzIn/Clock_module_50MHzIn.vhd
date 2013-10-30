@@ -33,8 +33,7 @@ entity Clock_module_50MHzIn_Differential is
 	port(
 		-- global input
 		reset		: in std_logic;
-		clk_source_p    : in std_logic;
-		clk_source_n    : in std_logic;
+		clk_source      : in std_logic;
 		-- global output
 		clk_sample	: out std_logic;
 		-- 125MHz
@@ -56,8 +55,7 @@ architecture Behavioral of Clock_module_50MHzIn_Differential is
 	signal reset_vector_i   : std_logic_vector(7 downto 0) := (others => '0');
 	component PLL_Module is
 		port (
-			     CLKIN1_P_IN   	: in    std_logic; 
-			     CLKIN1_N_IN   	: in    std_logic; 
+			     CLKIN1_IN   	: in    std_logic; 
 			     RST_IN      	: in    std_logic; 
 			     CLKOUT0_OUT 	: out   std_logic; 
 			     CLKOUT1_OUT 	: out   std_logic; 
@@ -76,8 +74,7 @@ begin
 
 	Inst_PLL_Module: PLL_Module
 	port map(
-			CLKIN1_P_IN		=> clk_source_p,
-			CLKIN1_N_IN		=> clk_source_n,
+			CLKIN1_IN		=> clk_source,
 			RST_IN			=> reset_l_i,
 			CLKOUT0_OUT		=> clk_sample_i,
 			CLKOUT1_OUT	   => clk_125MHz_i,
