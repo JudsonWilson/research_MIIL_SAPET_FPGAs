@@ -35,6 +35,8 @@ Port (
 	new_data1	:  in STD_LOGIC;
 	data2 		: 	in STD_LOGIC_VECTOR (7 downto 0);
 	new_data2	:  in STD_LOGIC;
+	data3 		: 	in STD_LOGIC_VECTOR (7 downto 0);
+	new_data3	:  in STD_LOGIC;
 	tx_busy 		: 	out STD_LOGIC;
 	tx 			: 	out STD_LOGIC
 	);
@@ -88,6 +90,7 @@ signal next_shift_register : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
 signal fifo_empty1 : std_logic;
 signal fifo_empty2 : std_logic;
+signal fifo_empty3 : std_logic;
 
 signal fifo_data_out1 : std_logic_vector(7 downto 0);
 signal get_next_fifo_data1 : std_logic;
@@ -95,8 +98,11 @@ signal get_next_fifo_data1 : std_logic;
 signal fifo_data_out2 : std_logic_vector(7 downto 0);
 signal get_next_fifo_data2 : std_logic;
 
-signal current_fifo : std_logic;
-signal next_current_fifo : std_logic;
+signal fifo_data_out3 : std_logic_vector(7 downto 0);
+signal get_next_fifo_data3 : std_logic;
+
+signal current_fifo : std_logic_vector(1 downto 0);
+signal next_current_fifo : std_logic_vector(1 downto 0);
 
 signal still_sending_packet : std_logic;
 signal next_still_sending_packet : std_logic;
@@ -125,6 +131,17 @@ TX_FIFO2 : TX_Fifo port map(
 	full	=>		open
 );
 
+TX_FIFO3 : TX_Fifo port map(
+	clk	=>   	mclk,
+	din	=> 	data3,
+	rd_en	=>		get_next_fifo_data3,
+	srst	=> 	'0',
+	wr_en	=> 	new_data3,
+	dout	=>		fifo_data_out3,
+	empty	=> 	fifo_empty3,
+	full	=>		open
+);
+
 debugOut <= state_out;
 
 process(mclk)
@@ -144,6 +161,7 @@ end process;
 
 process( state, baudrate_counter, shift_register, bit_counter,
 			fifo_data_out1, fifo_empty1, fifo_empty2, fifo_data_out2,
+			fifo_data_out3, fifo_empty3,
 			still_sending_packet,
 			current_fifo)
 begin
@@ -152,7 +170,7 @@ begin
 		-- 000
 		when IDLE =>
 			if fifo_empty1 = '0' then
-				next_current_fifo <= '0';
+				next_current_fifo <= "01";
 				next_state <= RETRIEVE_DATA;
 				next_state_out <= "001";
 				next_baudrate_counter <= max_counter - 1;
@@ -162,9 +180,10 @@ begin
 				next_tx <= '1';
 				get_next_fifo_data1 <= '1';  -- this should be clocked probably
 				get_next_fifo_data2 <= '0';
+				get_next_fifo_data3 <= '0';
 				next_still_sending_packet <= '0';
 			elsif fifo_empty2 = '0' then
-				next_current_fifo <= '1';
+				next_current_fifo <= "10";
 				next_state <= RETRIEVE_DATA;
 				next_state_out <= "001";
 				next_baudrate_counter <= max_counter - 1;
@@ -174,6 +193,20 @@ begin
 				next_tx <= '1';
 				get_next_fifo_data1 <= '0';
 				get_next_fifo_data2 <= '1';
+				get_next_fifo_data3 <= '0';
+				next_still_sending_packet <= '0';
+			elsif fifo_empty3 = '0' then
+				next_current_fifo <= "11";
+				next_state <= RETRIEVE_DATA;
+				next_state_out <= "001";
+				next_baudrate_counter <= max_counter - 1;
+				next_shift_register <= fifo_data_out3;
+				next_bit_counter <= 7;
+				next_busy <= '1';
+				next_tx <= '1';
+				get_next_fifo_data1 <= '0';
+				get_next_fifo_data2 <= '0';
+				get_next_fifo_data3 <= '1';
 				next_still_sending_packet <= '0';
 			else
 				next_current_fifo <= current_fifo;
@@ -186,6 +219,7 @@ begin
 				next_tx <= '1';
 				get_next_fifo_data1 <= '0';
 				get_next_fifo_data2 <= '0';
+				get_next_fifo_data3 <= '0';
 				next_still_sending_packet <= '0';
 			end if;
 
@@ -194,10 +228,24 @@ begin
 			next_state <= SEND_START_BIT;
 			next_state_out <= "010";
 			next_baudrate_counter <= max_counter - 1;
-			if current_fifo = '0' then
+			if current_fifo = "01" or current_fifo = "00" then  -- Don't care about the 00 case, just lump it here for less logic (top bit the same)
 				next_shift_register <= fifo_data_out1;
 				case fifo_data_out1 is
 					when x"81" =>
+						next_still_sending_packet <= '1';
+					when x"84" =>
+						next_still_sending_packet <= '1';
+					when x"FF" =>
+						next_still_sending_packet <= '0';
+					when others =>
+						next_still_sending_packet <= still_sending_packet;
+				end case;
+			elsif current_fifo = "10" then
+				next_shift_register <= fifo_data_out2;
+				case fifo_data_out2 is
+					when x"81" =>
+						next_still_sending_packet <= '1';
+					when x"84" =>
 						next_still_sending_packet <= '1';
 					when x"FF" =>
 						next_still_sending_packet <= '0';
@@ -205,9 +253,11 @@ begin
 						next_still_sending_packet <= still_sending_packet;
 				end case;
 			else
-				next_shift_register <= fifo_data_out2;
-				case fifo_data_out2 is
+				next_shift_register <= fifo_data_out3;
+				case fifo_data_out3 is
 					when x"81" =>
+						next_still_sending_packet <= '1';
+					when x"84" =>
 						next_still_sending_packet <= '1';
 					when x"FF" =>
 						next_still_sending_packet <= '0';
@@ -220,6 +270,7 @@ begin
 			next_tx <= '1';
 			get_next_fifo_data1 <= '0';
 			get_next_fifo_data2 <= '0';
+			get_next_fifo_data3 <= '0';
 			next_current_fifo <= current_fifo;
 
 		-- 010
@@ -229,6 +280,7 @@ begin
 			next_bit_counter <= 7;
 			get_next_fifo_data1 <= '0';
 			get_next_fifo_data2 <= '0';
+			get_next_fifo_data3 <= '0';
 			next_tx <= '0';
 
 			if baudrate_counter = 0 then
@@ -249,6 +301,7 @@ begin
 			next_busy <= '1';
 			get_next_fifo_data1 <= '0';
 			get_next_fifo_data2 <= '0';
+			get_next_fifo_data3 <= '0';
 			next_current_fifo <= current_fifo;
 			next_still_sending_packet <= still_sending_packet;
 
@@ -282,6 +335,7 @@ begin
 		when SEND_STOP_BIT =>
 			get_next_fifo_data1 <= '0';
 			get_next_fifo_data2 <= '0';
+			get_next_fifo_data3 <= '0';
 			next_current_fifo <= current_fifo;
 			next_still_sending_packet <= still_sending_packet;
 
@@ -307,6 +361,7 @@ begin
 		when SEND_STOP_BIT2 =>
 			get_next_fifo_data1 <= '0';
 			get_next_fifo_data2 <= '0';
+			get_next_fifo_data3 <= '0';
 			next_current_fifo <= current_fifo;
 			next_still_sending_packet <= still_sending_packet;
 
@@ -330,136 +385,101 @@ begin
 
 		-- 110
 		when CHECK_IF_MORE_DATA =>
-			-- We are currently sending data from fifo 0?
-			if current_fifo = '0' then
-				-- Read new data from fifo 0 if it is not empty
-				if fifo_empty1 = '0' then
-					next_current_fifo <= '0';
-					next_still_sending_packet <= still_sending_packet;
-					next_state <= RETRIEVE_DATA;
-					next_state_out <= "001";
-					next_baudrate_counter <= max_counter - 1;
+			-- Can we read more data from the current fifo?
+			if (current_fifo = "01" and fifo_empty1 = '0') or
+				(current_fifo = "10" and fifo_empty2 = '0') or
+				(current_fifo = "11" and fifo_empty3 = '0') then
+				--
+				if current_fifo = "01" then
 					next_shift_register <= fifo_data_out1;
-					next_bit_counter <= 7;
-					next_busy <= '1';
-					next_tx <= '1';
 					get_next_fifo_data1 <= '1';
 					get_next_fifo_data2 <= '0';
-				-- If fifo 0 is empty
-				else
-					-- If we are in the middle of a packet, the remainder of
-					-- the packet must be being written to fifo 0 still. So 
-					-- wait and finish sending the packet first, i.e. see the 
-					-- termination character 0xFF, before switching to fifo 1.
-					if (still_sending_packet = '1') then
-						next_current_fifo <= '0';
-						next_still_sending_packet <= still_sending_packet;
-						next_state <= CHECK_IF_MORE_DATA;
-						next_state_out <= "110";
-						next_baudrate_counter <= max_counter - 1;
-						next_shift_register <= shift_register;
-						next_bit_counter <= 7;
-						next_busy <= '1';
-						next_tx <= '1';
-						get_next_fifo_data1 <= '0';
-						get_next_fifo_data2 <= '0';
-					else
-						-- If we have finished sending a full packet from fifo 
-						-- 0, switch to sending data from fifo 1 if it is not 
-						-- empty.
-						if fifo_empty2 = '0' then
-							next_current_fifo <= '1';
-							next_still_sending_packet <= still_sending_packet;
-							next_state <= RETRIEVE_DATA;
-							next_state_out <= "001";
-							next_baudrate_counter <= max_counter - 1;
-							next_shift_register <= fifo_data_out2;
-							next_bit_counter <= 7;
-							next_busy <= '1';
-							next_tx <= '1';
-							get_next_fifo_data1 <= '0';
-							get_next_fifo_data2 <= '1';
-						else
-							next_current_fifo <= current_fifo;
-							next_still_sending_packet <= still_sending_packet;
-							next_state <= IDLE;
-							next_state_out <= "000";
-							next_baudrate_counter <= max_counter - 1;
-							next_shift_register <= shift_register;
-							next_bit_counter <= 7;
-							next_busy <= '0';
-							next_tx <= '1';
-							get_next_fifo_data1 <= '0';
-							get_next_fifo_data2 <= '0';
-						end if;
-					end if;
-				end if;
-			-- We are currently sending data from fifo 1
-			else
-				-- Read new data from fifo 1 if it is not empty
-				if fifo_empty2 = '0' then
-					next_current_fifo <= '1';
-					next_still_sending_packet <= still_sending_packet;
-					next_state <= RETRIEVE_DATA;
-					next_state_out <= "001";
-					next_baudrate_counter <= max_counter - 1;
+					get_next_fifo_data3 <= '0';
+				elsif current_fifo = "10" then
 					next_shift_register <= fifo_data_out2;
+					get_next_fifo_data1 <= '0';
+					get_next_fifo_data2 <= '1';
+					get_next_fifo_data3 <= '0';
+				else
+					next_shift_register <= fifo_data_out3;
+					get_next_fifo_data1 <= '0';
+					get_next_fifo_data2 <= '0';
+					get_next_fifo_data3 <= '1';
+				end if;
+				next_current_fifo <= current_fifo;
+				next_still_sending_packet <= still_sending_packet;
+				next_state <= RETRIEVE_DATA;
+				next_state_out <= "001";
+				next_baudrate_counter <= max_counter - 1;
+				next_bit_counter <= 7;
+				next_busy <= '1';
+				next_tx <= '1';
+			-- If current fifo is empty
+			else
+				-- If we are in the middle of a packet, the remainder of
+				-- the packet must be being written to its fifo still. So 
+				-- wait and finish sending the packet first, i.e. see the 
+				-- termination character 0xFF, before switching to fifos.
+				if (still_sending_packet = '1') then
+					next_current_fifo <= current_fifo;
+					next_still_sending_packet <= still_sending_packet;
+					next_state <= CHECK_IF_MORE_DATA;
+					next_state_out <= "110";
+					next_baudrate_counter <= max_counter - 1;
+					next_shift_register <= shift_register;
 					next_bit_counter <= 7;
 					next_busy <= '1';
 					next_tx <= '1';
 					get_next_fifo_data1 <= '0';
-					get_next_fifo_data2 <= '1';
-				-- If fifo 0 is empty
+					get_next_fifo_data2 <= '0';
+					get_next_fifo_data3 <= '0';
 				else
-					-- If we are in the middle of a packet, the remainder of
-					-- the packet must be being written to fifo 1 still. So 
-					-- wait and finish sending the packet first, i.e. see the 
-					-- termination character 0xFF, before switching to fifo 0.
-					if (still_sending_packet = '1') then
-						next_current_fifo <= '1';
-						next_still_sending_packet <= still_sending_packet;
-						next_state <= CHECK_IF_MORE_DATA;
-						next_state_out <= "110";
-						next_baudrate_counter <= max_counter - 1;
-						next_shift_register <= shift_register;
-						next_bit_counter <= 7;
+					-- If we have finished sending a full packet from current 
+					-- fifo, switch to sending data from highest priority fifo
+					-- that has data, if any. This is probably overkill, as I
+					-- think the fifos will stop filling at this point, so
+					-- order is probably not important.
+					-- Data fifos (1 and 2) have higher priority than
+					-- diagnostic fifo (3)
+					
+					--defaults (overriden if another fifo ready)
+					next_current_fifo <= current_fifo;
+					next_still_sending_packet <= still_sending_packet;
+					next_state <= IDLE;
+					next_state_out <= "000";
+					next_baudrate_counter <= max_counter - 1;
+					next_shift_register <= shift_register;
+					next_bit_counter <= 7;
+					next_busy <= '0';
+					next_tx <= '1';
+					get_next_fifo_data1 <= '0';
+					get_next_fifo_data2 <= '0';
+					get_next_fifo_data3 <= '0';
+					--switch fifo if above condition true
+					if fifo_empty1 = '0' then
+						next_current_fifo <= "01";
+						next_state <= RETRIEVE_DATA;
+						next_state_out <= "001";
+						next_shift_register <= fifo_data_out1;
 						next_busy <= '1';
-						next_tx <= '1';
-						get_next_fifo_data1 <= '0';
-						get_next_fifo_data2 <= '0';
-					else
-						-- If we have finished sending a full packet from fifo 
-						-- 1, switch to sending data from fifo 0 if it is not 
-						-- empty.
-						if fifo_empty1 = '0' then
-							next_current_fifo <= '0';
-							next_still_sending_packet <= still_sending_packet;
-							next_state <= RETRIEVE_DATA;
-							next_state_out <= "001";
-							next_baudrate_counter <= max_counter - 1;
-							next_shift_register <= fifo_data_out1;
-							next_bit_counter <= 7;
-							next_busy <= '1';
-							next_tx <= '1';
-							get_next_fifo_data1 <= '1';
-							get_next_fifo_data2 <= '0';
-						else
-							next_current_fifo <= current_fifo;
-							next_still_sending_packet <= still_sending_packet;
-							next_state <= IDLE;
-							next_state_out <= "000";
-							next_baudrate_counter <= max_counter - 1;
-							next_shift_register <= shift_register;
-							next_bit_counter <= 7;
-							next_busy <= '0';
-							next_tx <= '1';
-							get_next_fifo_data1 <= '0';
-							get_next_fifo_data2 <= '0';
-						end if;
+						get_next_fifo_data1 <= '1';
+					elsif fifo_empty2 = '0' then
+						next_current_fifo <= "10";
+						next_state <= RETRIEVE_DATA;
+						next_state_out <= "001";
+						next_shift_register <= fifo_data_out2;
+						next_busy <= '1';
+						get_next_fifo_data2 <= '1';
+					elsif fifo_empty3 = '0' then
+						next_current_fifo <= "11";
+						next_state <= RETRIEVE_DATA;
+						next_state_out <= "001";
+						next_shift_register <= fifo_data_out3;
+						next_busy <= '1';
+						get_next_fifo_data3 <= '1';
 					end if;
 				end if;
 			end if;
-
 		when others =>
 			next_still_sending_packet <= still_sending_packet;
 			next_state <= IDLE;
@@ -471,6 +491,7 @@ begin
 			next_tx <= '1';
 			get_next_fifo_data1 <= '0';
 			get_next_fifo_data2 <= '0';
+			get_next_fifo_data3 <= '0';
 			next_current_fifo <= current_fifo;
 	end case;
 end process;

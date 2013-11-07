@@ -234,7 +234,11 @@ component RX_Decode
 		ANODE_MASK1         : out  STD_LOGIC_VECTOR(35 downto 0);
 		ANODE_MASK2         : out  STD_LOGIC_VECTOR(35 downto 0);
 		CATHODE_MASK1       : out  STD_LOGIC_VECTOR(35 downto 0);
-		CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0));
+		CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0);
+		DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
+		DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
+		DIAGNOSTIC_SEND     : out  STD_LOGIC
+	);
 end component;
 
 component RS232_tx_buffered
@@ -245,6 +249,8 @@ component RS232_tx_buffered
 		new_data1 : IN std_logic;
 		data2     : IN std_logic_vector(7 downto 0);
 		new_data2 : IN std_logic;	
+		data3     : IN std_logic_vector(7 downto 0);
+		new_data3 : IN std_logic;	
 		tx_busy   : OUT std_logic;
 		tx        : OUT std_logic);
 end component;
@@ -318,6 +324,27 @@ Port (
 	-- Unused
 	-- OVERFLOW           : in std_logic
 		);
+end component;
+
+constant num_rena_settings_bits: INTEGER := 136;
+
+component diagnostic_messenger is
+	Generic (
+		num_bug_bits : INTEGER
+	);
+	Port (
+		clk   : in STD_LOGIC;
+		reset : in STD_LOGIC;
+
+		send  : in  STD_LOGIC; -- Pulse to send the current state out to the TX, and reset the state
+
+		packet_data    : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
+		packet_data_wr : out STD_LOGIC;                     -- Tells the TX that data is valid. Pulse once per byte.
+
+		rena1_settings    : in STD_LOGIC_VECTOR (num_rena_settings_bits-1 downto 0); --Last value that was programmed to rena1
+		rena2_settings    : in STD_LOGIC_VECTOR (num_rena_settings_bits-1 downto 0); --Last value that was programmed to rena2
+		bug_notifications : in STD_LOGIC_VECTOR (num_bug_bits-1 downto 0) --Pulse a bit to notify that an occurence of that bug happened.
+	);
 end component;
 
 -- Debug
@@ -395,6 +422,16 @@ signal next_ITRIG : std_logic;
 
 signal decoderDebug : std_logic_vector(2 downto 0);
 signal txDebug : std_logic_vector(2 downto 0);
+
+signal diagnostic_rena1_settings : std_logic_vector(40 downto 0);
+signal diagnostic_rena2_settings : std_logic_vector(40 downto 0);
+signal diagnostic_full_rena1_settings : std_logic_vector(135 downto 0);
+signal diagnostic_full_rena2_settings : std_logic_vector(135 downto 0);
+signal diagnostic_bug_notifications : std_logic_vector(29 downto 0);
+signal diagnostic_packet_data    : std_logic_vector(7 downto 0);
+signal diagnostic_packet_data_wr : std_logic;
+signal diagnostic_send : std_logic;
+
 begin
 
 --========================================================================
@@ -672,7 +709,10 @@ RX_Decoder:  RX_Decode port map(
 			  ANODE_MASK1 => anode_mask1,
 			  ANODE_MASK2 => anode_mask2,
 			  CATHODE_MASK1 => cathode_mask1,
-			  CATHODE_MASK2 => cathode_mask2
+			  CATHODE_MASK2 => cathode_mask2,
+			  diagnostic_rena1_settings => diagnostic_rena1_settings,
+			  diagnostic_rena2_settings => diagnostic_rena2_settings,
+			  DIAGNOSTIC_SEND => diagnostic_send
 			  );
 
 --========================================================================
@@ -685,6 +725,8 @@ TX_2buffers: RS232_tx_buffered PORT MAP(
 		new_data1 => new_data1,
 		data2 => data2,
 		new_data2 => new_data2,
+		data3 => diagnostic_packet_data,
+		new_data3 => diagnostic_packet_data_wr,
 		tx_busy => tx_busy,
 		tx => tx
 	);
@@ -791,5 +833,26 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	CLF => CLF2,
 	CLS => CLS2
 );
+
+-- Assemble bits into vectors
+diagnostic_bug_notifications <= diagnostic_full_rena1_settings(100 downto 71); ---- HACK!!!!!!!!!!!
+diagnostic_full_rena1_settings <= anode_mask1 & cathode_mask1 & diagnostic_rena1_settings & "0000000000" & "0000000000" & "000"; -- hack bits at the end!
+diagnostic_full_rena2_settings <= anode_mask2 & cathode_mask2 & diagnostic_rena2_settings & "0000000000" & "0000000000" & "000"; -- hack bits at the end!
+
+DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
+	GENERIC MAP(
+		num_bug_bits => 30
+	)
+	PORT MAP (
+		clk   => systemClk,
+		reset => rst,
+		send  => diagnostic_send,
+		packet_data    => diagnostic_packet_data,
+		packet_data_wr => diagnostic_packet_data_wr,
+		rena1_settings    => diagnostic_full_rena1_settings,
+		rena2_settings    => diagnostic_full_rena2_settings,
+		bug_notifications => diagnostic_bug_notifications
+	);
+
 
 end Behavioral;

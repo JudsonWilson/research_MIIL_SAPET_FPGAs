@@ -58,7 +58,10 @@ entity RX_Decode is
 			  ANODE_MASK1         : out  STD_LOGIC_VECTOR(35 downto 0);
 			  ANODE_MASK2         : out  STD_LOGIC_VECTOR(35 downto 0);
 			  CATHODE_MASK1       : out  STD_LOGIC_VECTOR(35 downto 0);
-			  CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0)
+			  CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0);
+			  DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
+			  DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
+			  DIAGNOSTIC_SEND     : out  STD_LOGIC
 			 );
 end RX_Decode;
 
@@ -147,6 +150,14 @@ architecture Behavioral of RX_Decode is
   signal int_cathode_mask2  : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
   signal next_cathode_mask2 : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
   
+  signal int_diagnostic_rena1_settings  : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
+  signal next_diagnostic_rena1_settings : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
+  signal int_diagnostic_rena2_settings  : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
+  signal next_diagnostic_rena2_settings : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
+
+  signal int_diagnostic_send : std_logic := '0';
+  signal diagnostic_send_next : std_logic := '0';
+
   signal sync_new_data  : std_logic;
   signal sync_ms_bits   : std_logic_vector(1 downto 0);
   signal sync_fpga_instr_bits : std_logic_vector(5 downto 0);
@@ -190,6 +201,9 @@ ANODE_MASK1   <= int_anode_mask1;
 ANODE_MASK2   <= int_anode_mask2;
 CATHODE_MASK1 <= int_cathode_mask1;
 CATHODE_MASK2 <= int_cathode_mask2;
+DIAGNOSTIC_RENA1_SETTINGS <= int_diagnostic_rena1_settings;
+DIAGNOSTIC_RENA2_SETTINGS <= int_diagnostic_rena2_settings;
+DIAGNOSTIC_SEND <= int_diagnostic_send;
 		
 --========================================================================
 -- Sequential logic
@@ -229,6 +243,11 @@ process(mclk)
 		int_anode_mask2 <= next_anode_mask2;
 		int_cathode_mask1 <= next_cathode_mask1;
 		int_cathode_mask2 <= next_cathode_mask2;
+
+		int_diagnostic_rena1_settings <= next_diagnostic_rena1_settings;
+		int_diagnostic_rena2_settings <= next_diagnostic_rena2_settings;
+
+		int_diagnostic_send <= diagnostic_send_next;
 	end if;
 end process;
 
@@ -271,6 +290,10 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 		next_cathode_mask1 <= int_cathode_mask1;
 		next_cathode_mask2 <= int_cathode_mask2;
 		
+		next_diagnostic_rena1_settings <= int_diagnostic_rena1_settings;
+		next_diagnostic_rena2_settings <= int_diagnostic_rena2_settings;
+
+		diagnostic_send_next <= '0'; -- A state will pulse this for 1 cycle.
 		
 		if (sync_new_data = '1') then
 		
@@ -317,7 +340,12 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 							when "0101" =>
 								next_rena_settings_data <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
 								next_rena_settings_chip	<= rx_buffer(6)(5);
-								
+								-- would be nice to do the following with synchronous outputs, but would require a lot more FFs.
+								if rx_buffer(6)(5) = '0' then
+									next_diagnostic_rena1_settings <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
+								else
+									next_diagnostic_rena2_settings <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
+								end if;
 							-- OR mode trigger
 							when "0110" =>
 								next_or_mode_trigger1 <= rx_buffer(0)(0);
@@ -397,7 +425,11 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 										next_follower_mode_chan <= "111111";
 										next_follower_mode_tclk <= "00";
 								end case;
-								
+
+							-- Send diagnostic message back to PC.
+							when "1110" =>
+								diagnostic_send_next <= '1';
+
 							when others =>
 								null;
 						end case;
