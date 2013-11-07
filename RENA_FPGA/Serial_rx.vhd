@@ -39,7 +39,8 @@ architecture Behavioral of Serial_rx is
 -- Constant definitions
 constant system_speed       : natural := 48000000; -- HZ
 constant system_speed_x2    : natural := system_speed*2; -- Hz
-constant baudrate           : natural := 48000000; -- baud
+constant baudrate           : natural := 48000000; -- baud setting for UDP
+--constant baudrate           : natural := 12000000; -- baud setting for USB
 constant max_counter_rx  : natural := system_speed_x2 / baudrate;
 constant max_counter_sys : natural := system_speed_x2 / system_speed;
 

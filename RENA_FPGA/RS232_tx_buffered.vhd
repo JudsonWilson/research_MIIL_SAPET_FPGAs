@@ -43,7 +43,8 @@ end RS232_tx_buffered;
 architecture Behavioral of RS232_tx_buffered is
 
 constant system_speed : natural := 48000000; --HZ 
-constant baudrate : natural := 48000000; -- baud
+constant baudrate : natural := 48000000; -- baud setting for UDP
+--constant baudrate : natural := 12000000; -- baud setting for USB
 constant max_counter: natural := system_speed / baudrate;
 
 component TX_Fifo
