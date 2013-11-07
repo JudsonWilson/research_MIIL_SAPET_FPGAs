@@ -143,6 +143,7 @@ end process;
 
 process( state, baudrate_counter, shift_register, bit_counter,
 			fifo_data_out1, fifo_empty1, fifo_empty2, fifo_data_out2,
+			still_sending_packet,
 			current_fifo)
 begin
 
