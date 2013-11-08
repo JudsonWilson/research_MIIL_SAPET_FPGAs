@@ -326,7 +326,7 @@ Port (
 		);
 end component;
 
-constant num_rena_settings_bits: INTEGER := 136;
+constant num_rena_settings_bits: INTEGER := 128;
 
 component diagnostic_messenger is
 	Generic (
@@ -425,8 +425,8 @@ signal txDebug : std_logic_vector(2 downto 0);
 
 signal diagnostic_rena1_settings : std_logic_vector(40 downto 0);
 signal diagnostic_rena2_settings : std_logic_vector(40 downto 0);
-signal diagnostic_full_rena1_settings : std_logic_vector(135 downto 0);
-signal diagnostic_full_rena2_settings : std_logic_vector(135 downto 0);
+signal diagnostic_full_rena1_settings : std_logic_vector(128-1 downto 0);
+signal diagnostic_full_rena2_settings : std_logic_vector(128-1 downto 0);
 signal diagnostic_bug_notifications : std_logic_vector(29 downto 0);
 signal diagnostic_packet_data    : std_logic_vector(7 downto 0);
 signal diagnostic_packet_data_wr : std_logic;
@@ -836,8 +836,14 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 
 -- Assemble bits into vectors
 diagnostic_bug_notifications <= diagnostic_full_rena1_settings(100 downto 71); ---- HACK!!!!!!!!!!!
-diagnostic_full_rena1_settings <= anode_mask1 & cathode_mask1 & diagnostic_rena1_settings & "0000000000" & "0000000000" & "000"; -- hack bits at the end!
-diagnostic_full_rena2_settings <= anode_mask2 & cathode_mask2 & diagnostic_rena2_settings & "0000000000" & "0000000000" & "000"; -- hack bits at the end!
+diagnostic_full_rena1_settings
+   <= anode_mask1 & cathode_mask1 & diagnostic_rena1_settings
+     & or_mode_trigger1 & force_trigger1 & selective_read & enable_readout1 & coincidence_read
+     & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk;
+diagnostic_full_rena2_settings
+   <= anode_mask2 & cathode_mask2 & diagnostic_rena2_settings
+     & or_mode_trigger1 & force_trigger1 & selective_read & enable_readout1 & coincidence_read -- redundant, but oh well
+     & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk;              -- redundant, but oh well
 
 DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 	GENERIC MAP(
