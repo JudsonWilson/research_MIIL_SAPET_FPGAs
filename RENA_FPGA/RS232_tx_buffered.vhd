@@ -62,6 +62,14 @@ port (
 	);
 end component;
 
+component crc8byte
+	port (
+		new_byte : in  std_logic_vector(7 downto 0);
+		prev_crc : in  std_logic_vector(7 downto 0);
+		next_crc : out std_logic_vector(7 downto 0)
+	);
+end component;
+
 type state_type is (
 	IDLE,
 	FINISH_RETRIEVE_DATA_FROM_FIFO,
@@ -75,6 +83,16 @@ signal state: state_type := IDLE;
 signal next_state : state_type := IDLE;
 signal state_out : std_logic_vector (2 downto 0);
 signal next_state_out : std_logic_vector (2 downto 0);
+
+-- The data source state is used to hold states that signify whether
+-- grabbing data from a FIFO for the beginning of a packet, or
+-- inserting crc bytes at the end of a packet.
+constant DATA_SOURCE_FIFOS : std_logic_vector (1 downto 0) := "00";
+constant DATA_SOURCE_CRC2  : std_logic_vector (1 downto 0) := "01"; -- CRC last 4 bits,  just before end of packet. (First 4 bits triggered by FIFO 0xFF).
+constant DATA_SOURCE_FF    : std_logic_vector (1 downto 0) := "10"; -- x"FF" code at end of packet
+constant DATA_SOURCE_DONE  : std_logic_vector (1 downto 0) := "11"; -- Packet is done loading data. Once sent, find new packet to send.
+signal data_source : std_logic_vector (1 downto 0); -- Sort of a state machine hack used to insert the CRC before the last 0xFF byte.
+signal next_data_source : std_logic_vector (1 downto 0); -- Sort of a state machine hack used to insert the CRC before the last 0xFF byte.
 
 signal next_tx : std_logic;
 signal next_busy : std_logic;
@@ -108,8 +126,11 @@ signal current_fifo_empty : std_logic;
 signal current_fifo_data_out : std_logic_vector(7 downto 0);
 signal get_next_current_fifo_data : std_logic;
 
-signal still_sending_packet : std_logic;
-signal next_still_sending_packet : std_logic;
+signal crc_new_byte      : std_logic_vector(7 downto 0);
+signal next_crc_new_byte : std_logic_vector(7 downto 0);
+signal crc_prev_crc      : std_logic_vector(7 downto 0);
+signal next_crc_prev_crc : std_logic_vector(7 downto 0);
+signal crc_new_crc       : std_logic_vector(7 downto 0);
 
 begin
 
@@ -146,6 +167,13 @@ TX_FIFO3 : TX_Fifo port map(
 	full	=>		open
 );
 
+CRC8_CALCULATOR: crc8byte
+	port map(
+		new_byte => crc_new_byte,
+		prev_crc => crc_prev_crc,
+		next_crc => crc_new_crc
+	);
+
 debugOut <= state_out;
 
 process(mclk)
@@ -153,13 +181,15 @@ begin
 	if rising_edge(mclk) then
 		state <= next_state;
 		state_out <= next_state_out;
+		data_source <= next_data_source;
 		tx <= next_tx;
 		tx_busy <= next_busy;
 		baudrate_counter <= next_baudrate_counter;
 		shift_register <= next_shift_register;
 		bit_counter <= next_bit_counter;
 		current_fifo <= next_current_fifo;
-		still_sending_packet <= next_still_sending_packet;
+		crc_new_byte <= next_crc_new_byte;
+		crc_prev_crc <= next_crc_prev_crc;
 	end if;
 end process;
 
@@ -207,10 +237,10 @@ begin
 end process fifo_mux_proc;
 
 
-process( state, baudrate_counter, shift_register, bit_counter,
+process( state, data_source, baudrate_counter, shift_register, bit_counter,
          fifo_empty1, fifo_empty2, fifo_empty3,
-         still_sending_packet,
-         current_fifo, current_fifo_data_out, current_fifo_empty
+         current_fifo, current_fifo_data_out, current_fifo_empty,
+         crc_new_byte, crc_prev_crc, crc_new_crc
        )
 begin
 
@@ -230,42 +260,66 @@ begin
 				--Setup retrieval of data
 				next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
 				next_state_out <= "001";
-				next_baudrate_counter <= max_counter - 1;
-				next_shift_register <= shift_register;
-				next_bit_counter <= 7;
 				next_busy <= '1';
-				next_tx <= '1';
 				get_next_current_fifo_data <= '1';
-				next_still_sending_packet <= '0';
 			else
 				next_current_fifo <= current_fifo;
 				next_state <= state;
 				next_state_out <= "000";
-				next_baudrate_counter <= max_counter - 1;
-				next_shift_register <= shift_register;
-				next_bit_counter <= 7;
 				next_busy <= '0';
-				next_tx <= '1';
 				get_next_current_fifo_data <= '0';
-				next_still_sending_packet <= '0';
 			end if;
+			next_baudrate_counter <= max_counter - 1;
+			next_shift_register <= shift_register;
+			next_bit_counter <= 7;
+			next_tx <= '1';
+			next_data_source <= DATA_SOURCE_DONE; --Leave as done, used for diagnostic purposes on the first byte of next packet.
+			next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+			next_crc_new_byte <= crc_new_byte;
 
 		-- 001
 		when FINISH_RETRIEVE_DATA_FROM_FIFO =>
 			next_state <= SEND_START_BIT;
 			next_state_out <= "010";
 			next_baudrate_counter <= max_counter - 1;
+			--TODO: check the top bit on everyth byte, and only allow "1" if valid starting token and data_source=DATA_SOURCE_NONE
 			case current_fifo_data_out is
-				when x"81" =>
-					next_still_sending_packet <= '1';
-				when x"84" =>
-					next_still_sending_packet <= '1';
-				when x"FF" =>
-					next_still_sending_packet <= '0';
-				when others =>
-					next_still_sending_packet <= still_sending_packet;
+			--Valid Start-of-Packet Token.
+			when x"81" =>
+				next_shift_register <= current_fifo_data_out;
+				next_data_source <= DATA_SOURCE_FIFOS;
+				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
+				next_crc_new_byte <= current_fifo_data_out;
+			when x"82" =>
+				next_shift_register <= current_fifo_data_out;
+				next_data_source <= DATA_SOURCE_FIFOS;
+				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
+				next_crc_new_byte <= current_fifo_data_out;
+			when x"84" =>
+				next_shift_register <= current_fifo_data_out;
+				next_data_source <= DATA_SOURCE_FIFOS;
+				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
+				next_crc_new_byte <= current_fifo_data_out;
+			--End-of-Packet Token
+			when x"FF" =>
+				--We have just read the last byte in the packet. Insert the crc bytes now.
+				next_shift_register <= "0000" & crc_new_crc(7 downto 4);
+				next_data_source <= DATA_SOURCE_CRC2;
+				next_crc_prev_crc <= crc_prev_crc; -- do not update crc, it is done for packet, hold inputs constant
+				next_crc_new_byte <= crc_new_byte;
+			--Body, or Erroneous Token
+			when others =>
+				--body of packet, unless DATA_SOURCE_DONE, then error
+				if data_source = DATA_SOURCE_DONE then
+					-- TODO FIXME: This is a bug condition. Throw diagnostic.
+					-- This should be the start of a packet but is the wrong
+					-- byte code.
+				end if;
+				next_shift_register <= current_fifo_data_out;
+				next_data_source <= data_source; --If in DATA_SOURCE_DONE error condition, stay done, will give priority to other FIFOs, etc. Untested, may be the wrong thing to do.
+				next_crc_prev_crc <= crc_new_crc; -- update the crc. Feed last value in as new input, with next byte in packet.
+				next_crc_new_byte <= current_fifo_data_out;
 			end case;
-			next_shift_register <= current_fifo_data_out;
 			next_bit_counter <= 7;
 			next_busy <= '1';
 			next_tx <= '1';
@@ -277,8 +331,11 @@ begin
 			next_shift_register <= shift_register;
 			next_busy <= '1';
 			next_bit_counter <= 7;
-			get_next_current_fifo_data <= '0';
 			next_tx <= '0';
+			get_next_current_fifo_data <= '0';
+			next_data_source <= data_source;
+			next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+			next_crc_new_byte <= crc_new_byte;
 
 			if baudrate_counter = 0 then
 				next_state <= SEND_BITS;
@@ -291,14 +348,15 @@ begin
 			end if;
 
 			next_current_fifo <= current_fifo;
-			next_still_sending_packet <= still_sending_packet;
 
 		-- 011
 		when SEND_BITS =>
 			next_busy <= '1';
 			get_next_current_fifo_data <= '0';
+			next_data_source <= data_source;
+			next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+			next_crc_new_byte <= crc_new_byte;
 			next_current_fifo <= current_fifo;
-			next_still_sending_packet <= still_sending_packet;
 
 			if baudrate_counter = 0 then
 				next_baudrate_counter <= max_counter - 1;
@@ -329,8 +387,10 @@ begin
 		-- 100
 		when SEND_STOP_BIT =>
 			get_next_current_fifo_data <= '0';
+			next_data_source <= data_source;
+			next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+			next_crc_new_byte <= crc_new_byte;
 			next_current_fifo <= current_fifo;
-			next_still_sending_packet <= still_sending_packet;
 
 			if baudrate_counter = 0 then
 				next_state <= SEND_STOP_BIT2;
@@ -353,8 +413,10 @@ begin
 		-- 101
 		when SEND_STOP_BIT2 =>
 			get_next_current_fifo_data <= '0';
+			next_data_source <= data_source;
+			next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+			next_crc_new_byte <= crc_new_byte;
 			next_current_fifo <= current_fifo;
-			next_still_sending_packet <= still_sending_packet;
 
 			if baudrate_counter = 0 then
 				next_state <= CHECK_IF_MORE_DATA;
@@ -376,27 +438,28 @@ begin
 
 		-- 110
 		when CHECK_IF_MORE_DATA =>
-			-- Can we read more data from the current fifo?
-			if current_fifo_empty = '0' then
-				next_shift_register <= shift_register;
-				get_next_current_fifo_data <= '1';
-				next_current_fifo <= current_fifo;
-				next_still_sending_packet <= still_sending_packet;
-				next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
-				next_state_out <= "001";
-				next_baudrate_counter <= max_counter - 1;
-				next_bit_counter <= 7;
-				next_busy <= '1';
-				next_tx <= '1';
-			-- If current fifo is empty
-			else
+			case data_source is
+			-- Middle of packet. Wait here for more FIFO data. Must complete the packet.
+			when DATA_SOURCE_FIFOS =>
+				-- Can we read more data from the current fifo immediately?
+				if current_fifo_empty = '0' then
+					next_shift_register <= shift_register;
+					get_next_current_fifo_data <= '1';
+					next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+					next_data_source <= data_source;
+					next_crc_new_byte <= crc_new_byte;
+					next_current_fifo <= current_fifo;
+					next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
+					next_state_out <= "001";
+					next_baudrate_counter <= max_counter - 1;
+					next_bit_counter <= 7;
+					next_busy <= '1';
+					next_tx <= '1';
 				-- If we are in the middle of a packet, the remainder of
 				-- the packet must be being written to its fifo still. So 
-				-- wait and finish sending the packet first, i.e. see the 
-				-- termination character 0xFF, before switching to fifos.
-				if (still_sending_packet = '1') then
+				-- wait and finish sending the packet.
+				else
 					next_current_fifo <= current_fifo;
-					next_still_sending_packet <= still_sending_packet;
 					next_state <= CHECK_IF_MORE_DATA;
 					next_state_out <= "110";
 					next_baudrate_counter <= max_counter - 1;
@@ -405,46 +468,83 @@ begin
 					next_busy <= '1';
 					next_tx <= '1';
 					get_next_current_fifo_data <= '0';
-				else
-					-- If we have finished sending a full packet from current 
-					-- fifo, switch to sending data from highest priority fifo
-					-- that has data, if any. This is probably overkill, as I
-					-- think the fifos will have stoped filling at this point,
-					-- so order is probably not important.
-					-- Data fifos (1 and 2) have higher priority than
-					-- diagnostic fifo (3)
-					
-					--defaults (overriden if another fifo ready)
-					next_still_sending_packet <= still_sending_packet;
-					next_baudrate_counter <= max_counter - 1;
-					next_shift_register <= shift_register;
-					next_bit_counter <= 7;
-					next_tx <= '1';
-					--switch fifo if above condition true
-					if fifo_empty1 = '0' or fifo_empty2 = '0' or fifo_empty3 = '0' then
-						if fifo_empty1 = '0' then
-							next_current_fifo <= "01";
-						elsif fifo_empty2 = '0' then
-							next_current_fifo <= "10";
-						else
-							next_current_fifo <= "11";
-						end if;
-						next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
-						next_state_out <= "001";
-						next_shift_register <= shift_register;
-						next_busy <= '1';
-						get_next_current_fifo_data <= '1';
-					else
-						next_current_fifo <= current_fifo;
-						next_state <= IDLE;
-						next_state_out <= "000";
-						next_busy <= '0';
-						get_next_current_fifo_data <= '0';
-					end if;
+					next_data_source <= data_source;
+					next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+					next_crc_new_byte <= crc_new_byte;
 				end if;
-			end if;
+
+			-- Load up the second half of the CRC in a packet and set state directly to transmit.
+			-- Set data source to x"FF" for next byte in packet.
+			when DATA_SOURCE_CRC2 =>
+				next_shift_register <= "0000" & crc_new_crc(3 downto 0);
+				next_data_source <= DATA_SOURCE_FF;
+				get_next_current_fifo_data <= '0';
+				next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+				next_crc_new_byte <= crc_new_byte;
+				next_current_fifo <= current_fifo;
+				next_state <= SEND_START_BIT;
+				next_state_out <= "010";
+				next_baudrate_counter <= max_counter - 1;
+				next_bit_counter <= 7;
+				next_busy <= '1';
+				next_tx <= '1';
+
+			-- Load up the x"FF" in the shift register and set state directly to transmit.
+			-- After the end-of-packet FF, kick data source back to FIFO in case there is
+			-- another packet to send, or the 
+			when DATA_SOURCE_FF =>
+				next_shift_register <= x"FF";
+				next_data_source <= DATA_SOURCE_DONE;
+				get_next_current_fifo_data <= '0';
+				next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+				next_crc_new_byte <= crc_new_byte;
+				next_current_fifo <= current_fifo;
+				next_state <= SEND_START_BIT;
+				next_state_out <= "010";
+				next_baudrate_counter <= max_counter - 1;
+				next_bit_counter <= 7;
+				next_busy <= '1';
+				next_tx <= '1';
+
+			when others => --DATA_SOURCE_DONE
+				-- If we have finished sending a full packet from current 
+				-- fifo, switch to sending data from highest priority fifo
+				-- that has data, if any. This step is important to make
+				-- sure we empty all FIFOs before we clear the busy flag,
+				-- but order of priority probably does not matter because
+				-- no FIFOs should fill when busy.
+				-- Data fifos (1 and 2) have higher priority than
+				-- diagnostic fifo (3)
+				next_baudrate_counter <= max_counter - 1;
+				next_shift_register <= shift_register;
+				next_bit_counter <= 7;
+				next_tx <= '1';
+				next_data_source <= DATA_SOURCE_DONE; --Leave as done, used for diagnostic purposes on the first byte of next packet.
+				next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+				next_crc_new_byte <= crc_new_byte;
+				--switch fifo if above condition true
+				if fifo_empty1 = '0' or fifo_empty2 = '0' or fifo_empty3 = '0' then
+					if fifo_empty1 = '0' then
+						next_current_fifo <= "01";
+					elsif fifo_empty2 = '0' then
+						next_current_fifo <= "10";
+					else
+						next_current_fifo <= "11";
+					end if;
+					next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
+					next_state_out <= "001";
+					next_busy <= '1';
+					get_next_current_fifo_data <= '1';
+				else
+					next_current_fifo <= current_fifo;
+					next_state <= IDLE;
+					next_state_out <= "000";
+					next_busy <= '0';
+					get_next_current_fifo_data <= '0';
+				end if;
+			end case;
 		when others =>
-			next_still_sending_packet <= still_sending_packet;
+			next_data_source <= DATA_SOURCE_DONE; --Set as done, used for diagnostic purposes on the first byte of next packet.
 			next_state <= IDLE;
 			next_state_out <= "000";
 			next_baudrate_counter <= max_counter - 1;
@@ -453,6 +553,8 @@ begin
 			next_busy <= '1';
 			next_tx <= '1';
 			get_next_current_fifo_data <= '0';
+			next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
+			next_crc_new_byte <= crc_new_byte;
 			next_current_fifo <= current_fifo;
 	end case;
 end process;
