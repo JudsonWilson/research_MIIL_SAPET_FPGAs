@@ -659,7 +659,7 @@ begin
 	-- 3. local acquisition data
 	-- For the configuration data fromo J41, serializing and transmitting at the same time
 	----------------------------------------------------------------------------------------------------------
-	GTP_J41_state_machine: process( clk_50MHz, reset)
+	GTP_J41_and_UDP_out_state_machine: process( clk_50MHz, reset)
 	begin
 		if ( reset = '1') then
 			config_data_fifo_rd_en <= '0';
@@ -685,7 +685,7 @@ begin
 			fifo_local_acquisition_data_transmit_state <= first_word_judge;
 			config_data_transfer_state <= first_word_judge;
 			J41_Tx_send_state <= idle;
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then 
+		elsif ( clk_50MHz 'event and clk_50MHz = '1' ) then
 			case J41_Tx_send_state is
 				when idle =>
 				-- {
