@@ -700,7 +700,7 @@ begin
 						config_data_fifo_rd_en <= '0';
 						one_packet_write_or_read_J40_data_fifo(1) <= '0';
 						one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
-						one_packet_write_or_read_config_data_fifo(1) <= '1';
+						one_packet_write_or_read_config_data_fifo(1) <= '1'; -- Signal that we just started reading a config packet, so there is 1 less full packet now.
 						config_data_transfer_state <= first_word_judge;
 						J41_Tx_send_state <= UDP_config_data_transmit;
 					else
