@@ -685,16 +685,15 @@ begin
 			J41_Tx_send_state <= idle;
 		elsif ( clk_50MHz 'event and clk_50MHz = '1') then 
 			case J41_Tx_send_state is
-				-- the local acquisition data to be transmitted
 				when idle =>
 				-- {
-					-- UDP configuration data - highest priority to be transmitted
 					dout_to_UDP_wr <= '0';
 					dout_to_GTP_wr <= '0';
 					dout_to_serializing_wr <= '0';
 					dout_to_UDP <= x"0000";
 					dout_to_GTP <= x"0000";
 					dout_to_serializing <= x"0000";
+					-- UDP configuration data - highest priority to be transmitted
 					if ( config_data_fifo_empty = '0' and packets_write_config_data_fifo > x"00") then
 						config_data_fifo_rd_en <= '0';
 						one_packet_write_or_read_J40_data_fifo(1) <= '0';
