@@ -224,8 +224,8 @@ begin
 				-- {
 					-- start signal 8100
 					if ( config_data_from_UDP_to_GTP_wr = '1') then
-						if ( config_data_from_UDP_to_GTP = x"8100") then
-							if ( wr_data_counter_configure <= x"3A6") then
+						if ( config_data_from_UDP_to_GTP = x"8100") then -- Start of configure packet, source = PC
+							if ( wr_data_counter_configure <= x"3A6") then -- If room for a whole packet
 								config_data_fifo_wr_en <= config_data_from_UDP_to_GTP_wr;
 								config_data_fifo_status <= receive_data;
 							else
@@ -338,8 +338,7 @@ begin
 
 
 	----------------------------------------------------------------------------------------------------------
-	-- Local acquisition data fifo
-	-- 03-24-2013
+	-- Manage the FIFO.
 	----------------------------------------------------------------------------------------------------------
 	Local_acquisition_data_to_Daisychain: process( clk_50MHz, reset)
 	begin
@@ -354,10 +353,9 @@ begin
 			case local_acquisition_fifo_status is
 				when start_word_judge =>
 				-- {
-					-- start signal and end signal 81
 					if (din_from_acquisition_wr = '1') then
-						if ((din_from_acquisition > x"8100") and (din_from_acquisition < x"8105")) then
-							if (wr_data_counter_local <= x"3A6") then
+						if ((din_from_acquisition > x"8100") and (din_from_acquisition < x"8105")) then -- Packet must have a valid first byte and source node.
+							if (wr_data_counter_local <= x"3A6") then -- If room for a whole packet
 								local_acquisition_data_fifo_wr_en <= din_from_acquisition_wr;
 								local_acquisition_fifo_status <= receive_data;
 							else
@@ -469,7 +467,6 @@ begin
 			case J40_fifo_status is
 				when start_word_judge =>
 				-- {
-				-- start signal and end signal 81
 					if ( din_from_GTP_wr = '1') then
 						if ( din_from_GTP(15 downto 8) = x"81") then -- Packet must have a valid first byte.
 							if ( wr_data_counter_J40 <= x"3A6") then -- If room for a whole packet
