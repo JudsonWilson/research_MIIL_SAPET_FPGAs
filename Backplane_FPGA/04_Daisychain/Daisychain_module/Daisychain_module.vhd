@@ -125,8 +125,8 @@ architecture Behavioral of Daisychain_module is
 	type former_Virtex_5_data_transmit_state_type is (first_header_word_judge, first_header_word_output, align_read_out_clock, valid_header_word_judge, serializing_config_data_for_current_board_transfer, not_the_current_board_config_data_transmit_former_board_data, acquisition_data_transmit_former_board, error_data_process);
 	signal fifo_former_Virtex_5_data_transmit_state : former_Virtex_5_data_transmit_state_type := first_header_word_judge;
 
-	type config_data_transfer_status_type is ( idle, start_word_judge, end_word_judge, end_process);
-	signal config_data_transfer_status : config_data_transfer_status_type := idle;
+	type   config_data_transfer_state_type is (first_word_judge, first_word_output, align_one_clock, valid_data_judge, save_second_word, body_transfer, error_data_process, end_process);
+	signal config_data_transfer_state : config_data_transfer_state_type := first_word_judge;
 	
 	signal echo_back_config_data		: std_logic_vector(15 downto 0);
 
@@ -683,6 +683,7 @@ begin
 			increase_one_clock_for_config_data <= "00";
 			fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 			fifo_local_acquisition_data_transmit_state <= first_word_judge;
+			config_data_transfer_state <= first_word_judge;
 			J41_Tx_send_state <= idle;
 		elsif ( clk_50MHz 'event and clk_50MHz = '1') then 
 			case J41_Tx_send_state is
@@ -700,7 +701,7 @@ begin
 						one_packet_write_or_read_J40_data_fifo(1) <= '0';
 						one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
 						one_packet_write_or_read_config_data_fifo(1) <= '1';
-						config_data_transfer_status <= idle;
+						config_data_transfer_state <= first_word_judge;
 						J41_Tx_send_state <= UDP_config_data_transmit;
 					else
 					-- Data from the former Virtex-5 board on J40 input, to J41 output - the second priority
@@ -1278,45 +1279,149 @@ begin
 						-- }
 					end case;
 				-- }
+
+				--
+				-- Data from the PC is ready to send (config data). This will send it to the GTP J40 to
+				-- the next node. If the data is destined for the serializer on this board, it will
+				-- first make a loop through the nodes via the GTP interfaces. This was done to keep
+				-- the system simple. It is expected this will add minimal traffic.
 				when UDP_config_data_transmit =>
 				-- {
+					dout_to_serializing_wr <= '0';
+					dout_to_serializing <= x"0000";
+					dout_to_UDP_wr <= '0';
+					dout_to_UDP <= x"0000";
 					one_packet_write_or_read_config_data_fifo(1) <= '0';
-					case config_data_transfer_status is
-						when idle =>
+					one_packet_write_or_read_J40_data_fifo(1) <= '0';
+					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+					case config_data_transfer_state is
+						-- Determine if the first byte is already on output of FIFO or not.
+						when first_word_judge =>
+						-- {
+							-- See the "FIFO note" under the header block comment for this process for full
+							-- description of what is going on in this state.
 							config_data_fifo_rd_en <= '1';
-							config_data_transfer_status <= start_word_judge;
+							if (config_data_fifo_dout = x"8100") then
+								config_data_transfer_state <= align_one_clock;
+							else
+								config_data_transfer_state <= first_word_output;
+							end if;
 							dout_to_GTP_wr <= '0';
 							dout_to_GTP <= x"0000";
+							first_header_word <= config_data_fifo_dout;
+							second_header_word <= x"0000";
 							J41_Tx_send_state <= UDP_config_data_transmit;
-						when start_word_judge =>
-							config_data_fifo_rd_en <= '1';
-							if ( config_data_fifo_dout = x"8100") then
-								dout_to_GTP_wr <= '1';
-								dout_to_GTP <= config_data_fifo_dout;
-								config_data_transfer_status <= end_word_judge;
+						-- }
+						-- Wait for header byte. Note that the FIFO output is delayed by 2, so the state after
+						-- this will already have the second word.
+						when first_word_output =>
+						-- {
+							if (config_data_fifo_dout = x"8100") then
+								config_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
+								config_data_transfer_state <= valid_data_judge;
 							else
-								config_data_transfer_status <= start_word_judge;
+								config_data_fifo_rd_en <= '1';
+								config_data_transfer_state <= first_word_output;
+							end if;
+							dout_to_GTP_wr <= '0';
+							dout_to_GTP <= x"0000";
+							first_header_word <= config_data_fifo_dout;
+							second_header_word <= x"0000";
+							J41_Tx_send_state <= UDP_config_data_transmit;
+						-- }
+						-- Momentarily wait before FIFO output is valid with second word.
+						when align_one_clock =>
+						-- {
+							config_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
+							dout_to_GTP_wr <= '0';
+							dout_to_GTP <= x"0000";
+							first_header_word <= first_header_word;
+							second_header_word <= second_header_word;
+							config_data_transfer_state <= valid_data_judge;
+							J41_Tx_send_state <= UDP_config_data_transmit;
+						-- }
+						-- Sends out the first word, and saves the second word from the FIFO.
+						--  - Assumes that 2 states ago the fifo rd was enabled, but previous state it was NOT.
+						--    Therefore, have data to read this state, but not the next state.
+						--  - Enables rd so that after the second word is sent next packet, we can read the
+						--    fifo output and send it directly out.
+						when valid_data_judge =>
+						-- {
+							config_data_fifo_rd_en <= '1';
+							first_header_word <= first_header_word;
+							second_header_word <= config_data_fifo_dout;
+							if (first_header_word = x"8100")
+							   and (config_data_fifo_dout(15 downto 8) > x"00") and config_data_fifo_dout(15 downto 8) < x"05" then
+								dout_to_GTP_wr <= '1';
+								dout_to_GTP <= first_header_word;
+								config_data_transfer_state <= save_second_word;
+							else
+								dout_to_GTP_wr <= '0';
+								dout_to_GTP <= x"0000";
+								config_data_transfer_state <= error_data_process;
 							end if;
 							J41_Tx_send_state <= UDP_config_data_transmit;
-						when end_word_judge =>
+						-- }
+						-- Sends the second word out. No new data to send yet.
+						--  - Assumes that 2 states ago the fifo rd was NOT enabled.
+						--    Therefore, no new data to read.
+						--  - Previous state the rd WAS enabled, which will be the beginning of the body streaming
+						--    from the fifo
+						when save_second_word =>
+						-- {
+							first_header_word <= first_header_word;
+							second_header_word <= second_header_word;
+							config_data_fifo_rd_en <= '1';
+							dout_to_GTP_wr <= '1';
+							dout_to_GTP <= second_header_word;
+							config_data_transfer_state <= body_transfer;
+							J41_Tx_send_state <= UDP_config_data_transmit;
+						-- }
+						-- Send the rest of the body of the packet, stop on x"FF" in upper or lower byte.
+						when body_transfer =>
+						-- {
+							first_header_word <= x"0000";
+							second_header_word <= x"0000";
 							dout_to_GTP_wr <= '1';
 							dout_to_GTP <= config_data_fifo_dout;
 							if ( config_data_fifo_dout(15 downto 8) = x"FF" or config_data_fifo_dout(7 downto 0) = x"FF") then
 								config_data_fifo_rd_en <= '0';
-								config_data_transfer_status <= end_process;
+								config_data_transfer_state <= end_process;
 							else
 								config_data_fifo_rd_en <= '1';
-								config_data_transfer_status <= end_word_judge;
+								config_data_transfer_state <= body_transfer;
 							end if;
 							J41_Tx_send_state <= UDP_config_data_transmit;
-						when end_process =>
-							config_data_fifo_rd_en <= '0';
+						-- }
+						-- Clear out a bad packet from the FIFO
+						when error_data_process =>
+						-- {
+							first_header_word <= x"0000";
+							second_header_word <= x"0000";
 							dout_to_GTP_wr <= '0';
 							dout_to_GTP <= x"0000";
-							config_data_transfer_status <= idle;
+							if ( config_data_fifo_dout(15 downto 8) = x"FF" or config_data_fifo_dout(7 downto 0) = x"FF") then
+								config_data_fifo_rd_en <= '0';
+								config_data_transfer_state <= end_process;
+							else
+								config_data_fifo_rd_en <= '1';
+								config_data_transfer_state <= error_data_process;
+							end if;
+							J41_Tx_send_state <= UDP_config_data_transmit;
+						-- }
+						-- Let the FIFO finish outputting data.
+						when end_process =>
+						-- {
+							config_data_fifo_rd_en <= '0';
+							first_header_word <= x"0000";
+							second_header_word <= x"0000";
+							dout_to_GTP_wr <= '0';
+							dout_to_GTP <= x"0000";
+							config_data_transfer_state <= first_word_judge;
 							J41_Tx_send_state <= idle;
-					end case;
+						-- }
 				-- }
+				end case;
 			end case;
 		end if;
 	end process;
