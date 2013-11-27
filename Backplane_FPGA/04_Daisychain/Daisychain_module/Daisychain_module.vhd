@@ -118,7 +118,8 @@ architecture Behavioral of Daisychain_module is
 	type J41_Tx_send_state_type is (idle, data_from_former_Virtex_5_data_transmit_fifo, UDP_config_data_transmit, local_acquisition_data_transfer_fifo);
 	-- for transmitting data to J41
 	signal J41_Tx_send_state : J41_Tx_send_state_type := idle;
-	type transfering_local_acquisition_data_type is (first_word_judge, first_word_output, second_word_output, align_one_clock, valid_data_judge, save_second_word, local_acquisition_data_transfer, error_data_process, end_process); 
+
+	type transfering_local_acquisition_data_type is (first_word_judge, first_word_output, align_one_clock, valid_data_judge, save_second_word, local_acquisition_data_transfer, error_data_process, end_process);
 	signal fifo_local_acquisition_data_transmit_state : transfering_local_acquisition_data_type := first_word_judge;
 
 	type former_Virtex_5_data_transmit_state_type is (first_header_word_judge, first_header_word_output, second_head_word_output, align_read_out_clock, valid_header_word_judge, serializing_config_data_for_current_board_transfer, not_the_current_board_config_data_transmit_former_board_data, acquisition_data_transmit_former_board, error_data_process);
@@ -756,11 +757,10 @@ begin
 						-- {
 							-- See the "FIFO note" under the header block comment for this process for full
 							-- description of what is going on in this state.
+							local_acquisition_data_fifo_rd_en <= '1';
 							if ( (local_acquisition_data_fifo_dout > x"8100") and (local_acquisition_data_fifo_dout < x"8105")) then
-								local_acquisition_data_fifo_rd_en <= '0';
-								fifo_local_acquisition_data_transmit_state <= second_word_output;
+								fifo_local_acquisition_data_transmit_state <= align_one_clock;
 							else
-								local_acquisition_data_fifo_rd_en <= '1';
 								fifo_local_acquisition_data_transmit_state <= first_word_output;
 							end if;
 							dout_to_GTP_wr <= '0';
@@ -790,27 +790,16 @@ begin
 							second_header_word <= x"0000";
 							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
 						-- }
-						when second_word_output =>
-						-- {
-							local_acquisition_data_fifo_rd_en <= '0';
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							first_header_word <= x"0000"; 
-							second_header_word <= local_acquisition_data_fifo_dout;
-							fifo_local_acquisition_data_transmit_state <= align_one_clock;
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
+						-- Momentarily wait before FIFO output is valid with second word.
 						when align_one_clock =>
 						-- {
-							local_acquisition_data_fifo_rd_en <= '1';
+							local_acquisition_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
 							dout_to_GTP_wr <= '0';
 							dout_to_UDP_wr <= '0';
 							dout_to_GTP <= x"0000";
 							dout_to_UDP <= x"0000";
 							first_header_word <= first_header_word; 
-							second_header_word <= second_header_word;
+							second_header_word <= x"0000";
 							fifo_local_acquisition_data_transmit_state <= valid_data_judge;
 							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
 						-- }
