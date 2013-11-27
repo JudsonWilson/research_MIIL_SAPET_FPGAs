@@ -121,9 +121,6 @@ architecture Behavioral of Daisychain_module is
 	type transfering_local_acquisition_data_type is (first_word_judge, first_word_output, second_word_output, align_one_clock, valid_data_judge, save_second_word, local_acquisition_data_transfer, error_data_process, end_process); 
 	signal fifo_local_acquisition_data_transmit_state : transfering_local_acquisition_data_type := first_word_judge;
 
-	type acquisition_data_from_former_board_state_type is ( idle, transmit_acquisition_data_from_former_board, error_data_process);
-	signal acquisition_data_from_former_board_state : acquisition_data_from_former_board_state_type := idle;
-
 	type former_Virtex_5_data_transmit_state_type is (first_header_word_judge, first_header_word_output, second_head_word_output, align_read_out_clock, valid_header_word_judge, serializing_config_data_for_current_board_transfer, not_the_current_board_config_data_transmit_former_board_data, acquisition_data_transmit_former_board, error_data_process);
 	signal fifo_former_Virtex_5_data_transmit_state : former_Virtex_5_data_transmit_state_type := first_header_word_judge;
 
@@ -687,7 +684,6 @@ begin
 			increase_one_clock_for_acquisition_data <= "00";
 			increase_one_clock_for_config_data <= "00";
 			fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-			acquisition_data_from_former_board_state <= idle;
 			fifo_local_acquisition_data_transmit_state <= first_word_judge;
 			J41_Tx_send_state <= idle;
 		elsif ( clk_50MHz 'event and clk_50MHz = '1') then 
@@ -963,7 +959,6 @@ begin
 							if ( J40_data_fifo_dout(15 downto 8) = x"81") then
 								fifo_former_Virtex_5_data_transmit_state <= second_head_word_output;
 							else
-								J40_data_fifo_rd_en <= '1';
 								fifo_former_Virtex_5_data_transmit_state <= first_header_word_output;
 							end if;
 							first_header_word <= J40_data_fifo_dout;
@@ -986,7 +981,6 @@ begin
 							if ( J40_data_fifo_dout(15 downto 8) = x"81") then
 								fifo_former_Virtex_5_data_transmit_state <= valid_header_word_judge;
 							else
-								J40_data_fifo_rd_en <= '1';
 								fifo_former_Virtex_5_data_transmit_state <= first_header_word_output;
 							end if;
 							first_header_word <= J40_data_fifo_dout;
