@@ -122,7 +122,7 @@ architecture Behavioral of Daisychain_module is
 	type transfering_local_acquisition_data_type is (first_word_judge, first_word_output, align_one_clock, valid_data_judge, save_second_word, local_acquisition_data_transfer, error_data_process, end_process);
 	signal fifo_local_acquisition_data_transmit_state : transfering_local_acquisition_data_type := first_word_judge;
 
-	type former_Virtex_5_data_transmit_state_type is (first_header_word_judge, first_header_word_output, second_head_word_output, align_read_out_clock, valid_header_word_judge, serializing_config_data_for_current_board_transfer, not_the_current_board_config_data_transmit_former_board_data, acquisition_data_transmit_former_board, error_data_process);
+	type former_Virtex_5_data_transmit_state_type is (first_header_word_judge, first_header_word_output, align_read_out_clock, valid_header_word_judge, serializing_config_data_for_current_board_transfer, not_the_current_board_config_data_transmit_former_board_data, acquisition_data_transmit_former_board, error_data_process);
 	signal fifo_former_Virtex_5_data_transmit_state : former_Virtex_5_data_transmit_state_type := first_header_word_judge;
 
 	type config_data_transfer_status_type is ( idle, start_word_judge, end_word_judge, end_process);
@@ -942,7 +942,7 @@ begin
 							-- description of what is going on in this state.
 							J40_data_fifo_rd_en <= '1';
 							if ( J40_data_fifo_dout(15 downto 8) = x"81") then
-								fifo_former_Virtex_5_data_transmit_state <= second_head_word_output;
+								fifo_former_Virtex_5_data_transmit_state <= align_read_out_clock;
 							else
 								fifo_former_Virtex_5_data_transmit_state <= first_header_word_output;
 							end if;
@@ -980,27 +980,11 @@ begin
 							increase_one_clock_for_acquisition_data <= "00";
 							J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
 						--}
-						when second_head_word_output =>
-						-- {
-							J40_data_fifo_rd_en <= '0';
-							first_header_word <= first_header_word;
-							second_header_word <= J40_data_fifo_dout;
-							fifo_former_Virtex_5_data_transmit_state <= align_read_out_clock;
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_serializing_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							dout_to_serializing <= x"0000";
-							increase_one_clock_for_config_data <= "00";
-							increase_one_clock_for_acquisition_data <= "00";
-							J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-						-- }
 						when align_read_out_clock =>
 						-- {
 							J40_data_fifo_rd_en <= '1';
 							first_header_word <= first_header_word;
-							second_header_word <= second_header_word;
+							second_header_word <= x"0000";
 							fifo_former_Virtex_5_data_transmit_state <= valid_header_word_judge;
 							dout_to_GTP_wr <= '0';
 							dout_to_UDP_wr <= '0';
@@ -1036,10 +1020,10 @@ begin
 										dout_to_serializing <= first_header_word(15 downto 8) & J40_data_fifo_dout(7 downto 0); --strip source/destination
 										-- Echo back the config data to the computer, changing source and destination.
 										dout_to_GTP_wr <= '1';
-										dout_to_GTP <= first_header_word(15 downto 8) & "00000" & boardid;
+										dout_to_GTP <= first_header_word(15 downto 8) & "00000" & boardid; -- I am the source
+										echo_back_config_data <= x"00" & J40_data_fifo_dout(7 downto 0); -- PC is the destination
 										dout_to_UDP_wr <= '0';
 										dout_to_UDP <= x"0000";
-										echo_back_config_data <= x"00" & J40_data_fifo_dout(7 downto 0);
 
 										fifo_former_Virtex_5_data_transmit_state <= serializing_config_data_for_current_board_transfer;
 									-- If the destination is another node (not THIS node).
