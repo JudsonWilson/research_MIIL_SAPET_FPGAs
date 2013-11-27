@@ -1229,50 +1229,33 @@ begin
 									second_header_word <= x"0000";
 									-- Route to PC or next node
 									if ( boardid = "001") then
-									-- {
 										dout_to_UDP_wr <= '1';
 										dout_to_UDP <= J40_data_fifo_dout;
 										dout_to_GTP_wr <= '0';
 										dout_to_GTP <= x"0000";
-										if (( J40_data_fifo_dout(15 downto 8) = x"FF") or  (J40_data_fifo_dout(7 downto 0) = x"FF")) then
-										-- {
-											J40_data_fifo_rd_en <= '0';
-											fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-											J41_Tx_send_state <= idle;
-											increase_one_clock_for_acquisition_data <= "00";
-										-- }
-										 else
-										-- {
-											 J40_data_fifo_rd_en <= '1';
-											 fifo_former_Virtex_5_data_transmit_state <= acquisition_data_transmit_former_board;
-											 J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-											 increase_one_clock_for_acquisition_data <= "11";
-										-- }
-										end if;
-									-- }
 									else
-									-- {
 										dout_to_GTP_wr <= '1';
 										dout_to_GTP <= J40_data_fifo_dout;
 										dout_to_UDP_wr <= '0';
 										dout_to_UDP <= x"0000";
-										if ((J40_data_fifo_dout(15 downto 8) = x"FF") or (J40_data_fifo_dout(7 downto 0) = x"FF")) then 
-											J40_data_fifo_rd_en <= '0';
-											fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-											J41_Tx_send_state <= idle;
-											increase_one_clock_for_acquisition_data <= "00";
-										 else
-											J40_data_fifo_rd_en <= '1';
-										 	fifo_former_Virtex_5_data_transmit_state <= acquisition_data_transmit_former_board;
-										 	J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-											 increase_one_clock_for_acquisition_data <= "11";	
-										end if;
-									-- }
+									end if;
+									-- Detect End of Packet
+									if ((J40_data_fifo_dout(15 downto 8) = x"FF") or (J40_data_fifo_dout(7 downto 0) = x"FF")) then
+										J40_data_fifo_rd_en <= '0';
+										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
+										J41_Tx_send_state <= idle;
+										increase_one_clock_for_acquisition_data <= "00";
+									 else
+										J40_data_fifo_rd_en <= '1';
+										fifo_former_Virtex_5_data_transmit_state <= acquisition_data_transmit_former_board;
+										J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
+										 increase_one_clock_for_acquisition_data <= "11";	
 									end if;
 								when others =>
 									null;
 							end case;
 						-- }
+						-- Clear out bad packet (or end-of-chain packet) from FIFO
 						when error_data_process =>
 						-- {
 							first_header_word <= x"0000";
