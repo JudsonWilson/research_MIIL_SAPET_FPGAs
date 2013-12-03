@@ -295,11 +295,6 @@ begin
 				next_data_source <= DATA_SOURCE_FIFOS;
 				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
 				next_crc_new_byte <= current_fifo_data_out;
-			when x"84" =>
-				next_shift_register <= current_fifo_data_out;
-				next_data_source <= DATA_SOURCE_FIFOS;
-				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
-				next_crc_new_byte <= current_fifo_data_out;
 			--End-of-Packet Token
 			when x"FF" =>
 				--We have just read the last byte in the packet. Insert the crc bytes now.
