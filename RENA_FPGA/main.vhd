@@ -336,6 +336,8 @@ component diagnostic_messenger is
 		clk   : in STD_LOGIC;
 		reset : in STD_LOGIC;
 
+		fpga_addr      : in std_logic_vector(5 downto 0);
+
 		send  : in  STD_LOGIC; -- Pulse to send the current state out to the TX, and reset the state
 
 		packet_data    : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
@@ -852,6 +854,7 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 	PORT MAP (
 		clk   => systemClk,
 		reset => rst,
+		fpga_addr => fpga_address,
 		send  => diagnostic_send,
 		packet_data    => diagnostic_packet_data,
 		packet_data_wr => diagnostic_packet_data_wr,

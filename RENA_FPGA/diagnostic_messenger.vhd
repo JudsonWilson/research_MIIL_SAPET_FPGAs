@@ -46,6 +46,8 @@ entity diagnostic_messenger is
 		clk   : in STD_LOGIC;
 		reset : in STD_LOGIC;
 
+		fpga_addr      : in std_logic_vector(5 downto 0);
+
 		send  : in STD_LOGIC; -- Pulse to send the current state out to the TX, and reset the state
 
 		packet_data    : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
@@ -78,11 +80,12 @@ architecture Behavioral of diagnostic_messenger is
 	-- Sending State Machine
 	constant num_sendstate_bits  : INTEGER := 3;
 	constant SENDSTATE_IDLE      : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "000";
-	constant SENDSTATE_HEADER_2  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "001";
-	constant SENDSTATE_RENA1     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "010";
-	constant SENDSTATE_RENA2     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "011";
-	constant SENDSTATE_BUGS      : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "100";
-	constant SENDSTATE_LASTBYTE  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "101";
+	constant SENDSTATE_RENA_ADDR : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "001";
+	constant SENDSTATE_HEADER_3  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "010";
+	constant SENDSTATE_RENA1     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "011";
+	constant SENDSTATE_RENA2     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "100";
+	constant SENDSTATE_BUGS      : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "101";
+	constant SENDSTATE_LASTBYTE  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "110";
 
 	signal send_state            : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0);
 	signal send_state_next       : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0);
@@ -147,14 +150,21 @@ begin
 					-- Send byte of packet
 					packet_data_next    <= x"81";  -- Send the first byte.
 					packet_data_wr_next <= '1';    --   "   "    "    "
-					-- Start sending RENA data on next state
-					send_state_next <= SENDSTATE_HEADER_2;
+					-- Send the FPGA_ADDR on next byte
+					send_state_next <= SENDSTATE_RENA_ADDR;
 				else
 					send_state_next <= send_state;
 				end if;
 
-			when SENDSTATE_HEADER_2 =>
-				-- Send the second header byte, x"84", signifying a diagnostic packet.
+			when SENDSTATE_RENA_ADDR =>
+				-- Send the second header byte, identifying this RENA board ID.
+				packet_data_next <= "0" & fpga_addr & "0"; -- Lower bit, chip_id=0, to match layout of the other data packets.
+				packet_data_wr_next <= '1';
+				-- Send the diagnostic packet identifier on next byte
+				send_state_next <= SENDSTATE_HEADER_3;
+
+			when SENDSTATE_HEADER_3 =>
+				-- Send the third header byte, x"84", signifying a diagnostic packet.
 				packet_data_next <= x"84";
 				packet_data_wr_next <= '1';
 				-- Start sending RENA data on next state
