@@ -14,6 +14,10 @@
 --
 --     Uses the standard polynomial: x^8 + x^2 + x + 1
 --
+--     Idea came from a random implementation on the internet. If you try hard, you
+-- can derive it from the methods in this article:
+--   http://en.wikipedia.org/wiki/Computation_of_CRC
+--
 -- Dependencies:
 --
 -- Revision:
