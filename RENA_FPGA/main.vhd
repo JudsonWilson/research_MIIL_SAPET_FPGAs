@@ -235,8 +235,8 @@ component RX_Decode
 		ANODE_MASK2         : out  STD_LOGIC_VECTOR(35 downto 0);
 		CATHODE_MASK1       : out  STD_LOGIC_VECTOR(35 downto 0);
 		CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0);
-		DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
-		DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
+		DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
+		DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 		DIAGNOSTIC_SEND     : out  STD_LOGIC
 	);
 end component;
@@ -326,7 +326,7 @@ Port (
 		);
 end component;
 
-constant num_rena_settings_bits: INTEGER := 128;
+constant num_rena_settings_bits: INTEGER := 129;
 
 component diagnostic_messenger is
 	Generic (
@@ -425,10 +425,10 @@ signal next_ITRIG : std_logic;
 signal decoderDebug : std_logic_vector(2 downto 0);
 signal txDebug : std_logic_vector(2 downto 0);
 
-signal diagnostic_rena1_settings : std_logic_vector(40 downto 0);
-signal diagnostic_rena2_settings : std_logic_vector(40 downto 0);
-signal diagnostic_full_rena1_settings : std_logic_vector(128-1 downto 0);
-signal diagnostic_full_rena2_settings : std_logic_vector(128-1 downto 0);
+signal diagnostic_rena1_settings : std_logic_vector(41 downto 0);
+signal diagnostic_rena2_settings : std_logic_vector(41 downto 0);
+signal diagnostic_full_rena1_settings : std_logic_vector(129-1 downto 0);
+signal diagnostic_full_rena2_settings : std_logic_vector(129-1 downto 0);
 signal diagnostic_bug_notifications : std_logic_vector(29 downto 0);
 signal diagnostic_packet_data    : std_logic_vector(7 downto 0);
 signal diagnostic_packet_data_wr : std_logic;

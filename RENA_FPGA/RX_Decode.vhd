@@ -59,8 +59,8 @@ entity RX_Decode is
 			  ANODE_MASK2         : out  STD_LOGIC_VECTOR(35 downto 0);
 			  CATHODE_MASK1       : out  STD_LOGIC_VECTOR(35 downto 0);
 			  CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0);
-			  DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
-			  DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(40 downto 0);
+			  DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
+			  DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 			  DIAGNOSTIC_SEND     : out  STD_LOGIC
 			 );
 end RX_Decode;
@@ -150,10 +150,10 @@ architecture Behavioral of RX_Decode is
   signal int_cathode_mask2  : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
   signal next_cathode_mask2 : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
   
-  signal int_diagnostic_rena1_settings  : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
-  signal next_diagnostic_rena1_settings : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
-  signal int_diagnostic_rena2_settings  : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
-  signal next_diagnostic_rena2_settings : std_logic_vector(40 downto 0) := "00000000000000000000000000000000000000000";
+  signal int_diagnostic_rena1_settings  : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
+  signal next_diagnostic_rena1_settings : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
+  signal int_diagnostic_rena2_settings  : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
+  signal next_diagnostic_rena2_settings : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
 
   signal int_diagnostic_send : std_logic := '0';
   signal diagnostic_send_next : std_logic := '0';
@@ -342,10 +342,14 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 								next_rena_settings_chip	<= rx_buffer(6)(5);
 								-- would be nice to do the following with synchronous outputs, but would require a lot more FFs.
 								if rx_buffer(6)(5) = '0' then
-									next_diagnostic_rena1_settings <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
+									next_diagnostic_rena1_settings(40 downto 0) <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
 								else
-									next_diagnostic_rena2_settings <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
+									next_diagnostic_rena2_settings(40 downto 0) <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
 								end if;
+								-- The top bit of diagnostic_rena#_settings indicates which RENA was programmed last. Identical for both.
+								next_diagnostic_rena1_settings(41) <= rx_buffer(6)(5);
+								next_diagnostic_rena2_settings(41) <= rx_buffer(6)(5);
+
 							-- OR mode trigger
 							when "0110" =>
 								next_or_mode_trigger1 <= rx_buffer(0)(0);

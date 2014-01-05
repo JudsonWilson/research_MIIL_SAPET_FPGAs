@@ -25,12 +25,13 @@ use IEEE.NUMERIC_STD.ALL;
 
 -- TODO: put this in a package so that other components can use these constants.
 package P is
-	constant diagnostic_num_rena_settings_bits    : INTEGER := 36+36+41  -- anode mask = 36; cathode mask = 36; last channel settings = 41;
+	constant diagnostic_num_rena_settings_bits    : INTEGER := 36+36     -- anode mask = 36; cathode mask = 36;
+	                                                           +42       -- last channel { Which = 1; Settings = 41; } = 42
 	                                                           +1+1+1    -- OR Mode Triggers = 1; Force Trigger Mode = 1; Selective Reade = 1;
 	                                                           +1+1      -- Enable Readout = 1; Coincidence Read = 1;
-	                                                           +1+1+6+2; -- Follower{ Mode 1&2 = 1+1; Chan = 7; tclk = 2};
-	                                                            -- Total = 128
-	constant diagnostic_num_rena_settings_packets : INTEGER := (128 + 5) / 6; -- Adding 5 ensures a round-up operation on the division
+	                                                           +1+1+6+2; -- Follower{ Mode 1&2 = 1+1; Chan = 6; tclk = 2};
+	                                                            -- Total = 129
+	constant diagnostic_num_rena_settings_packets : INTEGER := (129 + 5) / 6; -- Adding 5 ensures a round-up operation on the division
 end package;
 
 library IEEE;
