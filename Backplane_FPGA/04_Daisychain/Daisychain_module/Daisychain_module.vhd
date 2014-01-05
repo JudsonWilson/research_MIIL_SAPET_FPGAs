@@ -1016,9 +1016,8 @@ begin
 										J40_data_fifo_rd_en <= '0';
 										increase_one_clock_for_config_data <= "01";
 										-- Send this data out to serializing
-										--   - strip out the source and destination addresses.
 										dout_to_serializing_wr <= '1';
-										dout_to_serializing <= first_header_word(15 downto 8) & J40_data_fifo_dout(7 downto 0); --strip source/destination
+										dout_to_serializing <= first_header_word;
 										-- Echo back the config data to the computer, changing source and destination.
 										dout_to_GTP_wr <= '1';
 										dout_to_GTP <= first_header_word(15 downto 8) & "00000" & boardid; -- I am the source
@@ -1128,8 +1127,8 @@ begin
 								-- Delay FIFO output while writing second header word out to echo response.
 								when "01" =>
 									J40_data_fifo_rd_en <= '1';
-									dout_to_serializing_wr <= '0';
-									dout_to_serializing <= x"0000";
+									dout_to_serializing_wr <= '1';
+									dout_to_serializing <= second_header_word;
 									dout_to_GTP_wr <= '1';
 									dout_to_GTP <= echo_back_config_data; -- Second word of response
 									fifo_former_Virtex_5_data_transmit_state <= serializing_config_data_for_current_board_transfer;

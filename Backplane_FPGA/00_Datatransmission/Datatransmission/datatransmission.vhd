@@ -125,6 +125,8 @@ architecture Behavioral of datatransmission is
 	-- configure data for current board
 	signal current_board_configure_data_wr  : std_logic;
 	signal current_board_configure_data     : std_logic_vector(15 downto 0);
+	signal serializing_raw_input_data_wr  : std_logic;
+	signal serializing_raw_input_data     : std_logic_vector(15 downto 0);
 
 	-- RENA Board related
 	signal rena_tx_i				: std_logic; -- Shared tx amongst all RENA Boards.
@@ -236,6 +238,18 @@ architecture Behavioral of datatransmission is
 		--	     Rx					: in std_logic_vector(1 downto 0)		
 		     );
 	end component;
+
+	component serializer_preprocessor is
+		port (
+			clk     : in  std_logic;
+			reset   : in  std_logic;
+			din     : in  std_logic_vector(15 downto 0);
+			din_wr  : in  std_logic;
+			dout    : out std_logic_vector(15 downto 0);
+			dout_wr : out std_logic
+		);
+	end component;
+
 	component Serializing_module is
 		port (
 			     reset 				: in std_logic;
@@ -356,13 +370,26 @@ begin
 			Rx0			=> rena0_rx_i,
 			Rx1			=> rena1_rx_i
 		);
+
+	-- This component proprocesses the data before it goes to the serializer.
+	-- The serializer will serialize the data, verbatum.
+	Inst_Serializer_Preprocessor: serializer_preprocessor
+	port map (
+		reset   => reset,
+		clk     => clk_50MHz_i,
+		din     => current_board_configure_data,
+		din_wr  => current_board_configure_data_wr,
+		dout    => serializing_raw_input_data,
+		dout_wr => serializing_raw_input_data_wr
+	);
+
 	Inst_Serializing_module: Serializing_module
 	port map (
 			reset 			=> reset_i,
 			clk_50MHz		=> clk_50MHz_i,
 		-- configure data of the current board from Daisychain
-			din_from_Daisychain_to_serialzing_wr => current_board_configure_data_wr,
-			din_from_Daisychain_to_serialzing => current_board_configure_data,
+			din_from_Daisychain_to_serialzing_wr => serializing_raw_input_data_wr,
+			din_from_Daisychain_to_serialzing => serializing_raw_input_data,
 		-- Serialing pin
 			Tx			=> rena_tx_i
 		);
