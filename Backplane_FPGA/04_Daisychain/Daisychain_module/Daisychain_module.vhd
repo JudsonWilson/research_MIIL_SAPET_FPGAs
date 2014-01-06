@@ -72,16 +72,15 @@ architecture Behavioral of Daisychain_module is
 	signal reset_fifo			: std_logic := '1';
 	signal reset_fifo_vec			: std_logic_vector(3 downto 0) := "1111";
 	-- config data related variables
-	signal config_data_fifo_wr_en 		: std_logic := '0';
+	signal config_data_from_UDP_to_GTP_wr_i : std_logic := '0';
+	signal config_data_from_UDP_to_GTP_i    : std_logic_vector(15 downto 0) := x"0000";
 	signal config_data_fifo_rd_en		: std_logic := '0';
-	signal config_data_fifo_din		: std_logic_vector(15 downto 0) := x"0000";
 	signal config_data_fifo_dout		: std_logic_vector(15 downto 0) := x"0000";
-	signal config_data_fifo_empty		: std_logic := '0';
-	signal one_packet_write_or_read_config_data_fifo	: std_logic_vector(1 downto 0) := "00";
-	signal packets_write_config_data_fifo	: std_logic_vector(15 downto 0) := x"0000";
+	signal config_data_packet_avail  : std_logic := '0';
+	signal config_data_end_of_packet : std_logic := '0';
+	signal config_data_dout_decrement_packet_count : std_logic := '0';
 	signal wr_data_counter_local		: std_logic_vector( 9 downto 0) := "00" & x"00";
 	signal wr_data_counter_J40		: std_logic_vector( 9 downto 0) := "00" & x"00";
-	signal wr_data_counter_configure	: std_logic_vector( 9 downto 0) := "00" & x"00";
 
 	-- GTP transmitter related variables
 	signal J40_data_fifo_wr_en		: std_logic;
@@ -132,19 +131,19 @@ architecture Behavioral of Daisychain_module is
 
 	signal transfer_data_token		: std_logic := '0'; 
 		     
-
-	component fifo_block_1024_16 
+	component complete_packets_fifo_1024_16
 		port (
-			     rst		: in std_logic;
-			     wr_clk		: in std_logic;
-			     rd_clk		: in std_logic;
-			     din 		: in std_logic_vector(15 downto 0);
-			     wr_en		: in std_logic;
-			     rd_en		: in std_logic;
-			     dout		: out std_logic_vector(15 downto 0);
-			     full		: out std_logic;
-			     empty		: out std_logic
-		     );
+			reset       : in std_logic;
+			clk_50MHz   : in std_logic;
+			din_wr_en   : in std_logic;
+			din         : in std_logic_vector(15 downto 0);
+			dout_rd_en  : in std_logic;
+			dout_decrement_packet_count  : in  std_logic;
+			dout_packet_available        : out std_logic;
+			dout        : out std_logic_vector(15 downto 0);
+			dout_end_of_packet : out std_logic;
+			bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
+		);
 	end component;
 
 	component fifo_1024_16_counter
@@ -166,6 +165,10 @@ architecture Behavioral of Daisychain_module is
 
 
 begin
+	config_data_from_UDP_to_GTP_wr_i <= config_data_from_UDP_to_GTP_wr;
+	config_data_from_UDP_to_GTP_i <= config_data_from_UDP_to_GTP;
+
+
 	acquisition_data_receive_data_number <= acquisition_data_receive_data_number_i;
 	---------------------------------------------------------------------
 	-- Generate FIFO reset signal
@@ -194,104 +197,17 @@ begin
 	--------------------------------------------------------------------
 	Inst_get_configure_data_from_PC_computer : fifo_1024_16_counter 
 	port map (
-			rst 		=> reset_fifo,
-			wr_clk		=> clk_50MHz,
-			rd_clk		=> clk_50MHz,
-			din		=> config_data_fifo_din,
-			wr_en		=> config_data_fifo_wr_en,
-			rd_en		=> config_data_fifo_rd_en,
-			dout		=> config_data_fifo_dout,
-			full		=> open,
-			empty		=> config_data_fifo_empty,
-			rd_data_count  	=> open,
-			wr_data_count  	=> wr_data_counter_configure -- Outputs how many 16bit words currently used.
-		);
-	--------------------------------------------------------------------
-	-- configure data to fifo
-	-- 04-05-2013
-	--------------------------------------------------------------------
-	Configure_dta_to_fifo: process ( clk_50MHz, reset)
-	begin
-		if ( reset = '1') then
-			config_data_fifo_wr_en <= '0';
-			config_data_fifo_din <= x"0000";
-			one_packet_write_or_read_config_data_fifo(0) <= '0';
-			config_data_fifo_status <= start_word_judge;
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then
-		-- {
-			config_data_fifo_din <= config_data_from_UDP_to_GTP;
-			case config_data_fifo_status is
-				when start_word_judge =>
-				-- {
-					-- start signal 8100
-					if ( config_data_from_UDP_to_GTP_wr = '1') then
-						if ( config_data_from_UDP_to_GTP = x"8100") then -- Start of configure packet, source = PC
-							if ( wr_data_counter_configure <= x"3A6") then -- If room for a whole packet
-								config_data_fifo_wr_en <= config_data_from_UDP_to_GTP_wr;
-								config_data_fifo_status <= receive_data;
-							else
-								config_data_fifo_wr_en <= '0';
-								config_data_fifo_status <= wait_for_fifo_ready;
-							end if;
-						else
-							config_data_fifo_wr_en <= '0';
-							config_data_fifo_status <= start_word_judge;
-						end if;
-					else
-						config_data_fifo_wr_en <= '0';
-						config_data_fifo_status <= start_word_judge;
-					end if;
-					one_packet_write_or_read_config_data_fifo(0) <= '0';
-				--}
-				when receive_data =>
-				-- {
-					-- end signal xxFF or FFxx
-					if ( config_data_from_UDP_to_GTP(15 downto 8) = x"FF" or config_data_from_UDP_to_GTP(7 downto 0) = x"FF") then
-						one_packet_write_or_read_config_data_fifo(0) <= '1'; --signal that we just finished writing a packet, for counting purposes
-						config_data_fifo_status <= start_word_judge;
-					else
-						one_packet_write_or_read_config_data_fifo(0) <= '0';
-						config_data_fifo_status <= receive_data;
-					end if;
-					config_data_fifo_wr_en <= config_data_from_UDP_to_GTP_wr;
-				--}
-				when wait_for_fifo_ready =>
-				-- {
-					if ( wr_data_counter_configure > x"3A6") then -- If room for a whole packet
-						config_data_fifo_status <= wait_for_fifo_ready;
-					else
-						config_data_fifo_status <= start_word_judge;
-					end if;
-					config_data_fifo_wr_en <= '0';
-					one_packet_write_or_read_config_data_fifo(0) <= '0';
-				-- }
-			end case;
-		end if;
-		-- }
-	end process;
-
-	-- Count the number of complete packets in the FIFO. This is used to ensure that we don't start transferring
-	-- a packet out until we have a complete packet to send. (We don't want to sit and wait around mid transfer for
-	-- the rest of a packet.)
-	Inst_receive_config_data_packet_number_fifo: process( reset, clk_50MHz)
-	begin
-		if ( reset = '1') then
-			packets_write_config_data_fifo <= x"0000";
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then
-			-- Check wether finished writing, or reading a packet, and update count accordingly.
-			case one_packet_write_or_read_config_data_fifo is 
-				when "00" =>
-					packets_write_config_data_fifo <= packets_write_config_data_fifo;
-				when "01" =>
-					packets_write_config_data_fifo <= packets_write_config_data_fifo + x"01";
-				when "10" =>
-					packets_write_config_data_fifo <= packets_write_config_data_fifo - x"01";
-				when "11" =>
-					packets_write_config_data_fifo <= packets_write_config_data_fifo;
-				when others =>
-			end case;
-		end if;
-	end process;
+		reset       => reset_fifo,
+		clk_50MHz   => clk_50MHz,
+		din_wr_en   => config_data_from_UDP_to_GTP_wr_i,
+		din         => config_data_from_UDP_to_GTP_i,
+		dout_rd_en  => config_data_fifo_rd_en,
+		dout_decrement_packet_count  => config_data_dout_decrement_packet_count,
+		dout_packet_available        => config_data_packet_avail,
+		dout        => config_data_fifo_dout,
+		dout_end_of_packet => config_data_end_of_packet,
+		bytes_received     => open
+	);
 
 
 	--====================================================================
@@ -676,7 +592,7 @@ begin
 			-- control the data packet in fifo
 			one_packet_write_or_read_J40_data_fifo(1) <= '0';
 			one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
-			one_packet_write_or_read_config_data_fifo(1) <= '0';
+			config_data_dout_decrement_packet_count <= '0';
 
 			transfer_data_token <= '0';
 			increase_one_clock_for_acquisition_data <= "00";
@@ -696,17 +612,17 @@ begin
 					dout_to_GTP <= x"0000";
 					dout_to_serializing <= x"0000";
 					-- UDP configuration data - highest priority to be transmitted
-					if ( config_data_fifo_empty = '0' and packets_write_config_data_fifo > x"00") then
+					if config_data_packet_avail = '1' then
 						config_data_fifo_rd_en <= '0';
 						one_packet_write_or_read_J40_data_fifo(1) <= '0';
 						one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
-						one_packet_write_or_read_config_data_fifo(1) <= '1'; -- Signal that we just started reading a config packet, so there is 1 less full packet now.
+						config_data_dout_decrement_packet_count <= '1'; -- Signal that we just started reading a config packet, so there is 1 less full packet now.
 						config_data_transfer_state <= first_word_judge;
 						J41_Tx_send_state <= UDP_config_data_transmit;
 					else
 					-- Data from the former Virtex-5 board on J40 input, to J41 output - the second priority
 					-- Including the former acquisition data and the configuration data
-						one_packet_write_or_read_config_data_fifo(1) <= '0';
+						config_data_dout_decrement_packet_count <= '0';
 						-- transfer_data_token flips back and forth, so as to attempt to not give constant priority
 						case transfer_data_token is 
 							when '0' =>
@@ -749,7 +665,7 @@ begin
 				-- {
 					dout_to_serializing_wr <= '0';
 					dout_to_serializing <= x"0000";
-					one_packet_write_or_read_config_data_fifo(1) <= '0';
+					config_data_dout_decrement_packet_count <= '0';
 					one_packet_write_or_read_J40_data_fifo(1) <= '0';
 					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
 					case fifo_local_acquisition_data_transmit_state is
@@ -932,7 +848,7 @@ begin
 				-- {
 					local_acquisition_data_fifo_rd_en <= '0';
 					transfer_data_token <= transfer_data_token;
-					one_packet_write_or_read_config_data_fifo(1) <= '0';
+					config_data_dout_decrement_packet_count <= '0';
 					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
 					one_packet_write_or_read_J40_data_fifo(1) <= '0';
 					case  fifo_former_Virtex_5_data_transmit_state is
@@ -1290,7 +1206,7 @@ begin
 					dout_to_serializing <= x"0000";
 					dout_to_UDP_wr <= '0';
 					dout_to_UDP <= x"0000";
-					one_packet_write_or_read_config_data_fifo(1) <= '0';
+					config_data_dout_decrement_packet_count <= '0';
 					one_packet_write_or_read_J40_data_fifo(1) <= '0';
 					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
 					case config_data_transfer_state is
@@ -1383,7 +1299,7 @@ begin
 							second_header_word <= x"0000";
 							dout_to_GTP_wr <= '1';
 							dout_to_GTP <= config_data_fifo_dout;
-							if ( config_data_fifo_dout(15 downto 8) = x"FF" or config_data_fifo_dout(7 downto 0) = x"FF") then
+							if config_data_end_of_packet = '0' then
 								config_data_fifo_rd_en <= '0';
 								config_data_transfer_state <= end_process;
 							else
@@ -1399,7 +1315,7 @@ begin
 							second_header_word <= x"0000";
 							dout_to_GTP_wr <= '0';
 							dout_to_GTP <= x"0000";
-							if ( config_data_fifo_dout(15 downto 8) = x"FF" or config_data_fifo_dout(7 downto 0) = x"FF") then
+							if config_data_end_of_packet = '0' then
 								config_data_fifo_rd_en <= '0';
 								config_data_transfer_state <= end_process;
 							else
