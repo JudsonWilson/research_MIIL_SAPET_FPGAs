@@ -111,8 +111,6 @@ architecture Behavioral of Daisychain_module is
 	signal J40_fifo_status 			: fifo_status_type := start_word_judge;
 	-- for receiving data from local_acquisition_module
 	signal local_acquisition_fifo_status    : fifo_status_type := start_word_judge;
-	-- for receiving data from UDP
-	signal config_data_fifo_status		: fifo_status_type := start_word_judge;
 
 	type J41_Tx_send_state_type is (idle, data_from_former_Virtex_5_data_transmit_fifo, UDP_config_data_transmit, local_acquisition_data_transfer_fifo);
 	-- for transmitting data to J41
@@ -190,12 +188,7 @@ begin
 	--====================================================================
 	--====================================================================
 
-
-	--------------------------------------------------------------------
-	-- To get the configure data from PC computer
-	-- Only judge the start signal 8100 and the end signal FFxx or xxFF
-	--------------------------------------------------------------------
-	Inst_get_configure_data_from_PC_computer : fifo_1024_16_counter 
+	fromUDP_packet_fifo : complete_packets_fifo_1024_16
 	port map (
 		reset       => reset_fifo,
 		clk_50MHz   => clk_50MHz,
