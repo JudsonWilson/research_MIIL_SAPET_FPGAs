@@ -80,16 +80,14 @@ architecture Behavioral of Daisychain_module is
 	signal config_data_end_of_packet : std_logic := '0';
 	signal config_data_dout_decrement_packet_count : std_logic := '0';
 
-	signal wr_data_counter_J40		: std_logic_vector( 9 downto 0) := "00" & x"00";
-
 	-- GTP transmitter related variables
-	signal J40_data_fifo_wr_en		: std_logic;
+	signal din_from_GTP_wr_i : std_logic := '0';
+	signal din_from_GTP_i    : std_logic_vector(15 downto 0) := x"0000";
 	signal J40_data_fifo_rd_en 		: std_logic := '0';
-	signal J40_data_fifo_din 		: std_logic_vector(15 downto 0);
 	signal J40_data_fifo_dout		: std_logic_vector(15 downto 0);
-	signal J40_data_fifo_empty		: std_logic;
-	signal one_packet_write_or_read_J40_data_fifo : std_logic_vector(1 downto 0) := "00";
-	signal packets_write_J40_data_fifo  : std_logic_vector(15 downto 0);
+	signal J40_data_packet_avail  : std_logic := '0';
+	signal J40_data_end_of_packet : std_logic := '0';
+	signal J40_data_dout_decrement_packet_count : std_logic := '0';
 
 	-- local acquisition fifo
 	signal din_from_acquisition_wr_i : std_logic := '0';
@@ -105,10 +103,6 @@ architecture Behavioral of Daisychain_module is
 	signal increase_one_clock_for_acquisition_data : std_logic_vector(1 downto 0) := "00";
 	signal first_header_word		: std_logic_vector(15 downto 0);
 	signal second_header_word 		: std_logic_vector(15 downto 0);
-
-	type fifo_status_type is ( start_word_judge, receive_data, wait_for_fifo_ready);
-	-- for receiving data from J40
-	signal J40_fifo_status 			: fifo_status_type := start_word_judge;
 
 	type J41_Tx_send_state_type is (idle, data_from_former_Virtex_5_data_transmit_fifo, UDP_config_data_transmit, local_acquisition_data_transfer_fifo);
 	-- for transmitting data to J41
@@ -141,24 +135,6 @@ architecture Behavioral of Daisychain_module is
 			bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
 		);
 	end component;
-
-	component fifo_1024_16_counter
-		port (
-			     rst		: in std_logic;
-			     wr_clk		: in std_logic;
-			     rd_clk		: in std_logic;
-			     din 		: in std_logic_vector(15 downto 0);
-			     wr_en		: in std_logic;
-			     rd_en		: in std_logic;
-			     dout		: out std_logic_vector(15 downto 0);
-			     full		: out std_logic;
-			     empty		: out std_logic;
-			     rd_data_count	: out std_logic_vector( 9 downto 0);
-			     wr_data_count	: out std_logic_vector( 9 downto 0)
-		     );
-	end component;
-
-
 
 begin
 	config_data_from_UDP_to_GTP_wr_i <= config_data_from_UDP_to_GTP_wr;
@@ -233,111 +209,22 @@ begin
 	--====================================================================
 	--====================================================================
 
-	--------------------------------------------------------------------
-	-- To get the data from GTP J40 interface and save into fifo_block_16
-	-- Only to get the data, not judge the data
-	--------------------------------------------------------------------
-	Inst_get_data_from_GTP_J40_to_Daisychain: fifo_1024_16_counter 
-	port map (
-			rst		=> reset_fifo,
-			wr_clk		=> clk_50MHz,
-			rd_clk		=> clk_50MHz,
-			din		=> J40_data_fifo_din,
-			wr_en		=> J40_data_fifo_wr_en,
-			rd_en		=> J40_data_fifo_rd_en,
-			dout		=> J40_data_fifo_dout,
-			full		=> open,
-			empty		=> J40_data_fifo_empty,
-			rd_data_count  	=> open,
-			wr_data_count  	=> wr_data_counter_J40 -- Outputs how many 16bit words currently used.
-		);
-	----------------------------------------------------------------------------------------------------------
-	-- save config data from GTP J40 interface to a specify config fifo
-	----------------------------------------------------------------------------------------------------------
-	-- 12/12/2012
-	-- Maybe there is some problem, such as the syncronizing of the writing data and the reading data
-	----------------------------------------------------------------------------------------------------------
-	J40_data_from_former_board_to_Daisychain: process ( clk_50MHz, reset)
-	begin
-		if ( reset = '1') then
-			J40_data_fifo_wr_en <= '0';
-			J40_fifo_status <= start_word_judge;
-			J40_data_fifo_din <= x"0000";
-			one_packet_write_or_read_J40_data_fifo(0) <= '0';
-		elsif (clk_50MHz 'event and clk_50MHz = '1') then
-		-- {
-			J40_data_fifo_din <= din_from_GTP;
-			case J40_fifo_status is
-				when start_word_judge =>
-				-- {
-					if ( din_from_GTP_wr = '1') then
-						if ( din_from_GTP(15 downto 8) = x"81") then -- Packet must have a valid first byte.
-							if ( wr_data_counter_J40 <= x"3A6") then -- If room for a whole packet
-								J40_data_fifo_wr_en <= din_from_GTP_wr;
-								J40_fifo_status <= receive_data;
-							else
-								J40_data_fifo_wr_en <= '0';
-								J40_fifo_status <= wait_for_fifo_ready;
-							end if;
-						else
-							J40_data_fifo_wr_en <= '0';
-							J40_fifo_status <= start_word_judge;
-						end if;
-					else
-						J40_data_fifo_wr_en <= '0';
-						J40_fifo_status <= start_word_judge;
-					end if;
-					one_packet_write_or_read_J40_data_fifo(0) <= '0';
-				-- }
-				when receive_data =>
-				-- {
-					-- end signal
-					if (din_from_GTP(15 downto 8) = x"FF" or din_from_GTP(7 downto 0) = x"FF") then
-						one_packet_write_or_read_J40_data_fifo(0) <= '1'; --signal that we just finished writing a packet, for counting purposes
-						J40_fifo_status <= start_word_judge; 
-					else
-						one_packet_write_or_read_J40_data_fifo(0) <= '0';
-						J40_fifo_status <= receive_data; 
-					end if;
-					J40_data_fifo_wr_en <= din_from_GTP_wr;
-				-- }
-				when wait_for_fifo_ready =>
-				-- {
-					if ( wr_data_counter_J40 > x"3A6") then -- If room for a whole packet
-						J40_fifo_status <= wait_for_fifo_ready; 
-					else
-						J40_fifo_status <= start_word_judge; 
-					end if;
-					J40_data_fifo_wr_en <= '0';
-					one_packet_write_or_read_J40_data_fifo(0) <= '0';
-				-- }
-			end case;
-		end if;
-		-- }
-	end process;
+	din_from_GTP_wr_i <= din_from_GTP_wr;
+	din_from_GTP_i <= din_from_GTP;
 
-	-- Count the number of complete packets in the FIFO. This is used to ensure that we don't start transferring
-	-- a packet out until we have a complete packet to send. (We don't want to sit and wait around mid transfer for
-	-- the rest of a packet.)
-	Inst_receive_J40_packet_number_fifo: process(reset, clk_50MHz)
-	begin
-		if ( reset = '1') then
-			packets_write_J40_data_fifo <= x"0000";
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then
-			-- Check wether finished writing, or reading a packet, and update count accordingly.
-			case one_packet_write_or_read_J40_data_fifo is
-				when "00" =>
-					packets_write_J40_data_fifo <= packets_write_J40_data_fifo;
-				when "01" =>
-					packets_write_J40_data_fifo <= packets_write_J40_data_fifo + x"01";
-				when "10" =>
-					packets_write_J40_data_fifo <= packets_write_J40_data_fifo - x"01";
-				when "11" =>
-					packets_write_J40_data_fifo <= packets_write_J40_data_fifo;
-				when others =>
-			end case;
-		end if;
-	end process;
+	fromGTPJ40_packet_fifo : complete_packets_fifo_1024_16
+	port map (
+		reset       => reset_fifo,
+		clk_50MHz   => clk_50MHz,
+		din_wr_en   => din_from_GTP_wr_i,
+		din         => din_from_GTP_i,
+		dout_rd_en  => J40_data_fifo_rd_en,
+		dout_decrement_packet_count  => J40_data_dout_decrement_packet_count,
+		dout_packet_available        => J40_data_packet_avail,
+		dout        => J40_data_fifo_dout,
+		dout_end_of_packet => J40_data_end_of_packet,
+		bytes_received     => open
+	);
 
 
 	--====================================================================
@@ -476,7 +363,7 @@ begin
 			dout_to_GTP_wr <= '0';
 			dout_to_GTP <= x"0000";
 			-- control the data packet in fifo
-			one_packet_write_or_read_J40_data_fifo(1) <= '0';
+			J40_data_dout_decrement_packet_count <= '0';
 			local_acquisition_data_dout_decrement_packet_count <= '0';
 			config_data_dout_decrement_packet_count <= '0';
 
@@ -500,7 +387,7 @@ begin
 					-- UDP configuration data - highest priority to be transmitted
 					if config_data_packet_avail = '1' then
 						config_data_fifo_rd_en <= '0';
-						one_packet_write_or_read_J40_data_fifo(1) <= '0';
+						J40_data_dout_decrement_packet_count <= '0';
 						local_acquisition_data_dout_decrement_packet_count <= '0';
 						config_data_dout_decrement_packet_count <= '1'; -- Signal that we just started reading a config packet, so there is 1 less full packet now.
 						config_data_transfer_state <= first_word_judge;
@@ -512,14 +399,14 @@ begin
 						-- transfer_data_token flips back and forth, so as to attempt to not give constant priority
 						case transfer_data_token is 
 							when '0' =>
-								if ( J40_data_fifo_empty = '0' and packets_write_J40_data_fifo > x"0") then
+								if J40_data_packet_avail = '1' then
 									J40_data_fifo_rd_en <= '0';
-									one_packet_write_or_read_J40_data_fifo(1) <= '1'; -- Trigger decrease packet counter by 1
+									J40_data_dout_decrement_packet_count <= '1'; -- Trigger decrease packet counter by 1
 									fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 									J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
 								else
 									J40_data_fifo_rd_en <= '0';
-									one_packet_write_or_read_J40_data_fifo(1) <= '0';
+									J40_data_dout_decrement_packet_count <= '0';
 									fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 									J41_Tx_send_state <= idle;
 								end if;
@@ -552,7 +439,7 @@ begin
 					dout_to_serializing_wr <= '0';
 					dout_to_serializing <= x"0000";
 					config_data_dout_decrement_packet_count <= '0';
-					one_packet_write_or_read_J40_data_fifo(1) <= '0';
+					J40_data_dout_decrement_packet_count <= '0';
 					local_acquisition_data_dout_decrement_packet_count <= '0';
 					case fifo_local_acquisition_data_transmit_state is
 					-- Determine if the first byte is already on output of FIFO or not.
@@ -736,7 +623,7 @@ begin
 					transfer_data_token <= transfer_data_token;
 					config_data_dout_decrement_packet_count <= '0';
 					local_acquisition_data_dout_decrement_packet_count <= '0';
-					one_packet_write_or_read_J40_data_fifo(1) <= '0';
+					J40_data_dout_decrement_packet_count <= '0';
 					case  fifo_former_Virtex_5_data_transmit_state is
 						-- Determine if the first byte is already on output of FIFO or not.
 						when first_header_word_judge =>
@@ -943,7 +830,7 @@ begin
 									-- echo back to the computer
 									dout_to_GTP_wr <= '1';
 									dout_to_GTP <= J40_data_fifo_dout;
-									if (J40_data_fifo_dout(15 downto 8) = x"FF" or J40_data_fifo_dout(7 downto 0) = x"FF") then
+									if J40_data_end_of_packet = '1' then
 										J40_data_fifo_rd_en <= '0';
 										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 										J41_Tx_send_state <= idle;
@@ -983,7 +870,7 @@ begin
 									dout_to_GTP_wr <= '1';
 									dout_to_GTP <= J40_data_fifo_dout;
 									-- must transfer the end signal
-									if ( J40_data_fifo_dout (15 downto 8) = x"FF" or J40_data_fifo_dout( 7 downto 0) = x"FF") then
+									if J40_data_end_of_packet = '1' then
 										J40_data_fifo_rd_en <= '0';
 										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 										J41_Tx_send_state <= idle;
@@ -1042,7 +929,7 @@ begin
 										dout_to_UDP <= x"0000";
 									end if;
 									-- Detect End of Packet
-									if ((J40_data_fifo_dout(15 downto 8) = x"FF") or (J40_data_fifo_dout(7 downto 0) = x"FF")) then
+									if J40_data_end_of_packet = '1' then
 										J40_data_fifo_rd_en <= '0';
 										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 										J41_Tx_send_state <= idle;
@@ -1068,7 +955,7 @@ begin
 							dout_to_GTP <= x"0000";
 							dout_to_UDP <= x"0000";
 							dout_to_serializing <= x"0000";
-							if ( J40_data_fifo_dout(15 downto 8) = x"FF" or J40_data_fifo_dout(7 downto 0) = x"FF") then
+							if J40_data_end_of_packet = '1' then
 								J40_data_fifo_rd_en <= '0';
 								fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
 								J41_Tx_send_state <= idle;
@@ -1093,7 +980,7 @@ begin
 					dout_to_UDP_wr <= '0';
 					dout_to_UDP <= x"0000";
 					config_data_dout_decrement_packet_count <= '0';
-					one_packet_write_or_read_J40_data_fifo(1) <= '0';
+					J40_data_dout_decrement_packet_count <= '0';
 					local_acquisition_data_dout_decrement_packet_count <= '0';
 					case config_data_transfer_state is
 						-- Determine if the first byte is already on output of FIFO or not.
