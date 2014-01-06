@@ -66,7 +66,7 @@ end Daisychain_module;
 
 architecture Behavioral of Daisychain_module is
 	signal formal_word			: std_logic_vector(15 downto 0);
-	signal acquisition_data_receive_data_number_i : std_logic_vector(15 downto 0);
+	signal acquisition_data_receive_data_number_i : std_logic_vector(63 downto 0);
 	signal bug_bit				: std_logic_vector( 1 downto 0);
 	-- global signals
 	signal reset_fifo			: std_logic := '1';
@@ -79,7 +79,7 @@ architecture Behavioral of Daisychain_module is
 	signal config_data_packet_avail  : std_logic := '0';
 	signal config_data_end_of_packet : std_logic := '0';
 	signal config_data_dout_decrement_packet_count : std_logic := '0';
-	signal wr_data_counter_local		: std_logic_vector( 9 downto 0) := "00" & x"00";
+
 	signal wr_data_counter_J40		: std_logic_vector( 9 downto 0) := "00" & x"00";
 
 	-- GTP transmitter related variables
@@ -92,13 +92,13 @@ architecture Behavioral of Daisychain_module is
 	signal packets_write_J40_data_fifo  : std_logic_vector(15 downto 0);
 
 	-- local acquisition fifo
-	signal local_acquisition_data_fifo_wr_en : std_logic;
+	signal din_from_acquisition_wr_i : std_logic := '0';
+	signal din_from_acquisition_i    : std_logic_vector(15 downto 0) := x"0000";
 	signal local_acquisition_data_fifo_rd_en : std_logic;
-	signal local_acquisition_data 	        : std_logic_vector(15 downto 0);
 	signal local_acquisition_data_fifo_dout : std_logic_vector(15 downto 0);
-	signal local_acquisition_data_fifo_empty : std_logic;
-	signal one_packet_write_or_read_local_acquisition_fifo : std_logic_vector(1 downto 0) := "00";
-	signal packets_write_local_acquisition_fifo  : std_logic_vector(15 downto 0);
+	signal local_acquisition_data_packet_avail : std_logic := '0';
+	signal local_acquisition_data_end_of_packet : std_logic := '0';
+	signal local_acquisition_data_dout_decrement_packet_count : std_logic := '0';
 
 
 	signal increase_one_clock_for_config_data : std_logic_vector(1 downto 0) := "00";
@@ -109,8 +109,6 @@ architecture Behavioral of Daisychain_module is
 	type fifo_status_type is ( start_word_judge, receive_data, wait_for_fifo_ready);
 	-- for receiving data from J40
 	signal J40_fifo_status 			: fifo_status_type := start_word_judge;
-	-- for receiving data from local_acquisition_module
-	signal local_acquisition_fifo_status    : fifo_status_type := start_word_judge;
 
 	type J41_Tx_send_state_type is (idle, data_from_former_Virtex_5_data_transmit_fifo, UDP_config_data_transmit, local_acquisition_data_transfer_fifo);
 	-- for transmitting data to J41
@@ -167,7 +165,7 @@ begin
 	config_data_from_UDP_to_GTP_i <= config_data_from_UDP_to_GTP;
 
 
-	acquisition_data_receive_data_number <= acquisition_data_receive_data_number_i;
+	acquisition_data_receive_data_number <= acquisition_data_receive_data_number_i(15 downto 0);
 	---------------------------------------------------------------------
 	-- Generate FIFO reset signal
 	---------------------------------------------------------------------
@@ -210,128 +208,23 @@ begin
 	--====================================================================
 	--====================================================================
 
-	--------------------------------------------------------------------
-	-- To get the data from local acquisition module and save into fifo_block_16
-	-- Only judge the start signal 8101-8104 and the end signal FFxx or xxFF 
-	--------------------------------------------------------------------
-	Inst_get_data_from_local_acquisition_module_to_Daisychain: fifo_1024_16_counter 
+	din_from_acquisition_i <= din_from_acquisition;
+	din_from_acquisition_wr_i <= din_from_acquisition_wr;
+
+	fromAquisition_packet_fifo : complete_packets_fifo_1024_16
 	port map (
-			rst		=> reset_fifo,
-			wr_clk		=> clk_50MHz,
-			rd_clk		=> clk_50MHz,
-			din		=> local_acquisition_data, 
-			wr_en		=> local_acquisition_data_fifo_wr_en,
-			rd_en		=> local_acquisition_data_fifo_rd_en,
-			dout		=> local_acquisition_data_fifo_dout,
-			full		=> open,
-			empty		=> local_acquisition_data_fifo_empty,
-			rd_data_count  	=> open,
-			wr_data_count  	=> wr_data_counter_local -- Outputs how many 16bit words currently used.
-		);
+		reset       => reset_fifo,
+		clk_50MHz   => clk_50MHz,
+		din_wr_en   => din_from_acquisition_wr_i,
+		din         => din_from_acquisition_i,
+		dout_rd_en  => local_acquisition_data_fifo_rd_en,
+		dout_decrement_packet_count  => local_acquisition_data_dout_decrement_packet_count,
+		dout_packet_available        => local_acquisition_data_packet_avail,
+		dout        => local_acquisition_data_fifo_dout,
+		dout_end_of_packet => local_acquisition_data_end_of_packet,
+		bytes_received     => acquisition_data_receive_data_number_i -- diagnostic??
+	);
 
-	-- Count the actual number of bytes received, regardless of wether we drop it due to lack of room in
-	-- the FIFO. This is used externally for diagnostics.
-	Inst_count_received_acquisition_data: process(reset, clk_50MHz)
-	begin
-		if ( reset = '1') then
-			acquisition_data_receive_data_number_i <= x"0000";
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then
-			if ( din_from_acquisition_wr = '1') then
-				if ( local_acquisition_data(15 downto 8) = x"FF") then -- Bottom byte is filler.
-					acquisition_data_receive_data_number_i <= acquisition_data_receive_data_number_i + x"1";
-				else
-					acquisition_data_receive_data_number_i <= acquisition_data_receive_data_number_i + x"2";
-				end if;
-			end if;
-		end if;
-	end process;
-
-
-	----------------------------------------------------------------------------------------------------------
-	-- Manage the FIFO.
-	----------------------------------------------------------------------------------------------------------
-	Local_acquisition_data_to_Daisychain: process( clk_50MHz, reset)
-	begin
-		if ( reset = '1') then
-			local_acquisition_data_fifo_wr_en <= '0';
-			local_acquisition_data <= x"0000";
-			one_packet_write_or_read_local_acquisition_fifo(0) <= '0';
-			local_acquisition_fifo_status <= start_word_judge;
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then
-		-- {
-			local_acquisition_data <= din_from_acquisition;
-			case local_acquisition_fifo_status is
-				when start_word_judge =>
-				-- {
-					if (din_from_acquisition_wr = '1') then
-						if ((din_from_acquisition > x"8100") and (din_from_acquisition < x"8105")) then -- Packet must have a valid first byte and source node.
-							if (wr_data_counter_local <= x"3A6") then -- If room for a whole packet
-								local_acquisition_data_fifo_wr_en <= din_from_acquisition_wr;
-								local_acquisition_fifo_status <= receive_data;
-							else
-								local_acquisition_data_fifo_wr_en <= '0';
-								local_acquisition_fifo_status <= wait_for_fifo_ready;
-							end if;
-						else
-							local_acquisition_data_fifo_wr_en <= '0';
-							local_acquisition_fifo_status <= start_word_judge;
-						end if;
-
-					else
-						local_acquisition_data_fifo_wr_en <= '0';
-						local_acquisition_fifo_status <= start_word_judge;
-					end if;
-					one_packet_write_or_read_local_acquisition_fifo(0) <= '0';
-				-- }
-				when receive_data =>
-				-- {
-					-- end signal
-					if ( din_from_acquisition(15 downto 8) = x"FF" or din_from_acquisition(7 downto 0) = x"FF") then
-						one_packet_write_or_read_local_acquisition_fifo(0) <= '1'; --signal that we just finished writing a packet, for counting purposes
-						local_acquisition_fifo_status <= start_word_judge;
-					else
-						one_packet_write_or_read_local_acquisition_fifo(0) <= '0';
-						local_acquisition_fifo_status <= receive_data;
-					end if;
-					local_acquisition_data_fifo_wr_en <= din_from_acquisition_wr;
-				-- }
-				when wait_for_fifo_ready =>
-				-- {
-					if ( wr_data_counter_local > x"3A6") then -- If room for a whole packet
-						local_acquisition_fifo_status <= wait_for_fifo_ready;
-					else
-						local_acquisition_fifo_status <= start_word_judge;
-					end if;
-					local_acquisition_data_fifo_wr_en <= '0';
-					one_packet_write_or_read_local_acquisition_fifo(0) <= '0';
-				-- }
-			end case;
-		end if;
-		-- }
-	end process;
-
-	-- Count the number of complete packets in the FIFO. This is used to ensure that we don't start transferring
-	-- a packet out until we have a complete packet to send. (We don't want to sit and wait around mid transfer for
-	-- the rest of a packet.)
-	Inst_receive_local_acquisition_packet_number_fifo: process(reset, clk_50MHz)
-	begin
-		if ( reset = '1') then
-			packets_write_local_acquisition_fifo <= x"0000";
-		elsif ( clk_50MHz 'event and clk_50MHz = '1') then
-			-- Check wether finished writing, or reading a packet, and update count accordingly.
-			case one_packet_write_or_read_local_acquisition_fifo is
-				when "00" =>
-					packets_write_local_acquisition_fifo <= packets_write_local_acquisition_fifo;
-				when "01" =>
-					packets_write_local_acquisition_fifo <= packets_write_local_acquisition_fifo + x"01";
-				when "10" =>
-					packets_write_local_acquisition_fifo <= packets_write_local_acquisition_fifo - x"01";
-				when "11" =>
-					packets_write_local_acquisition_fifo <= packets_write_local_acquisition_fifo;
-				when others =>
-			end case;
-		end if;
-	end process;
 
 	--====================================================================
 	--====================================================================
@@ -584,7 +477,7 @@ begin
 			dout_to_GTP <= x"0000";
 			-- control the data packet in fifo
 			one_packet_write_or_read_J40_data_fifo(1) <= '0';
-			one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+			local_acquisition_data_dout_decrement_packet_count <= '0';
 			config_data_dout_decrement_packet_count <= '0';
 
 			transfer_data_token <= '0';
@@ -608,7 +501,7 @@ begin
 					if config_data_packet_avail = '1' then
 						config_data_fifo_rd_en <= '0';
 						one_packet_write_or_read_J40_data_fifo(1) <= '0';
-						one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+						local_acquisition_data_dout_decrement_packet_count <= '0';
 						config_data_dout_decrement_packet_count <= '1'; -- Signal that we just started reading a config packet, so there is 1 less full packet now.
 						config_data_transfer_state <= first_word_judge;
 						J41_Tx_send_state <= UDP_config_data_transmit;
@@ -632,14 +525,14 @@ begin
 								end if;
 								transfer_data_token <= '1';
 							when '1' =>
-								if ( local_acquisition_data_fifo_empty = '0' and packets_write_local_acquisition_fifo > x"0")  then
+								if local_acquisition_data_packet_avail = '1' then
 									local_acquisition_data_fifo_rd_en <= '0';
-									one_packet_write_or_read_local_acquisition_fifo(1) <= '1'; -- Trigger decrease packet counter by 1
+									local_acquisition_data_dout_decrement_packet_count <= '1'; -- Trigger decrease packet counter by 1
 									fifo_local_acquisition_data_transmit_state <= first_word_judge;
 									J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
 								else
 									local_acquisition_data_fifo_rd_en <= '0';
-									one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+									local_acquisition_data_dout_decrement_packet_count <= '0';
 									fifo_local_acquisition_data_transmit_state <= first_word_judge;
 									J41_Tx_send_state <= idle;
 								end if;
@@ -660,7 +553,7 @@ begin
 					dout_to_serializing <= x"0000";
 					config_data_dout_decrement_packet_count <= '0';
 					one_packet_write_or_read_J40_data_fifo(1) <= '0';
-					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+					local_acquisition_data_dout_decrement_packet_count <= '0';
 					case fifo_local_acquisition_data_transmit_state is
 					-- Determine if the first byte is already on output of FIFO or not.
 						when first_word_judge =>
@@ -777,7 +670,7 @@ begin
 								dout_to_GTP <= x"0000";
 								dout_to_UDP_wr <= '1';
 								dout_to_UDP <= local_acquisition_data_fifo_dout;
-								if ( local_acquisition_data_fifo_dout(15 downto 8) = x"FF" or local_acquisition_data_fifo_dout(7 downto 0) = x"FF") then
+								if local_acquisition_data_end_of_packet = '1' then
 									local_acquisition_data_fifo_rd_en <= '0';
 									fifo_local_acquisition_data_transmit_state <= end_process;
 								else
@@ -789,7 +682,7 @@ begin
 								dout_to_UDP <= x"0000";
 								dout_to_GTP_wr <= '1';
 								dout_to_GTP <= local_acquisition_data_fifo_dout;
-								if ( local_acquisition_data_fifo_dout(15 downto 8) = x"FF" or local_acquisition_data_fifo_dout(7 downto 0) = x"FF") then
+								if local_acquisition_data_end_of_packet = '1' then
 									local_acquisition_data_fifo_rd_en <= '0';
 									fifo_local_acquisition_data_transmit_state <= end_process;
 								else
@@ -808,7 +701,7 @@ begin
 							dout_to_GTP <= x"0000";
 							dout_to_UDP_wr <= '0';
 							dout_to_UDP <= x"0000";
-							if ( local_acquisition_data_fifo_dout(15 downto 8) = x"FF" or local_acquisition_data_fifo_dout(7 downto 0) = x"FF") then
+							if local_acquisition_data_end_of_packet = '1' then
 								local_acquisition_data_fifo_rd_en <= '0';
 								fifo_local_acquisition_data_transmit_state <= end_process;
 							else
@@ -842,7 +735,7 @@ begin
 					local_acquisition_data_fifo_rd_en <= '0';
 					transfer_data_token <= transfer_data_token;
 					config_data_dout_decrement_packet_count <= '0';
-					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+					local_acquisition_data_dout_decrement_packet_count <= '0';
 					one_packet_write_or_read_J40_data_fifo(1) <= '0';
 					case  fifo_former_Virtex_5_data_transmit_state is
 						-- Determine if the first byte is already on output of FIFO or not.
@@ -1201,7 +1094,7 @@ begin
 					dout_to_UDP <= x"0000";
 					config_data_dout_decrement_packet_count <= '0';
 					one_packet_write_or_read_J40_data_fifo(1) <= '0';
-					one_packet_write_or_read_local_acquisition_fifo(1) <= '0';
+					local_acquisition_data_dout_decrement_packet_count <= '0';
 					case config_data_transfer_state is
 						-- Determine if the first byte is already on output of FIFO or not.
 						when first_word_judge =>
