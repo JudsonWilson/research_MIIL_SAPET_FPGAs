@@ -1,0 +1,52 @@
+diff --git a/RENA_FPGA/LED.vhd b/RENA_FPGA/LED.vhd
+index 49a9a88..3512fce 100644
+--- a/RENA_FPGA/LED.vhd
++++ b/RENA_FPGA/LED.vhd
+@@ -33,6 +33,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
+ 
+ entity LED is
+     Port ( mclk : in  STD_LOGIC;
++				send : in std_logic;
+            ledOut : out  STD_LOGIC);
+ end LED;
+ 
+@@ -44,6 +45,8 @@ signal nextLedOut : std_logic;
+ signal counter : std_logic_vector(23 downto 0) := "000000000000000000000000";
+ signal nextCounter : std_logic_vector(23 downto 0) := "000000000000000000000000";
+ 
++signal send_triggered : std_logic := '0';
++
+ --================================================================================
+ begin
+ 
+@@ -51,7 +54,8 @@ process(mclk)
+ begin
+     if rising_edge(mclk) then
+ 		counter <= nextCounter;
+-		ledOut <= nextLedOut;
++		ledOut <= send_triggered xor send;
++		send_triggered <= send_triggered xor send;
+ 	 end if;
+ end process;
+ 
+diff --git a/RENA_FPGA/main.vhd b/RENA_FPGA/main.vhd
+index cdab794..52d3cbd 100644
+--- a/RENA_FPGA/main.vhd
++++ b/RENA_FPGA/main.vhd
+@@ -159,6 +159,8 @@ end component;
+ component LED
+ port (
+ 	mclk   : in  STD_LOGIC;
++	send : in std_logic;
++
+    ledOut : out  STD_LOGIC
+ 	);
+ end component;
+@@ -609,6 +611,7 @@ end process;
+ --========================================================================
+ LEDDriver : LED port map(
+ 		  mclk => systemClk, 
++		  send => diagnostic_send,
+ 		  ledOut => ledOut
+ 		  );
+ 
