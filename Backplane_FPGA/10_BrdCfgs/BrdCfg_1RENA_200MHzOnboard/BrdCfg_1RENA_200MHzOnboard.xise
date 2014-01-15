@@ -198,13 +198,61 @@
       <association xil_pn:name="PostRouteSimulation"/>
       <association xil_pn:name="PostTranslateSimulation"/>
     </file>
-    <file xil_pn:name="../../04_Daisychain/Daisychain_module/complete_packets_fifo_1024_16.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/smart_packets_fifo_1024_16.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/smart_packets_fifo_1024_16_testbench.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="PostMapSimulation"/>
+      <association xil_pn:name="PostRouteSimulation"/>
+      <association xil_pn:name="PostTranslateSimulation"/>
     </file>
     <file xil_pn:name="../../05_acquisition/acquisition_module/ipcore_dir/fifo_1024_16_counter.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/input_fifo_switch.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/input_fifo_switch_testbench.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="PostMapSimulation"/>
+      <association xil_pn:name="PostRouteSimulation"/>
+      <association xil_pn:name="PostTranslateSimulation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/output_fifo_switch_testbench.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="PostMapSimulation"/>
+      <association xil_pn:name="PostRouteSimulation"/>
+      <association xil_pn:name="PostTranslateSimulation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/output_fifo_switch.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/packet_source_destination_swapper.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="Implementation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/packet_source_destination_swapper_testbench.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="PostMapSimulation"/>
+      <association xil_pn:name="PostRouteSimulation"/>
+      <association xil_pn:name="PostTranslateSimulation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/Daisychain_module_testbench.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="PostMapSimulation"/>
+      <association xil_pn:name="PostRouteSimulation"/>
+      <association xil_pn:name="PostTranslateSimulation"/>
+    </file>
+    <file xil_pn:name="../../04_Daisychain/Daisychain_module/Daisychain_module_tb.vhd" xil_pn:type="FILE_VHDL">
+      <association xil_pn:name="BehavioralSimulation"/>
+      <association xil_pn:name="PostMapSimulation"/>
+      <association xil_pn:name="PostRouteSimulation"/>
+      <association xil_pn:name="PostTranslateSimulation"/>
     </file>
     <file xil_pn:name="../../02_UDP/UDP_module/ipcore_dir/UDP_IP_CORE__Virtex5/comp_6b_equal.xise" xil_pn:type="FILE_COREGENISE">
       <association xil_pn:name="Implementation"/>

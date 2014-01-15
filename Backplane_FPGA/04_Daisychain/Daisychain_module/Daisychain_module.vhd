@@ -1,14 +1,21 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
+-- Company:      Stanford MIIL (Molecular Imaging Instrumentation Lab)
+-- Engineer:     Judson Wilson, based on code by Hua Liu.
 -- 
--- Create Date:    16:50:25 10/22/2012 
+-- Create Date:    01/11/2014 
 -- Design Name: 
 -- Module Name:    Daisychain_module - Behavioral 
 -- Project Name: 
 -- Target Devices: 
 -- Tool versions: 
 -- Description: 
+--     This file accepts input packet data from various sources into packet fifos,
+--     and then routes data from these FIFOs to the correct output port based
+--     upon the packet's source and destination fields.
+--
+--     This file replaces the version by Hua Liu, which operated very much the
+--     same, but very much differently. This version is much more structural
+--     and heirarchical in nature, and should be easier to decipher what it does.
 --
 -- Dependencies: 
 --
@@ -17,54 +24,48 @@
 -- Additional Comments: 
 --
 ----------------------------------------------------------------------------------
-library unisim;
-use unisim.vcomponents.all;
-
-
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
+use ieee.std_logic_unsigned.all; -- used for comparison of adress ranges
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
 
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity Daisychain_module is
 	port (
-		     acquisition_data_receive_data_number : out std_logic_vector(15 downto 0);
-		     bug_out_put_from_Acquisition_to_Daisychain			: out std_logic;
-		     reset				: in std_logic;
-		     clk_50MHz				: in std_logic;
-		     boardid				: in std_logic_vector(2 downto 0);
-		     -- to get the config data and acquisition data from GTP interface for serializing
+		acquisition_data_receive_data_number : out std_logic_vector(15 downto 0);
+		bug_out_put_from_Acquisition_to_Daisychain			: out std_logic;
+		reset				: in std_logic;
+		clk_50MHz				: in std_logic;
+		boardid				: in std_logic_vector(2 downto 0);
+
 		-- data receiving from GTP interface
-		     din_from_GTP			: in std_logic_vector(15 downto 0);
-		     din_from_GTP_wr			: in std_logic;
+		din_from_GTP			: in std_logic_vector(15 downto 0);
+		din_from_GTP_wr			: in std_logic;
 		-- to send the config data and acquisition data to GTP interface for transfer
-		     dout_to_GTP			: out std_logic_vector(15 downto 0);
-		     dout_to_GTP_wr			: out std_logic;
-		     is_GTP_ready			: in std_logic;
+		dout_to_GTP			: out std_logic_vector(15 downto 0);
+		dout_to_GTP_wr			: out std_logic;
+		is_GTP_ready			: in std_logic; -- todo fixme: use this!
 		-- data to UDP interface
-		     dout_to_UDP			: out std_logic_vector(15 downto 0);
-	             dout_to_UDP_wr			: out std_logic;
+		dout_to_UDP			: out std_logic_vector(15 downto 0);
+		dout_to_UDP_wr			: out std_logic;
 		-- config_data_from_UDP_to_GTP
-		     config_data_from_UDP_to_GTP	: in std_logic_vector(15 downto 0);
-		     config_data_from_UDP_to_GTP_wr	: in std_logic;
+		config_data_from_UDP_to_GTP	: in std_logic_vector(15 downto 0);
+		config_data_from_UDP_to_GTP_wr	: in std_logic;
 		-- acquisition_data_from_local_to_GTP
-		     din_from_acquisition_wr            : in std_logic;
-		     din_from_acquisition               : in std_logic_vector(15 downto 0);
+		din_from_acquisition_wr            : in std_logic;
+		din_from_acquisition               : in std_logic_vector(15 downto 0);
 		-- current board configing data
-		     dout_to_serializing_wr		: out std_logic;
-		     dout_to_serializing		: out std_logic_vector(15 downto 0)
-	     );
+		dout_to_serializing_wr		: out std_logic;
+		dout_to_serializing		: out std_logic_vector(15 downto 0)
+     );
 end Daisychain_module;
 
 architecture Behavioral of Daisychain_module is
+	attribute keep : string;  
+	attribute S: string;
+
 	signal formal_word			: std_logic_vector(15 downto 0);
 	signal acquisition_data_receive_data_number_i : std_logic_vector(63 downto 0);
 	signal bug_bit				: std_logic_vector( 1 downto 0);
@@ -74,68 +75,161 @@ architecture Behavioral of Daisychain_module is
 	-- config data related variables
 	signal config_data_from_UDP_to_GTP_wr_i : std_logic := '0';
 	signal config_data_from_UDP_to_GTP_i    : std_logic_vector(15 downto 0) := x"0000";
-	signal config_data_fifo_rd_en		: std_logic := '0';
-	signal config_data_fifo_dout		: std_logic_vector(15 downto 0) := x"0000";
-	signal config_data_packet_avail  : std_logic := '0';
-	signal config_data_end_of_packet : std_logic := '0';
-	signal config_data_dout_decrement_packet_count : std_logic := '0';
+	signal config_data_fifo_dout_source_node      : std_logic_vector(2 downto 0) := "000";
+	signal config_data_fifo_dout_destination_node : std_logic_vector(2 downto 0) := "000";
+	signal config_data_fifo_dout_rd_en            : std_logic := '0';
+	signal config_data_fifo_dout_packet_available : std_logic := '0';
+	signal config_data_fifo_dout_empty_notready   : std_logic := '0';
+	signal config_data_fifo_dout                  : std_logic_vector(15 downto 0) := x"0000";
+	signal config_data_fifo_dout_end_of_packet    : std_logic := '0';
 
 	-- GTP transmitter related variables
 	signal din_from_GTP_wr_i : std_logic := '0';
 	signal din_from_GTP_i    : std_logic_vector(15 downto 0) := x"0000";
-	signal J40_data_fifo_rd_en 		: std_logic := '0';
-	signal J40_data_fifo_dout		: std_logic_vector(15 downto 0);
-	signal J40_data_packet_avail  : std_logic := '0';
-	signal J40_data_end_of_packet : std_logic := '0';
-	signal J40_data_dout_decrement_packet_count : std_logic := '0';
+	signal J40_data_fifo_dout_source_node      : std_logic_vector(2 downto 0) := "000";
+	signal J40_data_fifo_dout_destination_node : std_logic_vector(2 downto 0) := "000";
+	signal J40_data_fifo_dout_rd_en            : std_logic := '0';
+	signal J40_data_fifo_dout_packet_available : std_logic := '0';
+	signal J40_data_fifo_dout_empty_notready   : std_logic := '0';
+	signal J40_data_fifo_dout                  : std_logic_vector(15 downto 0) := x"0000";
+	signal J40_data_fifo_dout_end_of_packet    : std_logic := '0';
+
+	signal gtpj40_packet_ready_immediately : std_logic := '0';
 
 	-- local acquisition fifo
 	signal din_from_acquisition_wr_i : std_logic := '0';
 	signal din_from_acquisition_i    : std_logic_vector(15 downto 0) := x"0000";
-	signal local_acquisition_data_fifo_rd_en : std_logic;
-	signal local_acquisition_data_fifo_dout : std_logic_vector(15 downto 0);
-	signal local_acquisition_data_packet_avail : std_logic := '0';
-	signal local_acquisition_data_end_of_packet : std_logic := '0';
-	signal local_acquisition_data_dout_decrement_packet_count : std_logic := '0';
+	signal local_acquisition_data_fifo_dout_source_node      : std_logic_vector(2 downto 0) := "000";
+	signal local_acquisition_data_fifo_dout_destination_node : std_logic_vector(2 downto 0) := "000";
+	signal local_acquisition_data_fifo_dout_rd_en            : std_logic := '0';
+	signal local_acquisition_data_fifo_dout_packet_available : std_logic := '0';
+	signal local_acquisition_data_fifo_dout_empty_notready   : std_logic := '0';
+	signal local_acquisition_data_fifo_dout                  : std_logic_vector(15 downto 0);
+	signal local_acquisition_data_fifo_dout_end_of_packet    : std_logic := '0';
 
-
-	signal increase_one_clock_for_config_data : std_logic_vector(1 downto 0) := "00";
-	signal increase_one_clock_for_acquisition_data : std_logic_vector(1 downto 0) := "00";
-	signal first_header_word		: std_logic_vector(15 downto 0);
-	signal second_header_word 		: std_logic_vector(15 downto 0);
-
-	type J41_Tx_send_state_type is (idle, data_from_former_Virtex_5_data_transmit_fifo, UDP_config_data_transmit, local_acquisition_data_transfer_fifo);
-	-- for transmitting data to J41
-	signal J41_Tx_send_state : J41_Tx_send_state_type := idle;
-
-	type transfering_local_acquisition_data_type is (first_word_judge, first_word_output, align_one_clock, valid_data_judge, save_second_word, local_acquisition_data_transfer, error_data_process, end_process);
-	signal fifo_local_acquisition_data_transmit_state : transfering_local_acquisition_data_type := first_word_judge;
-
-	type former_Virtex_5_data_transmit_state_type is (first_header_word_judge, first_header_word_output, align_read_out_clock, valid_header_word_judge, serializing_config_data_for_current_board_transfer, not_the_current_board_config_data_transmit_former_board_data, acquisition_data_transmit_former_board, error_data_process);
-	signal fifo_former_Virtex_5_data_transmit_state : former_Virtex_5_data_transmit_state_type := first_header_word_judge;
-
-	type   config_data_transfer_state_type is (first_word_judge, first_word_output, align_one_clock, valid_data_judge, save_second_word, body_transfer, error_data_process, end_process);
-	signal config_data_transfer_state : config_data_transfer_state_type := first_word_judge;
+	signal acquisition_packet_ready_immediately : std_logic := '0';
 	
-	signal echo_back_config_data		: std_logic_vector(15 downto 0);
+	-- Assign one of these to input_switch_channel to select a channel (immediately).
+	constant INPUT_CHANNEL_DONT_CHANGE : std_logic_vector(3 downto 1) := "000";
+	constant INPUT_CHANNEL_UDP         : std_logic_vector(3 downto 1) := "001";
+	constant INPUT_CHANNEL_GTPJ40      : std_logic_vector(3 downto 1) := "010";
+	constant INPUT_CHANNEL_ACQUISITION  : std_logic_vector(3 downto 1) := "100";
 
-	signal transfer_data_token		: std_logic := '0'; 
-		     
-	component complete_packets_fifo_1024_16
+	-- OR these masks to output_switch_channels_mask to add a channel to the enabled list.
+	-- (Takes effect when the switch's set_channels signal is pulsed).
+	constant OUTPUT_MASK_NOWHERE    : std_logic_vector(3 downto 1) := "000";
+	constant OUTPUT_MASK_UDP        : std_logic_vector(3 downto 1) := "001";
+	constant OUTPUT_MASK_GTPJ41     : std_logic_vector(3 downto 1) := "010";
+	constant OUTPUT_MASK_SERIALIZER : std_logic_vector(3 downto 1) := "100";
+
+	signal input_switch_rd_en   : std_logic := '0';
+	signal input_switch_channel : std_logic_vector(3 downto 1) := INPUT_CHANNEL_DONT_CHANGE;
+	signal input_switch_dout                : std_logic_vector(15 downto 0) := x"0000";
+	signal input_switch_dout_empty_notready : std_logic := '0';
+	signal input_switch_dout_end_of_packet  : std_logic := '0';
+	
+	signal output_switch_channels_mask : std_logic_vector(3 downto 1) := OUTPUT_MASK_NOWHERE;
+	signal output_switch_set_channels  : std_logic := '0';
+	signal output_switch_wr_en         : std_logic := '0';
+
+	signal output_J41_is_echo          : std_logic := '0';
+	signal output_J41_is_echo_next     : std_logic := '0';
+	
+	-- Signals going from the router to the echo_shaper, before heading out to
+	-- the GTP port.
+	signal dout_to_GTP_pre_echo_shaper         : std_logic_vector(15 downto 0) := x"0000";
+	signal dout_to_GTP_wr_pre_echo_shaper      : std_logic := '0';
+	signal dout_to_GTP_post_echo_shaper        : std_logic_vector(15 downto 0) := x"0000";
+	signal dout_to_GTP_wr_post_echo_shaper     : std_logic := '0';
+
+	type   router_state_machine_state_type is (idle, transferring);
+	signal router_state_machine_state      : router_state_machine_state_type := idle;
+	signal router_state_machine_state_next : router_state_machine_state_type := idle;
+
+	-- The following signals are used to assign alternating priority between bottom tier sources.
+	-- (the UDP input is always highest tier, it gets top priority always).
+	type   bottom_tier_priority_source is (gtpj40, acquisition);
+	signal router_bottom_tier_highest_priority_source      : bottom_tier_priority_source := gtpj40; 
+	signal router_bottom_tier_highest_priority_source_next : bottom_tier_priority_source := gtpj40; 
+	signal router_ok_receive_gtpj40      : std_logic := '0';
+	signal router_ok_receive_acquisition : std_logic := '0';
+	
+	component smart_packets_fifo_1024_16
 		port (
 			reset       : in std_logic;
-			clk_50MHz   : in std_logic;
+			clk         : in std_logic;
 			din_wr_en   : in std_logic;
 			din         : in std_logic_vector(15 downto 0);
+			dout_source_node      : out std_logic_vector(2 downto 0); -- 0 to 4, valid from start up through word before end-word
+			dout_destination_node : out std_logic_vector(2 downto 0); -- 0 to 4
 			dout_rd_en  : in std_logic;
-			dout_decrement_packet_count  : in  std_logic;
-			dout_packet_available        : out std_logic;
+			dout_packet_available : out std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+			dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
 			dout        : out std_logic_vector(15 downto 0);
 			dout_end_of_packet : out std_logic;
 			bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
 		);
 	end component;
 
+	component input_fifo_switch
+	port (
+		reset         : in std_logic;
+		clk           : in std_logic;
+		-- control logic
+		in_rd_en      : in std_logic;
+		in_use_input_1 : in std_logic; -- one-hot source selectors, act immediately
+		in_use_input_2 : in std_logic;
+		in_use_input_3 : in std_logic;
+		-- fifo interfaces
+		fifo_dout_1    : in std_logic_vector(15 downto 0);
+		fifo_dout_2    : in std_logic_vector(15 downto 0);
+		fifo_dout_3    : in std_logic_vector(15 downto 0);
+		fifo_rd_en_1   : out std_logic;
+		fifo_rd_en_2   : out std_logic;
+		fifo_rd_en_3   : out std_logic;
+		fifo_dout_empty_notready_1 : in std_logic;
+		fifo_dout_empty_notready_2 : in std_logic;
+		fifo_dout_empty_notready_3 : in std_logic;
+		fifo_dout_end_of_packet_1  : in std_logic;
+		fifo_dout_end_of_packet_2  : in std_logic;
+		fifo_dout_end_of_packet_3  : in std_logic;
+		-- output data
+		dout  : out std_logic_vector(15 downto 0);
+		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		dout_end_of_packet    : out std_logic
+	);
+	end component;
+
+	component output_fifo_switch
+	port (
+		reset         : in std_logic;
+		clk           : in std_logic;
+		-- control logic
+		en_ch_1 : in std_logic; -- one-hot source selectors, act immediately
+		en_ch_2 : in std_logic;
+		en_ch_3 : in std_logic;
+		set_channels : in std_logic;
+		-- input signal
+		in_wr_en      : in std_logic;
+		-- output signal
+		out_wr_en_1    : out std_logic;
+		out_wr_en_2    : out std_logic;
+		out_wr_en_3    : out std_logic
+	);
+	end component;
+
+	component packet_source_destination_swapper is
+	port (
+		reset   : in  std_logic;
+		clk     : in  std_logic;
+		din     : in  std_logic_vector(15 downto 0);
+		din_wr  : in  std_logic;
+		swap_en : in  std_logic;
+		dout    : out std_logic_vector(15 downto 0);
+		dout_wr : out std_logic
+	);	
+	end component;	
+	
 begin
 	config_data_from_UDP_to_GTP_wr_i <= config_data_from_UDP_to_GTP_wr;
 	config_data_from_UDP_to_GTP_i <= config_data_from_UDP_to_GTP;
@@ -162,18 +256,20 @@ begin
 	--====================================================================
 	--====================================================================
 
-	fromUDP_packet_fifo : complete_packets_fifo_1024_16
+	fromUDP_packet_fifo : smart_packets_fifo_1024_16
 	port map (
 		reset       => reset_fifo,
-		clk_50MHz   => clk_50MHz,
+		clk         => clk_50MHz,
 		din_wr_en   => config_data_from_UDP_to_GTP_wr_i,
 		din         => config_data_from_UDP_to_GTP_i,
-		dout_rd_en  => config_data_fifo_rd_en,
-		dout_decrement_packet_count  => config_data_dout_decrement_packet_count,
-		dout_packet_available        => config_data_packet_avail,
-		dout        => config_data_fifo_dout,
-		dout_end_of_packet => config_data_end_of_packet,
-		bytes_received     => open
+		dout_source_node      => config_data_fifo_dout_source_node,
+		dout_destination_node => config_data_fifo_dout_destination_node,
+		dout_rd_en            => config_data_fifo_dout_rd_en,
+		dout_packet_available => config_data_fifo_dout_packet_available,
+		dout_empty_notready   => config_data_fifo_dout_empty_notready,
+		dout                  => config_data_fifo_dout,
+		dout_end_of_packet    => config_data_fifo_dout_end_of_packet,
+		bytes_received  => open
 	);
 
 
@@ -187,18 +283,20 @@ begin
 	din_from_acquisition_i <= din_from_acquisition;
 	din_from_acquisition_wr_i <= din_from_acquisition_wr;
 
-	fromAquisition_packet_fifo : complete_packets_fifo_1024_16
+	fromAquisition_packet_fifo : smart_packets_fifo_1024_16
 	port map (
 		reset       => reset_fifo,
-		clk_50MHz   => clk_50MHz,
+		clk         => clk_50MHz,
 		din_wr_en   => din_from_acquisition_wr_i,
 		din         => din_from_acquisition_i,
-		dout_rd_en  => local_acquisition_data_fifo_rd_en,
-		dout_decrement_packet_count  => local_acquisition_data_dout_decrement_packet_count,
-		dout_packet_available        => local_acquisition_data_packet_avail,
-		dout        => local_acquisition_data_fifo_dout,
-		dout_end_of_packet => local_acquisition_data_end_of_packet,
-		bytes_received     => acquisition_data_receive_data_number_i -- diagnostic??
+		dout_source_node      => local_acquisition_data_fifo_dout_source_node,
+		dout_destination_node => local_acquisition_data_fifo_dout_destination_node,
+		dout_rd_en            => local_acquisition_data_fifo_dout_rd_en,
+		dout_packet_available => local_acquisition_data_fifo_dout_packet_available,
+		dout_empty_notready   => local_acquisition_data_fifo_dout_empty_notready,
+		dout                  => local_acquisition_data_fifo_dout,
+		dout_end_of_packet    => local_acquisition_data_fifo_dout_end_of_packet,
+		bytes_received  => acquisition_data_receive_data_number_i -- diagnostic??
 	);
 
 
@@ -212,18 +310,20 @@ begin
 	din_from_GTP_wr_i <= din_from_GTP_wr;
 	din_from_GTP_i <= din_from_GTP;
 
-	fromGTPJ40_packet_fifo : complete_packets_fifo_1024_16
+	fromGTPJ40_packet_fifo : smart_packets_fifo_1024_16
 	port map (
 		reset       => reset_fifo,
-		clk_50MHz   => clk_50MHz,
-		din_wr_en   => din_from_GTP_wr_i,
+		clk         => clk_50MHz,
+		din_wr_en   => din_from_GTP_wr_i,	
 		din         => din_from_GTP_i,
-		dout_rd_en  => J40_data_fifo_rd_en,
-		dout_decrement_packet_count  => J40_data_dout_decrement_packet_count,
-		dout_packet_available        => J40_data_packet_avail,
-		dout        => J40_data_fifo_dout,
-		dout_end_of_packet => J40_data_end_of_packet,
-		bytes_received     => open
+		dout_source_node      => J40_data_fifo_dout_source_node,
+		dout_destination_node => J40_data_fifo_dout_destination_node,
+		dout_rd_en            => J40_data_fifo_dout_rd_en,
+		dout_packet_available => J40_data_fifo_dout_packet_available,
+		dout_empty_notready   => J40_data_fifo_dout_empty_notready,
+		dout                  => J40_data_fifo_dout,
+		dout_end_of_packet    => J40_data_fifo_dout_end_of_packet,
+		bytes_received  => open
 	);
 
 
@@ -296,821 +396,322 @@ begin
 	end process;
 
 
+	--=============================================================================
+	-- Echo Shaper
+	-- - Packets travel through this on the way to the GTPJ41, and if the
+	--   swap_en signal is set, the source and destination bytes are swapped.
+	--   Thus, if the router process is producing a configuration data echo
+	--   packet, it should enable the swap_en. Otherwise, it acts as a one
+	--   cycle delay.
+	--=============================================================================
+	dout_to_GTP    <= dout_to_GTP_post_echo_shaper;
+	dout_to_GTP_wr <= dout_to_GTP_wr_post_echo_shaper;
+
+	echo_shaper : packet_source_destination_swapper port map(
+		reset       => reset,
+		clk         => clk_50MHz,
+		din         => dout_to_GTP_pre_echo_shaper,
+		din_wr      => dout_to_GTP_wr_pre_echo_shaper,
+		swap_en     => output_J41_is_echo,
+		dout        => dout_to_GTP_post_echo_shaper,
+		dout_wr     => dout_to_GTP_wr_post_echo_shaper
+	);
 
 	--====================================================================
 	--====================================================================
-	-- Routing Process:
-	--     Data can flow from one and only one input port to either the
-	--	    J41 GTP output port, or the UDP port. This process prioritizes
-	--     the input port, and writes to the correct output depending on
-	--     which board Node ID this is, etc.
+	-- Router:
+	--     Data can flow from one and only one input port to one or
+	--     more outputs (i.e. when echoing back configuration data).
+	--     This router hardware has 3 main parts:
+	--      1) Input Switch - Basically acts like a complicated MUX to
+	--         present multiple input fifo sources as a single interface.
+	--      2) Output Switch - Basically a demux, although it can forward
+	--         the data to multiple outputs.
+	--      3) Routing Process - Looks at the available sources, chooses
+	--         one, and then switches the desired input to the desired
+	--         outputs and clocks the bytes through.
 	--====================================================================
 	--====================================================================
-	--     FIFO note:
-	--     Because of the design of this process and the way
-	--     the sensitivity works (sensitive only to clock), a FIFO output
-	--     as seen in the process becomes valid on the 2nd following clock
-	--     tick. To understand this, note that the enable signal is read
-	--     by the fifo on the next clock edge, and the data becomes valid
-	--     on the output AFTER the clock edge. This will not change the
-	--     signal in the eyes of the state machine until the next clock
-	--     edge after that (becaue the process samples on clock edge). So
-	--     this means output on second clock after read strobe.
-	--
-	--     This causes all the FIFO reading states to be funny. To be more
-	--     straight-forward, you would do a signal-read, pause, react
-	--     sequence, but this would cut throughput in half. So instead,
-	--     we try and be smart (rather than rewrite the state machine as
-	--     two processes, where one updates flip-flops on clock edges, and
-	--     the other has asynchronous logic that is sensitive to all
-	--     signals of interest <- which would work a lot better).
-	--
-	--     Instead, we read the whole body without gaps. Thus, by the time
-	--     we notice that we got the last word of the packet, we read too
-	--     far already.
-	--
-	--     The first reading state then needs to check for two possibilities:
-	--     1) At startup, or after reading one packet with nothing after it,
-	--     the FIFO should not be outputting a x"810#" word. So start reading.
-	--     2) The FIFO output is the first word from the next packet, because
-	--     there was a second one in the FIFO when we over-ran the ending.
-	--
-	--     If you understand that, you can understand the rest of the states.
+
+	----------------------------------------------------------------------
+	-- Input Switch
+	--  - Easily control 3 input FIFOs from one simple interface.
 	----------------------------------------------------------------------
 
-	----------------------------------------------------------------------------------------------------------
-	-- Old comment:
-	----------------------------------------------------------------------------------------------------------
-	-- GTP J41 transfer: (dout_to_GTP_wr, dout_to_GTP)
-	-- The following data will be sent:
-	-- 1. configuration data from UDP_interface to GTP
-	-- 2. the former Virtex-5 board data from J40(configuration data and former local acquisition data)
-	-- 3. local acquisition data
-	-- For the configuration data fromo J41, serializing and transmitting at the same time
-	----------------------------------------------------------------------------------------------------------
-	GTP_J41_and_UDP_out_state_machine: process( clk_50MHz, reset)
+	input_switch_instance : input_fifo_switch
+	port map (
+		reset         => reset,
+		clk           => clk_50MHz,
+		-- control logic
+		in_rd_en       => input_switch_rd_en,
+		in_use_input_1 => input_switch_channel(1), -- assign INPUT_CHANNEL_UDP
+		in_use_input_2 => input_switch_channel(2), -- assign INPUT_CHANNEL_GTPJ40
+		in_use_input_3 => input_switch_channel(3), -- assign INPUT_CHANNEL_AQUISITION
+		-- fifo interfaces
+		fifo_dout_1    =>            config_data_fifo_dout,
+		fifo_dout_2    =>               J40_data_fifo_dout,
+		fifo_dout_3    => local_acquisition_data_fifo_dout,
+		fifo_rd_en_1   =>            config_data_fifo_dout_rd_en,
+		fifo_rd_en_2   =>               J40_data_fifo_dout_rd_en,
+		fifo_rd_en_3   => local_acquisition_data_fifo_dout_rd_en,
+		fifo_dout_empty_notready_1 =>            config_data_fifo_dout_empty_notready,
+		fifo_dout_empty_notready_2 =>               J40_data_fifo_dout_empty_notready,
+		fifo_dout_empty_notready_3 => local_acquisition_data_fifo_dout_empty_notready,
+		fifo_dout_end_of_packet_1  =>            config_data_fifo_dout_end_of_packet,
+		fifo_dout_end_of_packet_2  =>               J40_data_fifo_dout_end_of_packet,
+		fifo_dout_end_of_packet_3  => local_acquisition_data_fifo_dout_end_of_packet,
+		-- output signals
+		dout  => input_switch_dout,
+		dout_empty_notready  => input_switch_dout_empty_notready,
+		dout_end_of_packet   => input_switch_dout_end_of_packet
+
+	);
+
+	-------------------------------------------------------------------------------
+	-- Output switching
+	--  - Connects the wr_en signal for one or more output sources, like a demux.
+	-------------------------------------------------------------------------------
+
+	-- Connect the input switch data output to every output port.
+	-- (Do the output routing using only the wr_en signals.)
+	dout_to_UDP                  <= input_switch_dout;
+	dout_to_GTP_pre_echo_shaper  <= input_switch_dout;
+	dout_to_serializing          <= input_switch_dout;
+
+	-- Output switch
+	output_switch_instance : output_fifo_switch
+	port map (
+		reset   => reset,
+		clk     => clk_50MHz,
+		-- control logic
+		en_ch_1 => output_switch_channels_mask(1), -- apply mask OUTPUT_MASK_UDP
+		en_ch_2 => output_switch_channels_mask(2), -- apply mask OUTPUT_MASK_GTPJ41
+		en_ch_3 => output_switch_channels_mask(3), -- apply mask OUTPUT_MASK_SERIALIZER
+		set_channels => output_switch_set_channels,
+		-- input signal
+		in_wr_en     => output_switch_wr_en,
+		-- output signal
+		out_wr_en_1  => dout_to_UDP_wr,
+		out_wr_en_2  => dout_to_GTP_wr_pre_echo_shaper,
+		out_wr_en_3  => dout_to_serializing_wr
+	);
+
+
+	-------------------------------------------------------------------------------
+	-- Low-Tier Source Prioritization
+	--  - Combinational logic to determine which low-tier packet source (gtpj40 or aquisition) to use,
+	--    based upon priority and availibility.
+	-------------------------------------------------------------------------------
+	
+	-- Condense the conditions for a fifo to be ready to read immediately into simpler signals. Note
+	-- that checking empty_notready = '0' is currently redundant, but good practice.
+	gtpj40_packet_ready_immediately <=
+		'1' when J40_data_fifo_dout_packet_available = '1' and J40_data_fifo_dout_empty_notready = '0' else '0';
+	acquisition_packet_ready_immediately <=
+		'1' when local_acquisition_data_fifo_dout_packet_available = '1' and local_acquisition_data_fifo_dout_empty_notready = '0' else '0';
+
+	-- signal which, (of one or neither) recievers are ready based upon whether both
+	--  a) there is data available AND
+	--  b) it is this receiver's turn in alternating priority, or the other receiver is not ready, thus forfeits its turn.
+	router_ok_receive_gtpj40 <=
+		'1' when (gtpj40_packet_ready_immediately = '1')
+		         and ((router_bottom_tier_highest_priority_source = gtpj40) or (acquisition_packet_ready_immediately = '0'))
+		else '0';
+	router_ok_receive_acquisition <=
+		'1' when acquisition_packet_ready_immediately = '1'
+		         and (router_bottom_tier_highest_priority_source = acquisition or gtpj40_packet_ready_immediately = '0')
+		else '0';
+
+	-------------------------------------------------------------------------------
+	-- Router State Machine
+	-- - Looks at the input FIFOs, figures out when to route data from which
+	--   input fifo to which output.
+	-------------------------------------------------------------------------------
+
+	router_state_machine_flipflop_process: process(reset, clk_50MHz)
 	begin
-		if ( reset = '1') then
-			config_data_fifo_rd_en <= '0';
-			J40_data_fifo_rd_en <= '0';
-			local_acquisition_data_fifo_rd_en <= '0';
-
-			-- To control the serializing fifo
-			dout_to_serializing_wr <= '0';
-			dout_to_serializing <= x"0000";
-			dout_to_UDP_wr <= '0';
-			dout_to_UDP <= x"0000";
-			dout_to_GTP_wr <= '0';
-			dout_to_GTP <= x"0000";
-			-- control the data packet in fifo
-			J40_data_dout_decrement_packet_count <= '0';
-			local_acquisition_data_dout_decrement_packet_count <= '0';
-			config_data_dout_decrement_packet_count <= '0';
-
-			transfer_data_token <= '0';
-			increase_one_clock_for_acquisition_data <= "00";
-			increase_one_clock_for_config_data <= "00";
-			fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-			fifo_local_acquisition_data_transmit_state <= first_word_judge;
-			config_data_transfer_state <= first_word_judge;
-			J41_Tx_send_state <= idle;
-		elsif ( clk_50MHz 'event and clk_50MHz = '1' ) then
-			case J41_Tx_send_state is
-				when idle =>
-				-- {
-					dout_to_UDP_wr <= '0';
-					dout_to_GTP_wr <= '0';
-					dout_to_serializing_wr <= '0';
-					dout_to_UDP <= x"0000";
-					dout_to_GTP <= x"0000";
-					dout_to_serializing <= x"0000";
-					-- UDP configuration data - highest priority to be transmitted
-					if config_data_packet_avail = '1' then
-						config_data_fifo_rd_en <= '0';
-						J40_data_dout_decrement_packet_count <= '0';
-						local_acquisition_data_dout_decrement_packet_count <= '0';
-						config_data_dout_decrement_packet_count <= '1'; -- Signal that we just started reading a config packet, so there is 1 less full packet now.
-						config_data_transfer_state <= first_word_judge;
-						J41_Tx_send_state <= UDP_config_data_transmit;
-					else
-					-- Data from the former Virtex-5 board on J40 input, to J41 output - the second priority
-					-- Including the former acquisition data and the configuration data
-						config_data_dout_decrement_packet_count <= '0';
-						-- transfer_data_token flips back and forth, so as to attempt to not give constant priority
-						case transfer_data_token is 
-							when '0' =>
-								if J40_data_packet_avail = '1' then
-									J40_data_fifo_rd_en <= '0';
-									J40_data_dout_decrement_packet_count <= '1'; -- Trigger decrease packet counter by 1
-									fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-									J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-								else
-									J40_data_fifo_rd_en <= '0';
-									J40_data_dout_decrement_packet_count <= '0';
-									fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-									J41_Tx_send_state <= idle;
-								end if;
-								transfer_data_token <= '1';
-							when '1' =>
-								if local_acquisition_data_packet_avail = '1' then
-									local_acquisition_data_fifo_rd_en <= '0';
-									local_acquisition_data_dout_decrement_packet_count <= '1'; -- Trigger decrease packet counter by 1
-									fifo_local_acquisition_data_transmit_state <= first_word_judge;
-									J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-								else
-									local_acquisition_data_fifo_rd_en <= '0';
-									local_acquisition_data_dout_decrement_packet_count <= '0';
-									fifo_local_acquisition_data_transmit_state <= first_word_judge;
-									J41_Tx_send_state <= idle;
-								end if;
-								transfer_data_token <= '0';
-							when others =>
-								null;
-						end case;
-					end if;
-				-- }
-
-				--
-				-- Data from a local RENA is ready to send. This will send it either out the UDP (if we are
-				-- master node boardid="001") or the GTP.
-				--
-				when local_acquisition_data_transfer_fifo => 
-				-- {
-					dout_to_serializing_wr <= '0';
-					dout_to_serializing <= x"0000";
-					config_data_dout_decrement_packet_count <= '0';
-					J40_data_dout_decrement_packet_count <= '0';
-					local_acquisition_data_dout_decrement_packet_count <= '0';
-					case fifo_local_acquisition_data_transmit_state is
-					-- Determine if the first byte is already on output of FIFO or not.
-						when first_word_judge =>
-						-- {
-							-- See the "FIFO note" under the header block comment for this process for full
-							-- description of what is going on in this state.
-							local_acquisition_data_fifo_rd_en <= '1';
-							if ( (local_acquisition_data_fifo_dout > x"8100") and (local_acquisition_data_fifo_dout < x"8105")) then
-								fifo_local_acquisition_data_transmit_state <= align_one_clock;
-							else
-								fifo_local_acquisition_data_transmit_state <= first_word_output;
-							end if;
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							first_header_word <= local_acquisition_data_fifo_dout;
-							second_header_word <= x"0000";
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Wait for header byte. Note that the FIFO output is delayed by 2, so the state after
-						-- this will already have the second word.
-						when first_word_output =>
-						-- {
-							if ( (local_acquisition_data_fifo_dout > x"8100") and (local_acquisition_data_fifo_dout < x"8105")) then
-								local_acquisition_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
-								fifo_local_acquisition_data_transmit_state <= valid_data_judge;
-							else
-								local_acquisition_data_fifo_rd_en <= '1';
-								fifo_local_acquisition_data_transmit_state <= first_word_output;
-							end if;
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							first_header_word <= local_acquisition_data_fifo_dout;
-							second_header_word <= x"0000";
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Momentarily wait before FIFO output is valid with second word.
-						when align_one_clock =>
-						-- {
-							local_acquisition_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							first_header_word <= first_header_word; 
-							second_header_word <= x"0000";
-							fifo_local_acquisition_data_transmit_state <= valid_data_judge;
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Sends out the first word, and saves the second word from the FIFO.
-						--  - Assumes that 2 states ago the fifo rd was enabled, but previous state it was NOT.
-						--    Therefore, have data to read this state, but not the next state.
-						--  - Enables rd so that after the second word is sent next packet, we can read the
-						--    fifo output and send it directly out.
-						when valid_data_judge =>
-						-- {
-							local_acquisition_data_fifo_rd_en <= '1';
-							first_header_word <= first_header_word;
-							second_header_word <= local_acquisition_data_fifo_dout;
-							if ((first_header_word > x"8100") and (first_header_word < x"8105") and ( local_acquisition_data_fifo_dout(15 downto 8) = x"00")) then
-								if ( boardid = "001") then
-									dout_to_GTP_wr <= '0';
-									dout_to_GTP <= x"0000";
-									dout_to_UDP_wr <= '1';
-									dout_to_UDP <= first_header_word;
-								else
-									dout_to_GTP_wr <= '1';
-									dout_to_GTP <= first_header_word;
-									dout_to_UDP_wr <= '0';
-									dout_to_UDP <= x"0000";
-								end if;
-								fifo_local_acquisition_data_transmit_state <= save_second_word;
-							else
-								dout_to_UDP_wr <= '0';
-								dout_to_GTP_wr <= '0';
-								fifo_local_acquisition_data_transmit_state <= error_data_process;
-							end if;
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Sends the second word out. No new data to send yet.
-						--  - Assumes that 2 states ago the fifo rd was NOT enabled.
-						--    Therefore, no new data to read.
-						--  - Previous state the rd WAS enabled, which will be the beginning of the body streaming
-						--    from the fifo
-						when save_second_word =>
-						-- {
-							first_header_word <= first_header_word;
-							second_header_word <= second_header_word;
-							local_acquisition_data_fifo_rd_en <= '1';
-							if ( boardid = "001") then
-								dout_to_GTP_wr <= '0';
-								dout_to_GTP <= x"0000";
-								dout_to_UDP_wr <= '1';
-								dout_to_UDP <= second_header_word;
-							else
-								dout_to_GTP_wr <= '1';
-								dout_to_GTP <= second_header_word;
-								dout_to_UDP_wr <= '0';
-								dout_to_UDP <= x"0000";
-							end if;
-							fifo_local_acquisition_data_transmit_state <= local_acquisition_data_transfer;
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Send the rest of the body of the packet, stop on x"FF" in upper or lower byte.
-						when local_acquisition_data_transfer =>
-						-- {
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							if ( boardid = "001") then
-								dout_to_GTP_wr <= '0';
-								dout_to_GTP <= x"0000";
-								dout_to_UDP_wr <= '1';
-								dout_to_UDP <= local_acquisition_data_fifo_dout;
-								if local_acquisition_data_end_of_packet = '1' then
-									local_acquisition_data_fifo_rd_en <= '0';
-									fifo_local_acquisition_data_transmit_state <= end_process;
-								else
-									local_acquisition_data_fifo_rd_en <= '1';
-									fifo_local_acquisition_data_transmit_state <= local_acquisition_data_transfer;
-								end if;
-							else
-								dout_to_UDP_wr <= '0';
-								dout_to_UDP <= x"0000";
-								dout_to_GTP_wr <= '1';
-								dout_to_GTP <= local_acquisition_data_fifo_dout;
-								if local_acquisition_data_end_of_packet = '1' then
-									local_acquisition_data_fifo_rd_en <= '0';
-									fifo_local_acquisition_data_transmit_state <= end_process;
-								else
-									local_acquisition_data_fifo_rd_en <= '1';
-									fifo_local_acquisition_data_transmit_state <= local_acquisition_data_transfer;
-								end if;
-							end if;
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Clear out a bad packet from the FIFO
-						when error_data_process =>
-						-- {
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP_wr <= '0';
-							dout_to_UDP <= x"0000";
-							if local_acquisition_data_end_of_packet = '1' then
-								local_acquisition_data_fifo_rd_en <= '0';
-								fifo_local_acquisition_data_transmit_state <= end_process;
-							else
-								local_acquisition_data_fifo_rd_en <= '1';
-								fifo_local_acquisition_data_transmit_state <= error_data_process;
-							end if;
-							J41_Tx_send_state <= local_acquisition_data_transfer_fifo;
-						-- }
-						-- Let the FIFO finish outputting data.
-						when end_process =>
-						-- {
-							local_acquisition_data_fifo_rd_en <= '0';
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP_wr <= '0';
-							dout_to_UDP <= x"0000";
-							fifo_local_acquisition_data_transmit_state <= first_word_judge;
-							J41_Tx_send_state <= idle;
-						-- }
-					end case;
-				-- }
-
-				--
-				-- Data from GTP J41 (connected to the previous Virtex 5 node) is ready to send. This will
-				-- send it to either this nodes serializing port (serializing), or the next node in the
-				-- chain (GTP J40) or the PC (UDP), depending on the destinaion and this board's boardid.
-			 	when data_from_former_Virtex_5_data_transmit_fifo =>
-				-- {
-					local_acquisition_data_fifo_rd_en <= '0';
-					transfer_data_token <= transfer_data_token;
-					config_data_dout_decrement_packet_count <= '0';
-					local_acquisition_data_dout_decrement_packet_count <= '0';
-					J40_data_dout_decrement_packet_count <= '0';
-					case  fifo_former_Virtex_5_data_transmit_state is
-						-- Determine if the first byte is already on output of FIFO or not.
-						when first_header_word_judge =>
-						-- {
-							-- See the "FIFO note" under the header block comment for this process for full
-							-- description of what is going on in this state.
-							J40_data_fifo_rd_en <= '1';
-							if ( J40_data_fifo_dout(15 downto 8) = x"81") then
-								fifo_former_Virtex_5_data_transmit_state <= align_read_out_clock;
-							else
-								fifo_former_Virtex_5_data_transmit_state <= first_header_word_output;
-							end if;
-							first_header_word <= J40_data_fifo_dout;
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_serializing_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							dout_to_serializing <= x"0000";
-							increase_one_clock_for_config_data <= "00";
-							increase_one_clock_for_acquisition_data <= "00";
-							J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-						--}
-						-- Wait for header byte. Note that the FIFO output is delayed by 2, so the state after
-						-- this will already have the second word.
-						when first_header_word_output =>
-						-- {
-							J40_data_fifo_rd_en <= '1';
-							if ( J40_data_fifo_dout(15 downto 8) = x"81") then
-								fifo_former_Virtex_5_data_transmit_state <= valid_header_word_judge;
-							else
-								fifo_former_Virtex_5_data_transmit_state <= first_header_word_output;
-							end if;
-							first_header_word <= J40_data_fifo_dout;
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_serializing_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							dout_to_serializing <= x"0000";
-							increase_one_clock_for_config_data <= "00";
-							increase_one_clock_for_acquisition_data <= "00";
-							J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-						--}
-						when align_read_out_clock =>
-						-- {
-							J40_data_fifo_rd_en <= '1';
-							first_header_word <= first_header_word;
-							second_header_word <= x"0000";
-							fifo_former_Virtex_5_data_transmit_state <= valid_header_word_judge;
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_serializing_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							dout_to_serializing <= x"0000";
-							increase_one_clock_for_config_data <= "00";
-							increase_one_clock_for_acquisition_data <= "00";
-							J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-						--}
-						-- Send out the first word to the proper destination, and save the second word from the FIFO.
-						-- Sets remaining states to direct the data to the correct output.
-						-- Next state will have valid packet body data.
-						when valid_header_word_judge =>
-						-- {
-							first_header_word <= first_header_word;
-							second_header_word <= J40_data_fifo_dout;
-							J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-							-- If from PC
-							if ( first_header_word = x"8100") then
-							-- {
-								-- Check node is valid, otherwise garbage.
-								if (J40_data_fifo_dout(15 downto 8) > x"00" and J40_data_fifo_dout(15 downto 8) < x"05" ) then
-									-- If this is the destination node, send to serializing port
-									if ( J40_data_fifo_dout (10 downto 8) = boardid ) then
-										-- Pause FIFO output to send second header word.
-										J40_data_fifo_rd_en <= '0';
-										increase_one_clock_for_config_data <= "01";
-										-- Send this data out to serializing
-										dout_to_serializing_wr <= '1';
-										dout_to_serializing <= first_header_word;
-										-- Echo back the config data to the computer, changing source and destination.
-										dout_to_GTP_wr <= '1';
-										dout_to_GTP <= first_header_word(15 downto 8) & "00000" & boardid; -- I am the source
-										echo_back_config_data <= x"00" & J40_data_fifo_dout(7 downto 0); -- PC is the destination
-										dout_to_UDP_wr <= '0';
-										dout_to_UDP <= x"0000";
-
-										fifo_former_Virtex_5_data_transmit_state <= serializing_config_data_for_current_board_transfer;
-									-- If the destination is another node (not THIS node).
-									else
-										-- If data from the PC has tranversed all the nodes back to node 001, discard it. It is done.
-										-- Note this occurs after the check to see if this packet is destined for this board. This is important
-										-- because configuration data from the PC intended for boardid="001" actually traverses the whole loop,
-										-- so that a special case doesn't have to be writen to route from the UDP output to the serializing.
-										if ( boardid = "001") then 
-											J40_data_fifo_rd_en <= '1';
-											dout_to_GTP_wr <= '0';
-											dout_to_GTP <= x"0000";
-											dout_to_UDP_wr <= '0';
-											dout_to_serializing_wr <= '0';
-											dout_to_UDP <= x"0000";
-											dout_to_serializing <= x"0000";
-											increase_one_clock_for_config_data <= "00";
-											fifo_former_Virtex_5_data_transmit_state <= error_data_process; -- Dump this packet, even though not an error.
-										-- If this packet truly needs to go to another node, then pass to the next node.
-										else
-											-- Pause FIFO output to send second header word.
-											J40_data_fifo_rd_en <= '0';
-											increase_one_clock_for_config_data <= "01";
-											dout_to_GTP_wr <= '1';
-											dout_to_GTP <= first_header_word;
-											dout_to_UDP_wr <= '0';
-											dout_to_serializing_wr <= '0';
-											dout_to_UDP <= x"0000";
-											dout_to_serializing <= x"0000";
-											fifo_former_Virtex_5_data_transmit_state <= not_the_current_board_config_data_transmit_former_board_data;
-										end if;
-									end if;
-								-- Invalid destination (source is PC). Dump the packet, it's an error.
-								else
-									J40_data_fifo_rd_en <= '1';
-									dout_to_GTP_wr <= '0';
-									dout_to_UDP_wr <= '0';
-									dout_to_serializing_wr <= '0';
-									dout_to_GTP <= x"0000";
-									dout_to_UDP <= x"0000";
-									dout_to_serializing <= x"0000";
-									increase_one_clock_for_config_data <= "00";
-									fifo_former_Virtex_5_data_transmit_state <= error_data_process;
-								end if;
-							-- }
-							-- Source is a node
-							elsif (first_header_word > x"8100" and first_header_word < x"8105") then
-							-- {
-								dout_to_serializing_wr <= '0';
-								dout_to_serializing <= x"0000";
-								-- Destination is the PC, as it should be.
-								if ( J40_data_fifo_dout(15 downto 8) = x"00") then
-								-- acquisition data (or any data from a node to PC)
-									-- Master node sends via UDP to PC
-									if ( boardid = "001") then
-										dout_to_UDP_wr <= '1';
-										dout_to_UDP <= first_header_word;
-										dout_to_GTP_wr <= '0';
-										dout_to_GTP <= x"0000";
-									-- Non-Master nodes pass to adjacent nodes.
-									else
-										dout_to_GTP_wr <= '1';
-										dout_to_GTP <= first_header_word;
-										dout_to_UDP_wr <= '0';
-										dout_to_UDP <= x"0000";
-									end if;
-									-- Pause FIFO output to send second header word.
-									J40_data_fifo_rd_en <= '0';
-									fifo_former_Virtex_5_data_transmit_state <= acquisition_data_transmit_former_board;
-									increase_one_clock_for_acquisition_data <= "01";
-								-- If source is node, and destination is not the PC, dump the packet. It is an error.
-								else
-									J40_data_fifo_rd_en <= '1';
-									dout_to_GTP_wr <= '0';
-									dout_to_UDP_wr <= '0';
-									dout_to_GTP <= x"0000";
-									dout_to_UDP <= x"0000";
-									dout_to_serializing <= x"0000";
-									fifo_former_Virtex_5_data_transmit_state <= error_data_process;
-								end if;
-							-- }
-							-- Invalid source, dump packet.
-							else
-								J40_data_fifo_rd_en <= '1';
-								dout_to_GTP_wr <= '0';
-								dout_to_UDP_wr <= '0';
-								dout_to_serializing_wr <= '0';
-								dout_to_GTP <= x"0000";
-								dout_to_UDP <= x"0000";
-								dout_to_serializing <= x"0000";
-								fifo_former_Virtex_5_data_transmit_state <= error_data_process;
-							end if;
-						-- }
-						-- Serializing data from GTP J40, and also echoing it back to the PC over GTP J41
-						-- Handles second word, and body data.
-						when serializing_config_data_for_current_board_transfer =>
-						-- {
-							dout_to_UDP_wr <= '0';
-							dout_to_UDP <= x"0000";
-							case increase_one_clock_for_config_data is
-								-- Delay FIFO output while writing second header word out to echo response.
-								when "01" =>
-									J40_data_fifo_rd_en <= '1';
-									dout_to_serializing_wr <= '1';
-									dout_to_serializing <= second_header_word;
-									dout_to_GTP_wr <= '1';
-									dout_to_GTP <= echo_back_config_data; -- Second word of response
-									fifo_former_Virtex_5_data_transmit_state <= serializing_config_data_for_current_board_transfer;
-									J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-									increase_one_clock_for_config_data <= "11";
-								-- Normal state, sending body.
-								when "11" =>
-									dout_to_serializing_wr <= '1';
-									dout_to_serializing <= J40_data_fifo_dout;
-									-- echo back to the computer
-									dout_to_GTP_wr <= '1';
-									dout_to_GTP <= J40_data_fifo_dout;
-									if J40_data_end_of_packet = '1' then
-										J40_data_fifo_rd_en <= '0';
-										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-										J41_Tx_send_state <= idle;
-										increase_one_clock_for_config_data <= "00";
-									else
-										J40_data_fifo_rd_en <= '1';
-										fifo_former_Virtex_5_data_transmit_state <= serializing_config_data_for_current_board_transfer;
-										J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-										increase_one_clock_for_config_data <= "11";
-									end if;
-								when others =>
-									null;
-							end case;
-						-- }
-						-- Passing configuraiton data (data from PC) from this node to the next node.
-						-- Handles second word, and body data.
-						when not_the_current_board_config_data_transmit_former_board_data =>
-						-- {
-							-- Transfer the configuration data to the GTP interface
-							dout_to_UDP_wr <= '0';
-							dout_to_UDP <= x"0000";
-							dout_to_serializing_wr <= '0';
-							dout_to_serializing <= x"0000";
-							case increase_one_clock_for_config_data is
-								-- Delay FIFO output while writing second header word.
-								when "01" =>
-									J40_data_fifo_rd_en <= '1';
-									dout_to_GTP_wr <= '1';
-									dout_to_GTP <= second_header_word;
-									fifo_former_Virtex_5_data_transmit_state <= not_the_current_board_config_data_transmit_former_board_data;
-									J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-									increase_one_clock_for_config_data <= "11";
-								-- Normal state, sending body.
-								when "11" =>
-									first_header_word <= x"0000";
-									second_header_word <= x"0000";
-									dout_to_GTP_wr <= '1';
-									dout_to_GTP <= J40_data_fifo_dout;
-									-- must transfer the end signal
-									if J40_data_end_of_packet = '1' then
-										J40_data_fifo_rd_en <= '0';
-										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-										J41_Tx_send_state <= idle;
-										increase_one_clock_for_config_data <= "00";
-									else
-										J40_data_fifo_rd_en <= '1';
-										fifo_former_Virtex_5_data_transmit_state <= not_the_current_board_config_data_transmit_former_board_data;
-										J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-										increase_one_clock_for_config_data <= "11";
-									end if;
-								when others =>
-									null;
-							end case;
-						-- }
-						-- Passing acquisition (or other) data (data from a node to PC) to either the next
-						-- node via GTP J40 to the PC via UDP if this node is master (boardid="001").
-						-- Handles second word, and body data.
-						when acquisition_data_transmit_former_board =>
-						-- {
-							dout_to_serializing_wr <= '0';
-							dout_to_serializing <= x"0000";
-							case increase_one_clock_for_acquisition_data  is
-								-- Delayed FIFO output while writing second header word.
-								when "01" =>
-								-- {
-									J40_data_fifo_rd_en <= '1';
-									if ( boardid = "001") then
-										dout_to_UDP_wr <= '1';
-										dout_to_UDP <= second_header_word;
-										dout_to_GTP_wr <= '0';
-										dout_to_GTP <= x"0000";
-									else
-										dout_to_GTP_wr <= '1';
-										dout_to_GTP <= second_header_word;
-										dout_to_UDP_wr <= '0';
-										dout_to_UDP <= x"0000";
-									end if;
-									increase_one_clock_for_acquisition_data <= "11";
-									fifo_former_Virtex_5_data_transmit_state <= acquisition_data_transmit_former_board;
-									J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-								-- }
-								-- Normal state, sending body.
-								when "11" =>
-									first_header_word <= x"0000";
-									second_header_word <= x"0000";
-									-- Route to PC or next node
-									if ( boardid = "001") then
-										dout_to_UDP_wr <= '1';
-										dout_to_UDP <= J40_data_fifo_dout;
-										dout_to_GTP_wr <= '0';
-										dout_to_GTP <= x"0000";
-									else
-										dout_to_GTP_wr <= '1';
-										dout_to_GTP <= J40_data_fifo_dout;
-										dout_to_UDP_wr <= '0';
-										dout_to_UDP <= x"0000";
-									end if;
-									-- Detect End of Packet
-									if J40_data_end_of_packet = '1' then
-										J40_data_fifo_rd_en <= '0';
-										fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-										J41_Tx_send_state <= idle;
-										increase_one_clock_for_acquisition_data <= "00";
-									 else
-										J40_data_fifo_rd_en <= '1';
-										fifo_former_Virtex_5_data_transmit_state <= acquisition_data_transmit_former_board;
-										J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-										 increase_one_clock_for_acquisition_data <= "11";	
-									end if;
-								when others =>
-									null;
-							end case;
-						-- }
-						-- Clear out bad packet (or end-of-chain packet) from FIFO
-						when error_data_process =>
-						-- {
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_UDP_wr <= '0';
-							dout_to_serializing_wr <= '0';
-							dout_to_GTP <= x"0000";
-							dout_to_UDP <= x"0000";
-							dout_to_serializing <= x"0000";
-							if J40_data_end_of_packet = '1' then
-								J40_data_fifo_rd_en <= '0';
-								fifo_former_Virtex_5_data_transmit_state <= first_header_word_judge;
-								J41_Tx_send_state <= idle;
-							else
-								J40_data_fifo_rd_en <= '1';
-								fifo_former_Virtex_5_data_transmit_state <= error_data_process;
-								J41_Tx_send_state <= data_from_former_Virtex_5_data_transmit_fifo;
-							end if;
-						-- }
-					end case;
-				-- }
-
-				--
-				-- Data from the PC is ready to send (config data). This will send it to the GTP J40 to
-				-- the next node. If the data is destined for the serializer on this board, it will
-				-- first make a loop through the nodes via the GTP interfaces. This was done to keep
-				-- the system simple. It is expected this will add minimal traffic.
-				when UDP_config_data_transmit =>
-				-- {
-					dout_to_serializing_wr <= '0';
-					dout_to_serializing <= x"0000";
-					dout_to_UDP_wr <= '0';
-					dout_to_UDP <= x"0000";
-					config_data_dout_decrement_packet_count <= '0';
-					J40_data_dout_decrement_packet_count <= '0';
-					local_acquisition_data_dout_decrement_packet_count <= '0';
-					case config_data_transfer_state is
-						-- Determine if the first byte is already on output of FIFO or not.
-						when first_word_judge =>
-						-- {
-							-- See the "FIFO note" under the header block comment for this process for full
-							-- description of what is going on in this state.
-							config_data_fifo_rd_en <= '1';
-							if (config_data_fifo_dout = x"8100") then
-								config_data_transfer_state <= align_one_clock;
-							else
-								config_data_transfer_state <= first_word_output;
-							end if;
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							first_header_word <= config_data_fifo_dout;
-							second_header_word <= x"0000";
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Wait for header byte. Note that the FIFO output is delayed by 2, so the state after
-						-- this will already have the second word.
-						when first_word_output =>
-						-- {
-							if (config_data_fifo_dout = x"8100") then
-								config_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
-								config_data_transfer_state <= valid_data_judge;
-							else
-								config_data_fifo_rd_en <= '1';
-								config_data_transfer_state <= first_word_output;
-							end if;
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							first_header_word <= config_data_fifo_dout;
-							second_header_word <= x"0000";
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Momentarily wait before FIFO output is valid with second word.
-						when align_one_clock =>
-						-- {
-							config_data_fifo_rd_en <= '0'; -- Stop fifo output to give a chance to send second word.
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							first_header_word <= first_header_word;
-							second_header_word <= second_header_word;
-							config_data_transfer_state <= valid_data_judge;
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Sends out the first word, and saves the second word from the FIFO.
-						--  - Assumes that 2 states ago the fifo rd was enabled, but previous state it was NOT.
-						--    Therefore, have data to read this state, but not the next state.
-						--  - Enables rd so that after the second word is sent next packet, we can read the
-						--    fifo output and send it directly out.
-						when valid_data_judge =>
-						-- {
-							config_data_fifo_rd_en <= '1';
-							first_header_word <= first_header_word;
-							second_header_word <= config_data_fifo_dout;
-							if (first_header_word = x"8100")
-							   and (config_data_fifo_dout(15 downto 8) > x"00") and config_data_fifo_dout(15 downto 8) < x"05" then
-								dout_to_GTP_wr <= '1';
-								dout_to_GTP <= first_header_word;
-								config_data_transfer_state <= save_second_word;
-							else
-								dout_to_GTP_wr <= '0';
-								dout_to_GTP <= x"0000";
-								config_data_transfer_state <= error_data_process;
-							end if;
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Sends the second word out. No new data to send yet.
-						--  - Assumes that 2 states ago the fifo rd was NOT enabled.
-						--    Therefore, no new data to read.
-						--  - Previous state the rd WAS enabled, which will be the beginning of the body streaming
-						--    from the fifo
-						when save_second_word =>
-						-- {
-							first_header_word <= first_header_word;
-							second_header_word <= second_header_word;
-							config_data_fifo_rd_en <= '1';
-							dout_to_GTP_wr <= '1';
-							dout_to_GTP <= second_header_word;
-							config_data_transfer_state <= body_transfer;
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Send the rest of the body of the packet, stop on x"FF" in upper or lower byte.
-						when body_transfer =>
-						-- {
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '1';
-							dout_to_GTP <= config_data_fifo_dout;
-							if config_data_end_of_packet = '0' then
-								config_data_fifo_rd_en <= '0';
-								config_data_transfer_state <= end_process;
-							else
-								config_data_fifo_rd_en <= '1';
-								config_data_transfer_state <= body_transfer;
-							end if;
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Clear out a bad packet from the FIFO
-						when error_data_process =>
-						-- {
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							if config_data_end_of_packet = '0' then
-								config_data_fifo_rd_en <= '0';
-								config_data_transfer_state <= end_process;
-							else
-								config_data_fifo_rd_en <= '1';
-								config_data_transfer_state <= error_data_process;
-							end if;
-							J41_Tx_send_state <= UDP_config_data_transmit;
-						-- }
-						-- Let the FIFO finish outputting data.
-						when end_process =>
-						-- {
-							config_data_fifo_rd_en <= '0';
-							first_header_word <= x"0000";
-							second_header_word <= x"0000";
-							dout_to_GTP_wr <= '0';
-							dout_to_GTP <= x"0000";
-							config_data_transfer_state <= first_word_judge;
-							J41_Tx_send_state <= idle;
-						-- }
-				-- }
-				end case;
-			end case;
+		if reset = '1' then
+			router_state_machine_state <= idle;
+			output_J41_is_echo <= '0';
+			router_bottom_tier_highest_priority_source <= gtpj40;
+		elsif clk_50MHz'event and clk_50MHz = '1' then
+			router_state_machine_state <= router_state_machine_state_next;
+			output_J41_is_echo <= output_J41_is_echo_next;
+			router_bottom_tier_highest_priority_source <= router_bottom_tier_highest_priority_source_next;
 		end if;
+	end process;
+
+
+	router_state_machine_async_logic_process: process(
+		boardid,
+		router_state_machine_state,
+		config_data_fifo_dout_packet_available, config_data_fifo_dout_empty_notready,
+		router_bottom_tier_highest_priority_source,
+		router_ok_receive_gtpj40, router_ok_receive_acquisition,
+		J40_data_fifo_dout_source_node, J40_data_fifo_dout_destination_node,
+		local_acquisition_data_fifo_dout_source_node, local_acquisition_data_fifo_dout_destination_node,
+		input_switch_dout_end_of_packet, input_switch_dout_empty_notready,
+		output_J41_is_echo
+	)
+	begin
+		-- By default, hold bottom-tier priority source constant for all states.
+		-- Override this when actually sending from one of the bottom-tier sources.
+		router_bottom_tier_highest_priority_source_next <= router_bottom_tier_highest_priority_source;
+
+		case router_state_machine_state is
+		when idle =>
+			-- Always true in this state, as input_switch_dout is not ready because
+			-- input_switch_rd_en has not pulled out the first byte yet.
+			output_switch_wr_en <= '0';  
+
+			-- UDP configuration data - highest priority to be transmitted
+			if config_data_fifo_dout_packet_available = '1' and config_data_fifo_dout_empty_notready = '0' then
+
+				-- Transmit down the GTP, even if node 1 is destination. This keeps code simpler (1 case).
+				-- Don't need to setup an echo source/destination byte swapper to respond back to UDP if node 1 is destination.
+				input_switch_channel <= INPUT_CHANNEL_UDP;
+				input_switch_rd_en <= '1';
+				output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+				output_switch_set_channels <= '1';
+				output_J41_is_echo_next <= '0';
+				router_state_machine_state_next <= transferring;
+
+			-- Data from the former Virtex-5 board on J40 input - shares priority with data from
+			-- the local acquistion module.
+			elsif router_ok_receive_gtpj40 = '1' then
+			
+				-- Update bottom-tier priority to acquisition, since gtpj40 is getting handled this time.
+				router_bottom_tier_highest_priority_source_next <= acquisition;
+
+				-- GTPJ40 Input is available, so we will for sure read it (even if to just delete it).
+				input_switch_channel <= INPUT_CHANNEL_GTPJ40;
+				input_switch_rd_en <= '1';
+				-- Specific output channels chosen below, but source will always be set (even if to NOWHERE).
+				output_switch_set_channels <= '1';
+				-- Transfer will happen.
+				router_state_machine_state_next <= transferring;
+				
+				-- Default values (overriden if needed):
+				output_J41_is_echo_next <= '0';
+
+				-- If from PC
+				if ( J40_data_fifo_dout_source_node = x"0") then
+					-- Check node is valid, otherwise garbage.
+					if ('0' & J40_data_fifo_dout_destination_node >= x"1" and '0' & J40_data_fifo_dout_destination_node <= x"04" ) then
+						-- If this is the destination node, send to serializing port
+						if ( J40_data_fifo_dout_destination_node = boardid ) then
+							-- Send this data out to serializing
+							-- Echo back the config data to the computer, via GTP (regardless of
+							-- what node this is, for simplicity, the circular chain will handle it).
+							output_switch_channels_mask <= OUTPUT_MASK_GTPJ41 or OUTPUT_MASK_SERIALIZER;
+							output_J41_is_echo_next <= '1';
+						-- If the destination is another node (not THIS node).
+						else
+							-- If data from the PC has tranversed all the nodes back to node 001, discard it. It is done.
+							-- Note this occurs after the check to see if this packet is destined for this board. This is important
+							-- because configuration data from the PC intended for boardid="001" actually traverses the whole loop,
+							-- so that a special case doesn't have to be writen to route from the UDP output to the serializing.
+							if ( boardid = "001") then 
+								output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+							-- If this packet truly needs to go to another node, then pass to the next node.
+							else
+								output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+							end if;
+						end if;
+					-- Invalid destination (source is PC). Dump the packet, it's an error.
+					else
+						output_switch_channels_mask <= OUTPUT_MASK_NOWHERE; -- send it nowhere
+					end if;
+
+				-- Source is a node
+				elsif '0' & J40_data_fifo_dout_source_node >= x"1" and '0' & J40_data_fifo_dout_source_node <= x"4" then
+					-- Destination is the PC, as it should be.
+					if '0' & J40_data_fifo_dout_destination_node = x"0" then
+					-- acquisition data (or any data from a node to PC)
+						-- Master node sends via UDP to PC
+						if boardid = "001" then
+							output_switch_channels_mask <= OUTPUT_MASK_UDP;
+						-- Non-Master nodes pass to adjacent nodes.
+						else
+							output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+						end if;
+					-- If source is node, and destination is not the PC, dump the packet. It is an error.
+					else
+						output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+					end if;
+				-- Invalid source, dump packet.
+				else
+					output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+				end if;		
+
+			-- Data from a local RENA frontend board, via the acquisition module - shares priority with data from
+			-- the previous backplane node via GTP40.
+			elsif router_ok_receive_acquisition = '1' then
+
+				-- Update bottom-tier priority to gtpj40, since aquisition is getting handled this time.
+				router_bottom_tier_highest_priority_source_next <= gtpj40;
+
+				-- Available, so we will for sure read it (even if to just delete it).
+				input_switch_channel <= INPUT_CHANNEL_ACQUISITION;
+				input_switch_rd_en <= '1';
+				-- Specific output channels chosen below, but source will always be set (even if to NOWHERE).
+				output_switch_set_channels <= '1';
+				-- This data is never echoed.
+				output_J41_is_echo_next <= '0';
+				-- Transfer will happen.
+				router_state_machine_state_next <= transferring;
+
+				-- The only valid source/destination for the local_acquisition is from this node to the PC.
+				if local_acquisition_data_fifo_dout_source_node = boardid and '0' & local_acquisition_data_fifo_dout_destination_node = x"0" then
+					-- If this is node 1, sent it via UDP
+					if boardid = "001" then
+						output_switch_channels_mask <= OUTPUT_MASK_UDP;
+					else
+						output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+					end if;
+				else
+					output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+				end if;
+
+			-- No data to transmit.
+			else
+				input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
+				input_switch_rd_en <= '0';
+				output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+				output_switch_set_channels <= '0';
+				output_J41_is_echo_next <= '0';
+				router_state_machine_state_next <= idle;
+				router_bottom_tier_highest_priority_source_next <= gtpj40; -- Doesn't matter which.
+			end if;
+
+		-- In this state, keep sending packet bytes until the packet is done.
+		when transferring =>
+			
+			input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
+			output_switch_channels_mask <= OUTPUT_MASK_NOWHERE; -- ignored
+			output_switch_set_channels <= '0';
+			output_J41_is_echo_next <= output_J41_is_echo;
+			
+			-- If the packet is done, finish up.
+			if input_switch_dout_end_of_packet = '1' then
+				input_switch_rd_en <= '0';
+				output_switch_wr_en <= '1'; -- Send the output switch the final word.
+				router_state_machine_state_next <= idle;
+			-- If not at end of packet, clock more data if available.
+			else
+				-- If data isn't ready, hold state, don't ask for more, wait till later
+				-- to write the output so we don't need to track that we have done that.
+				if input_switch_dout_empty_notready = '1' then
+					input_switch_rd_en <= '0';
+					output_switch_wr_en <= '0';
+				-- If data is ready, get it, send previous output.
+				else
+					input_switch_rd_en <= '1';
+					output_switch_wr_en <= '1';
+				end if;
+				router_state_machine_state_next <= transferring;
+			end if;
+		end case;
+	
 	end process;
 end Behavioral;
