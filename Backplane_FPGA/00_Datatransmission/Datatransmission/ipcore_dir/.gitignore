@@ -1,0 +1,3 @@
+#Ignore unwanted output files.
+*.gise
+_xmsgs

@@ -1,0 +1,7 @@
+#Ignore unwanted output files.
+_xmsgs
+*.gise
+coregen.cgc
+coregen.cgp
+coregen.log
+coregen.rsp
