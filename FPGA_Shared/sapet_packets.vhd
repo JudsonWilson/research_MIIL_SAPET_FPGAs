@@ -28,11 +28,11 @@ use ieee.numeric_std.ALL;
 package sapet_packets is
 	constant max_packet_size_bytes : integer := 192;
 
-	constant packet_start_token_frontend_config	    : std_logic_vector(7 downto 0) := x"81"; -- Originates in PC, goes to Frontend
-	constant packet_start_token_frontend_config_echo : std_logic_vector(7 downto 0) := x"81"; -- Originates in the Daisychain, goes to PC
-	constant packet_start_token_frontend_diagnostic  : std_logic_vector(7 downto 0) := x"81"; -- Originates in Fronted, goes to PC
-	constant packet_start_token_data_AND_mode        : std_logic_vector(7 downto 0) := x"81"; -- Originates in Fronted, goes to PC
-	constant packet_start_token_data_OR_mode         : std_logic_vector(7 downto 0) := x"82"; -- Originates in Fronted, goes to PC
+	constant packet_start_token_frontend_config	    : std_logic_vector(7 downto 0) := x"C0"; -- Originates in PC, goes to Frontend
+	constant packet_start_token_frontend_config_echo : std_logic_vector(7 downto 0) := x"C1"; -- Originates in the Daisychain, goes to PC
+	constant packet_start_token_frontend_diagnostic  : std_logic_vector(7 downto 0) := x"C4"; -- Originates in Fronted, goes to PC
+	constant packet_start_token_data_AND_mode        : std_logic_vector(7 downto 0) := x"C8"; -- Originates in Fronted, goes to PC
+	constant packet_start_token_data_OR_mode         : std_logic_vector(7 downto 0) := x"C9"; -- Originates in Fronted, goes to PC
 	constant packet_end_token  : std_logic_vector(7 downto 0) := x"FF";
 
 	-- Function is_packet_start_byte returns true if the byte is a valid header byte
