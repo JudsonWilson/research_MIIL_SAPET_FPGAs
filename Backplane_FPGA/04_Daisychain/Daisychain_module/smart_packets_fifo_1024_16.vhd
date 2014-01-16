@@ -35,6 +35,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.ALL;
 
+use work.sapet_packets.all;
+
 entity smart_packets_fifo_1024_16 is
 	port (
 		reset       : in std_logic;
@@ -94,6 +96,11 @@ architecture Behavioral of smart_packets_fifo_1024_16 is
 	signal output_destination_node_next : std_logic_vector(2 downto 0) := "000";
 	signal output_end_word      : std_logic_vector(15 downto 0) := x"0000";
 	signal output_end_word_next : std_logic_vector(15 downto 0) := x"0000";
+
+	-- Actual depth is 1023 (not 1024!). Decrease by 5 for increased robustness handling off-by-1 errors, etc.
+	constant fifo_word_depth : integer := 1018;
+	-- The write depth must be less than this number to ensure a full packet can be added to the FIFO.
+	constant fifo_maximum_used_bytes_for_new_packet : integer := fifo_word_depth - (max_packet_size_bytes)/2;
 
 	component fifo_1024_16_counter
 		port (
@@ -155,7 +162,7 @@ begin
 			bytes_received_i <= std_logic_vector(to_unsigned(0,64));
 		elsif clk'event and clk = '1' then
 			if din_wr_en = '1' then
-				if word_fifo_din(15 downto 8) = x"FF" then -- Bottom byte is filler.
+				if word_fifo_din(15 downto 8) = packet_end_token then -- Bottom byte is filler.
 					bytes_received_i <= std_logic_vector(unsigned(bytes_received_i) + 1);
 				else
 					bytes_received_i <= std_logic_vector(unsigned(bytes_received_i) + 2);
@@ -198,14 +205,8 @@ begin
 		when start_word_judge =>
 		-- {
 			if (din_wr_en = '1') then
-				if ((din >= x"8100") and (din <= x"8104")) then -- Packet must have a valid first byte and source node.
-					-- TODO FIXME:
-					-- TODO FIXME: Make sure this is the correct size, considering the new diagnostic packet,
-					-- TODO FIXME: the crc bytes, and the fact that the FIFO is less than 1024 words deep.
-					-- TODO FIXME: Possibly add 1-5 extra words of margin in case of coding errors. Put in some
-					-- TODO FIXME: shared library or package.
-					-- TODO FIXME:
-					if (word_fifo_bytes_used <= x"3A6") then -- If room for a whole packet
+				if check_first_packet_word_good(din, x"00", x"04") then
+					if (unsigned(word_fifo_bytes_used) <= fifo_maximum_used_bytes_for_new_packet) then -- If room for a whole packet
 						word_fifo_wr_en <= din_wr_en;
 						input_manager_state_next <= receive_data;
 					else
@@ -226,7 +227,7 @@ begin
 		when receive_data =>
 		-- {
 			-- keep receiving until end signal
-			if din_wr_en = '1' and ( din(15 downto 8) = x"FF" or din(7 downto 0) = x"FF") then
+			if din_wr_en = '1' and word_contains_packet_end_token(din) then
 				packet_depth_counter_increment <= '1'; --signal that we just finished writing a packet, for counting purposes
 				input_manager_state_next <= start_word_judge;
 			else
@@ -237,10 +238,7 @@ begin
 		-- }
 		when wait_for_fifo_ready =>
 		-- {
-			-- TODO FIXME:
-			-- TODO FIXME: Same TODO FIXME as above.
-			-- TODO FIXME:
-			if ( word_fifo_bytes_used > x"3A6") then -- If room for a whole packet
+			if ( unsigned(word_fifo_bytes_used) > fifo_maximum_used_bytes_for_new_packet) then -- If not room for a whole packet
 				input_manager_state_next <= wait_for_fifo_ready;
 			else
 				-- If mid packet, the start_word_judge state will ignore everything until
@@ -399,7 +397,7 @@ begin
 		-- continue outputtting data until the packet is done
 		when reading =>
 			dout <= word_fifo_dout;
-			if word_fifo_dout(15 downto 8) = x"FF" or word_fifo_dout(7 downto 0) = x"FF" then
+			if word_contains_packet_end_token(word_fifo_dout) then
 				-- If end of packet, hold the last packet outputs and immediately
 				-- attempt to find the next packet to output. The new packet signals
 				-- may override some of the output signals such as source/destination

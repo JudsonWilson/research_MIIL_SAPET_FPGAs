@@ -22,6 +22,8 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
+use WORK.SAPET_PACKETS.ALL;
+
 ---- Uncomment the following library declaration if instantiating
 ---- any Xilinx primitives in this code.
 --library UNISIM;
@@ -283,27 +285,21 @@ begin
 			next_state_out <= "010";
 			next_baudrate_counter <= max_counter - 1;
 			--TODO: check the top bit on everyth byte, and only allow "1" if valid starting token and data_source=DATA_SOURCE_NONE
-			case current_fifo_data_out is
 			--Valid Start-of-Packet Token.
-			when x"81" =>
-				next_shift_register <= current_fifo_data_out;
-				next_data_source <= DATA_SOURCE_FIFOS;
-				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
-				next_crc_new_byte <= current_fifo_data_out;
-			when x"82" =>
+			if is_packet_start_token(current_fifo_data_out) then
 				next_shift_register <= current_fifo_data_out;
 				next_data_source <= DATA_SOURCE_FIFOS;
 				next_crc_prev_crc <= x"00"; -- start a new crc on the packet
 				next_crc_new_byte <= current_fifo_data_out;
 			--End-of-Packet Token
-			when x"FF" =>
+			elsif current_fifo_data_out = packet_end_token then
 				--We have just read the last byte in the packet. Insert the crc bytes now.
 				next_shift_register <= "0000" & crc_new_crc(7 downto 4);
 				next_data_source <= DATA_SOURCE_CRC2;
 				next_crc_prev_crc <= crc_prev_crc; -- do not update crc, it is done for packet, hold inputs constant
 				next_crc_new_byte <= crc_new_byte;
 			--Body, or Erroneous Token
-			when others =>
+			else
 				--body of packet, unless DATA_SOURCE_DONE, then error
 				if data_source = DATA_SOURCE_DONE then
 					-- TODO FIXME: This is a bug condition. Throw diagnostic.
@@ -314,7 +310,7 @@ begin
 				next_data_source <= data_source; --If in DATA_SOURCE_DONE error condition, stay done, will give priority to other FIFOs, etc. Untested, may be the wrong thing to do.
 				next_crc_prev_crc <= crc_new_crc; -- update the crc. Feed last value in as new input, with next byte in packet.
 				next_crc_new_byte <= current_fifo_data_out;
-			end case;
+			end if;
 			next_bit_counter <= 7;
 			next_busy <= '1';
 			next_tx <= '1';

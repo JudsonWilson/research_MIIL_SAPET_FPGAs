@@ -24,6 +24,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+use work.sapet_packets.all;
+
 entity packet_source_destination_swapper is
 	port (
 		reset   : in  std_logic;
@@ -121,7 +123,7 @@ begin
 			-- check for first word of packet, if found and the swap
 			-- functionality is enabled it will wait in the delayed
 			-- slot until the second word comes.
-			if din(15 downto 8) = x"81" and swap_en = '1' then
+			if is_packet_start_token(din(15 downto 8)) and swap_en = '1' then
 				waiting_on_second_word_next <= '1';
 			else
 				waiting_on_second_word_next <= '0';

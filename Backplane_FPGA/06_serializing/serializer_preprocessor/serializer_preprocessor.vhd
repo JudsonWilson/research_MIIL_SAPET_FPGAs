@@ -27,6 +27,8 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+use work.sapet_packets.all;
+
 entity serializer_preprocessor is
 	port (
 		reset   : in  std_logic;
@@ -83,7 +85,7 @@ begin
 		if din_wr = '1' then
 
 			-- Look for first word of packet, save part of it
-			if din(15 downto 8) = x"81" then
+			if is_packet_start_token(din(15 downto 8)) then
 				-- save the first byte, dump the second byte
 				first_header_byte_next <= din(15 downto 8);
 				first_header_byte_is_waiting_next <= '1';

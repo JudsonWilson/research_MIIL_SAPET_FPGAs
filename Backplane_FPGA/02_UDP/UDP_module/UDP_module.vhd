@@ -24,6 +24,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -529,7 +531,7 @@ begin
 					config_data_from_UDP_to_GTP_wr <= '0';
 					config_data_from_UDP_to_GTP <= x"0000";
 				when start_signal_judge =>
-					if ( PC_to_Virtex_dout_i = x"81") then
+					if is_packet_start_token(PC_to_Virtex_dout_i) then
 						byte_number <= '1';
 						sending_config_data_complete <= '0';
 						config_data_from_UDP_to_GTP_wr <= '0';

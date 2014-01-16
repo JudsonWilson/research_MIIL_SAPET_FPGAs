@@ -26,6 +26,8 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use std.textio.all ;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -155,9 +157,9 @@ begin
 					din_from_GTP_wr <= '0';
 					state_machine <= first;
 				when first =>
-					din_from_acquisition <= x"8102";
+					din_from_acquisition <= packet_start_token_data_AND_mode & x"02";
 					din_from_acquisition_wr <= '1';
-					din_from_GTP <= x"8100";
+					din_from_GTP <= packet_start_token_frontend_config & x"00";
 					din_from_GTP_wr <= '1';
 					state_machine <= second;
 				when second =>
@@ -173,7 +175,7 @@ begin
 					din_from_GTP_wr <= '1';
 					state_machine <= fourth;
 				when fourth =>
-					din_from_acquisition <= x"8102";
+					din_from_acquisition <= packet_start_token_data_AND_mode & x"02";
 					din_from_acquisition_wr <= '1';
 					din_from_GTP <= x"2525";
 					din_from_GTP_wr <= '1';

@@ -25,6 +25,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -124,8 +126,8 @@ begin
 					when idle =>
 					-- {
 						fifo_write_or_read(1) <= '0';
-						-- start signal and signal 81
-						if ( din_from_Daisychain_to_serialzing(15 downto 8) = x"81") then
+						-- start signal and signal packet_start_token_frontend_config
+						if din_from_Daisychain_to_serialzing(15 downto 8) = packet_start_token_frontend_config then
 							fifo_wr_en <= din_from_Daisychain_to_serialzing_wr;
 							receive_fifo_state <= receive_data;
 						else
@@ -204,7 +206,7 @@ begin
 					fifo_rd_en <= '0';
 					byte_to_bit <= x"00";
 					fifo_config_data_serializing_state <= idle;
-					if ( fifo_data_dout(15 downto 8) = x"81") then
+					if ( fifo_data_dout(15 downto 8) = packet_start_token_frontend_config) then
 						fifo_write_or_read(0) <= '1';
 						serializing_state <= fifo_serializing;
 					else

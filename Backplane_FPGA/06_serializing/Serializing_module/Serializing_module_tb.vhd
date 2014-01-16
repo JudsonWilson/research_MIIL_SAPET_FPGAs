@@ -25,6 +25,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -59,6 +61,8 @@ architecture Behavioral of Serializing_module_tb is
 			     Tx				: out std_logic
 		     );
 	end component;
+
+	constant TC : std_logic_vector(7 downto 0) := packet_start_token_frontend_config; -- acronym for "Token Config"
 
 begin
 	Inst_Serializing_module: Serializing_module
@@ -99,7 +103,7 @@ begin
 					din_from_Daisychain_to_serialzing_wr <= '0';
 					state_machine <= first;
 				when first =>
-					din_from_Daisychain_to_serialzing <= x"8102";
+					din_from_Daisychain_to_serialzing <= TC & x"02";
 					din_from_Daisychain_to_serialzing_wr <= '1';
 					state_machine <= second;
 				when second =>
@@ -107,7 +111,7 @@ begin
 					din_from_Daisychain_to_serialzing_wr <= '1';
 					state_machine <= third;
 				when third =>
-					din_from_Daisychain_to_serialzing <= x"8102";
+					din_from_Daisychain_to_serialzing <= TC & x"02";
 					din_from_Daisychain_to_serialzing_wr <= '1';
 					state_machine <= fourth;
 				when fourth =>

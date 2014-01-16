@@ -22,6 +22,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.sapet_packets.all;
+
 entity Daisychain_module_testbench is
 end Daisychain_module_testbench;
 
@@ -88,6 +90,8 @@ architecture Behavioral of Daisychain_module_testbench is
 	signal din_from_acquisition_seq     : uint16_sequence (0 to test1_length-1);
 	signal din_from_acquisition_wr_seq  : bit_sequence    (0 to test1_length-1);
 
+	constant TC : std_logic_vector(7 downto 0) := packet_start_token_frontend_config; -- acronym for "Token Config"
+	constant TD : std_logic_vector(7 downto 0) := packet_start_token_data_AND_mode;   -- acronym for "Token Data"
 begin
 
 	uut: Daisychain_module port map(
@@ -169,13 +173,13 @@ begin
 
 		-- FIFO Input Stuff
 		-- inputs
-		step_index_seq                      <= (       1,       2,       3,       4,       5,       6,       7,       8,       9,      10,      11,      12,      13,      14,      15,      16,      17,      18,      19,      20,      21,      22,      23,      24,      25,      26,      27,      28,      29,      30);
-		din_from_GTP_seq                    <= ( x"8101", x"8100", x"01CA", x"FF00", x"8104", x"1718", x"FF00", x"1010", x"1111", x"1212", x"1313", x"1414", x"8101", x"1515", x"0304", x"1616", x"05FF", x"1717", x"8104", x"1818", x"5566", x"1919", x"FF00", x"2121", x"2222", x"2323", x"2424", x"2525", x"2626", x"2727");
-		din_from_GTP_wr_seq                 <= (     '0',     '1',     '1',     '1',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0');
-		config_data_from_UDP_to_GTP_seq     <= ( x"8101", x"8100", x"01C0", x"FF00", x"8104", x"1718", x"FF00", x"1010", x"1111", x"1212", x"1313", x"1414", x"8101", x"1515", x"0304", x"1616", x"05FF", x"1717", x"8104", x"1818", x"5566", x"1919", x"FF00", x"2121", x"2222", x"2323", x"2424", x"2525", x"2626", x"2727");
-		config_data_from_UDP_to_GTP_wr_seq  <= (     '0',     '1',     '1',     '1',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0');
-		din_from_acquisition_seq            <= ( x"8101", x"8101", x"00A0", x"FF00", x"8104", x"1718", x"FF00", x"1010", x"1111", x"1212", x"1313", x"1414", x"8101", x"1515", x"0304", x"1616", x"05FF", x"1717", x"8104", x"1818", x"5566", x"1919", x"FF00", x"2121", x"2222", x"2323", x"2424", x"2525", x"2626", x"2727");
-		din_from_acquisition_wr_seq         <= (     '0',     '1',     '1',     '1',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0');
+		step_index_seq                      <= (        1,        2,       3,       4,        5,       6,       7,       8,       9,      10,      11,      12,       13,      14,      15,      16,      17,      18,      19,      20,      21,      22,      23,      24,      25,      26,      27,      28,      29,      30);
+		din_from_GTP_seq                    <= ( TC&x"01", TC&x"00", x"01CA", x"FF00", TD&x"04", x"1718", x"FF00", x"1010", x"1111", x"1212", x"1313", x"1414", TD&x"01", x"1515", x"0304", x"1616", x"05FF", x"1717", TD&x"04", x"1818", x"5566", x"1919", x"FF00", x"2121", x"2222", x"2323", x"2424", x"2525", x"2626", x"2727");
+		din_from_GTP_wr_seq                 <= (      '0',      '1',     '1',     '1',      '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',      '0',     '0',     '0',     '0',     '0',     '0',      '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0');
+		config_data_from_UDP_to_GTP_seq     <= ( TD&x"01", TD&x"00", x"01C0", x"FF00", TD&x"04", x"1718", x"FF00", x"1010", x"1111", x"1212", x"1313", x"1414", TD&x"01", x"1515", x"0304", x"1616", x"05FF", x"1717", TD&x"04", x"1818", x"5566", x"1919", x"FF00", x"2121", x"2222", x"2323", x"2424", x"2525", x"2626", x"2727");
+		config_data_from_UDP_to_GTP_wr_seq  <= (      '0',      '1',     '1',     '1',      '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',      '0',     '0',     '0',     '0',     '0',     '0',      '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0');
+		din_from_acquisition_seq            <= ( TD&x"01", TD&x"01", x"00A0", x"FF00", TD&x"04", x"1718", x"FF00", x"1010", x"1111", x"1212", x"1313", x"1414", TD&x"01", x"1515", x"0304", x"1616", x"05FF", x"1717", TD&x"04", x"1818", x"5566", x"1919", x"FF00", x"2121", x"2222", x"2323", x"2424", x"2525", x"2626", x"2727");
+		din_from_acquisition_wr_seq         <= (      '0',      '1',     '1',     '1',      '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',      '0',     '0',     '0',     '0',     '0',     '0',      '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0',     '0');
 
 		-- outputs
 

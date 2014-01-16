@@ -39,6 +39,8 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.P.all;
 
+use WORK.SAPET_PACKETS.ALL;
+
 entity diagnostic_messenger is
 	Generic (
 		num_bug_bits : INTEGER
@@ -149,7 +151,7 @@ begin
 					send_copy_bugs_notified_next <= bugs_notified or bug_notifications;
 					bugs_notified_next <= (others => '0');
 					-- Send byte of packet
-					packet_data_next    <= x"81";  -- Send the first byte.
+					packet_data_next    <= packet_start_token_frontend_diagnostic;  -- Send the first byte.
 					packet_data_wr_next <= '1';    --   "   "    "    "
 					-- Send the FPGA_ADDR on next byte
 					send_state_next <= SENDSTATE_RENA_ADDR;

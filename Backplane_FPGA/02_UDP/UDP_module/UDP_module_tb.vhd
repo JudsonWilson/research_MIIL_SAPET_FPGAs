@@ -26,6 +26,8 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use std.textio.all ;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -149,7 +151,7 @@ begin
 					data_from_DaisyChain_wr <= '0';
 					state_machine <= first;
 				when first =>
-					data_from_DaisyChain <= x"8100";
+					data_from_DaisyChain <= packet_start_token_frontend_config & x"00";
 					data_from_DaisyChain_wr <= '1';
 					state_machine <= second;
 				when second =>
@@ -161,7 +163,7 @@ begin
 					data_from_DaisyChain_wr <= '1';
 					state_machine <= fourth;
 				when fourth =>
-					data_from_DaisyChain <= x"8100";
+					data_from_DaisyChain <= packet_start_token_frontend_config & x"00";
 					data_from_DaisyChain_wr <= '1';
 					state_machine <= fifth;
 				when fifth =>

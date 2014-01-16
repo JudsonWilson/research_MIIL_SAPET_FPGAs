@@ -24,6 +24,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -114,13 +116,13 @@ begin
 				when idle =>
 					Rx0 		<= '1';
 					Rx1		<= '1';
-					output_data_i   <= x"81";
+					output_data_i   <= packet_start_token_data_AND_mode;
 					data_length_i   <= x"0000";
 					parallel_to_serial_state <= send_start_signal;
 				when send_start_signal =>
 				-- {
 					case parallel_byte is
-					-- start signal 81
+					-- start signal packet_start_token_data_AND_mode
 						when x"00" =>
 							Rx0 <= '0';
 							Rx1 <= '0';

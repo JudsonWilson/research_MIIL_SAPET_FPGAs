@@ -23,6 +23,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.sapet_packets.all;
+
 entity serializer_preprocessor_testbench is
 end serializer_preprocessor_testbench;
 
@@ -46,6 +48,8 @@ architecture Behavioral of serializer_preprocessor_testbench is
 	signal din_wr:  std_logic;
 	signal dout:    std_logic_vector(15 downto 0);
 	signal dout_wr: std_logic;
+
+	constant TC : std_logic_vector(7 downto 0) := packet_start_token_frontend_config; -- acronym for "Token Config"
 
 begin
 
@@ -114,16 +118,16 @@ begin
 		----------------------------------------------------------------------------
 
 		-- First lead in with the wr signal deasserted
-		din <= x"8106";
+		din <= TC & x"06";
 		din_wr <= '0';
 		wait for 1 ns;
-		assert dout_wr = '0' and dout = x"8106" report "Test 3, Error 1" severity failure;
+		assert dout_wr = '0' and dout = TC & x"06" report "Test 3, Error 1" severity failure;
 
 		wait for 8 ns;	clk <= '0'; wait for 10 ns; clk <= '1'; wait for 1 ns;
-		assert dout_wr = '0' and dout = x"8106" report "Test 3, Error 2" severity failure;
+		assert dout_wr = '0' and dout = TC & x"06" report "Test 3, Error 2" severity failure;
 		
 		-- continue with another firt word, assert the write signal
-		din <= x"8107";
+		din <= TC & x"07";
 		din_wr <= '1';
 		wait for 1 ns;
 		assert dout_wr = '0' and dout = x"0000" report "Test 3, Error 3" severity failure;
@@ -135,7 +139,7 @@ begin
 		din <= x"3456";
 		din_wr <= '1';
 		wait for 1 ns;
-		assert dout_wr = '1' and dout = x"8156" report "Test 3, Error 5" severity failure;
+		assert dout_wr = '1' and dout = TC & x"56" report "Test 3, Error 5" severity failure;
 
 		wait for 8 ns;	clk <= '0'; wait for 10 ns; clk <= '1'; wait for 1 ns;
 		assert dout_wr = '1' and dout = x"3456" report "Test 3, Error 6" severity failure;
@@ -146,7 +150,7 @@ begin
 		----------------------------------------------------------------------------
 		
 		-- send new first word, asserted
-		din <= x"8108";
+		din <= TC & x"08";
 		din_wr <= '1';
 		wait for 1 ns;
 		assert dout_wr = '0' and dout = x"0000" report "Test 4, Error 1" severity failure;
@@ -167,7 +171,7 @@ begin
 		din <= x"ABCD";
 		din_wr <= '1';
 		wait for 1 ns;
-		assert dout_wr = '1' and dout = x"81CD" report "Test 4, Error 5" severity failure;
+		assert dout_wr = '1' and dout = TC & x"CD" report "Test 4, Error 5" severity failure;
 
 		wait for 8 ns;	clk <= '0'; wait for 10 ns; clk <= '1'; wait for 1 ns;
 		assert dout_wr = '1' and dout = x"ABCD" report "Test 4, Error 6" severity failure;

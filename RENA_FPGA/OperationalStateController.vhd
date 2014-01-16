@@ -22,6 +22,8 @@ use IEEE.std_logic_1164.ALL;
 use IEEE.std_logic_ARITH.ALL;
 use IEEE.std_logic_UNSIGNED.ALL;
 
+use WORK.SAPET_PACKETS.ALL;
+
 ---- Uncomment the following library declaration if instantiating
 ---- any Xilinx primitives in this code.
 -- library UNISIM;
@@ -448,12 +450,12 @@ begin
 			when "00100011" =>
 				-- The first byte used to always be 0x80
 				if ((FORCE_TRIGGER = '0') and (OR_MODE_TRIGGER = '1')) then
-					-- Packet start byte 0x82 indicating OR mode readout
-					next_TX_DATA <= "10000010"; --start transmission
+					-- Packet start byte indicating OR mode readout
+					next_TX_DATA <= packet_start_token_data_or_mode; --start transmission
 					next_SEND_TX_DATA <= '1';
 				else
-					-- Packet start byte 0x81 indicating AND mode readout
-					next_TX_DATA <= "10000001";
+					-- Packet start byte indicating AND mode readout
+					next_TX_DATA <= packet_start_token_data_and_mode;
 					next_SEND_TX_DATA <= '1';
 				end if;
 				
@@ -604,7 +606,7 @@ begin
 	-- state_out == "1101" for TX_STOP
 	elsif next_state = TX_STOP then
 		-- Packet termination byte 0xFF (used to always be 0x81)
-		next_TX_DATA <= "11111111"; --end transmission
+		next_TX_DATA <= packet_end_token; --end transmission
 		next_SEND_TX_DATA <= '1';		
 	else
 		next_TX_DATA <= "00000000";

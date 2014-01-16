@@ -24,6 +24,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 
+use work.sapet_packets.all;
+
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
 --use IEEE.NUMERIC_STD.ALL;
@@ -109,6 +111,10 @@ architecture Behavioral of acquisition_module is
 	type send_to_Daisychain_status_type is array (0 to 1) of std_logic;
 	signal send_to_Daisychain_status  	: send_to_Daisychain_status_type := ('0', '0');
 
+	-- Actual depth is 1023 (not 1024!). Decrease by 5 for increased robustness handling off-by-1 errors, etc.
+	constant fifo_word_depth : integer := 1018;
+	-- The write depth must be less than this number to ensure a full packet can be added to the FIFO.
+	constant fifo_maximum_used_bytes_for_new_packet : integer := fifo_word_depth - (max_packet_size_bytes)/2;
 
 	component fifo_block_1024_16 
 		port (
@@ -293,11 +299,11 @@ begin
 							local_acquisition_data_wr(0) <= '0';
 							local_acquisition_data_receving(0) <= start_signal_receiving;
 						when x"08" =>
-							if ( local_acquisition_data_din(0)(15 downto 8) = x"81" ) then
+							if is_packet_start_token(local_acquisition_data_din(0)(15 downto 8)) then
 								-- From address: to add the current Virtex-5 board id
 								-- add the ID of the Virtex-5 board
 								local_acquisition_data_din(0)(7 downto 0) <= "00000" & boardid;
-								if (wr_data_counter(0) <= x"3A6") then
+								if (wr_data_counter(0) <= fifo_maximum_used_bytes_for_new_packet) then
 									local_acquisition_data_wr(0) <= '1';
 									bit_to_byte(0) <= bit_to_byte(0) + x"01";
 									local_acquisition_data_receving(0) <= start_signal_receiving;
@@ -648,7 +654,7 @@ begin
 					bit_to_byte(0) <= x"00";
 					local_acquisition_data_wr(0) <= '0';
 					local_acquisition_data_din(0) <= x"0000";
-					if ( wr_data_counter(0) > x"3A6") then
+					if ( wr_data_counter(0) > fifo_maximum_used_bytes_for_new_packet) then
 						local_acquisition_data_receving(0) <= clear_wr_data_counter;
 					else
 						local_acquisition_data_receving(0) <= idle;
@@ -1017,11 +1023,11 @@ begin
 							local_acquisition_data_wr(1) <= '0';
 							local_acquisition_data_receving(1) <= start_signal_receiving;
 						when x"08" =>
-							if ( local_acquisition_data_din(1)(15 downto 8) = x"81" ) then
+							if is_packet_start_token(local_acquisition_data_din(1)(15 downto 8)) then
 								-- From address: to add the current Virtex-5 board id
 								-- add the ID of the Virtex-5 board
 								local_acquisition_data_din(1)(7 downto 0) <= "00000" & boardid;
-								if (wr_data_counter(1) <= x"3A6") then
+								if (wr_data_counter(1) <= fifo_maximum_used_bytes_for_new_packet) then
 									local_acquisition_data_wr(1) <= '1';
 									bit_to_byte(1) <= bit_to_byte(1) + x"01";
 									local_acquisition_data_receving(1) <= start_signal_receiving;
@@ -1372,7 +1378,7 @@ begin
 					bit_to_byte(1) <= x"00";
 					local_acquisition_data_wr(1) <= '0';
 					local_acquisition_data_din(1) <= x"0000";
-					if ( wr_data_counter(1) > x"3A6") then
+					if ( wr_data_counter(1) > fifo_maximum_used_bytes_for_new_packet) then
 						local_acquisition_data_receving(1) <= clear_wr_data_counter;
 					else
 						local_acquisition_data_receving(1) <= idle;
@@ -1466,7 +1472,7 @@ begin
 						when first_word_judge =>
 						-- {
 							local_acquisition_data_rd(0) <= '1';
-							if ( local_acquisition_data_dout(0) > x"8100" and local_acquisition_data_dout(0) < x"8105") then
+							if check_first_packet_word_good(local_acquisition_data_dout(0), x"01", x"04") then
 								transfering_local_acquisition_data <= second_word_out;	
 							else
 								transfering_local_acquisition_data <= first_word_output;	
@@ -1480,7 +1486,7 @@ begin
 						when first_word_output =>
 						-- {
 							local_acquisition_data_rd(0) <= '1';
-							if ( local_acquisition_data_dout(0) > x"8100" and local_acquisition_data_dout(0) < x"8105") then
+							if check_first_packet_word_good(local_acquisition_data_dout(0), x"01", x"04") then
 								transfering_local_acquisition_data <= valid_data_judge;	
 							else
 								transfering_local_acquisition_data <= first_word_output;	
@@ -1515,7 +1521,10 @@ begin
 						-- {
 							first_word <= first_word;
 							second_word <= local_acquisition_data_dout(0);
-							if ( ( first_word = (x"81" & "00000" & boardid)) and (local_acquisition_data_dout(0)(15 downto 8) = x"00")) then
+							if is_packet_start_token( first_word(15 downto 8) )
+							   and first_word(7 downto 0) = "00000" & boardid
+							   and local_acquisition_data_dout(0)(15 downto 8) = x"00"
+							then
 								local_acquisition_data_rd(0) <= '0';
 								local_acquisition_data_dout_to_Daisychain_wr_i <= '1';
 								local_acquisition_data_dout_to_Daisychain_i <= first_word;
@@ -1590,7 +1599,7 @@ begin
 						when first_word_judge =>
 						-- {
 							local_acquisition_data_rd(1) <= '1';
-							if ( local_acquisition_data_dout(1) > x"8100" and local_acquisition_data_dout(1) < x"8105") then
+							if check_first_packet_word_good(local_acquisition_data_dout(1), x"01", x"04") then
 								transfering_local_acquisition_data <= second_word_out;	
 							else
 								transfering_local_acquisition_data <= first_word_output;	
@@ -1604,7 +1613,7 @@ begin
 						when first_word_output =>
 						-- {
 							local_acquisition_data_rd(1) <= '1';
-							if ( local_acquisition_data_dout(1) > x"8100" and local_acquisition_data_dout(1) < x"8105") then
+							if check_first_packet_word_good(local_acquisition_data_dout(1), x"01", x"04") then
 								transfering_local_acquisition_data <= valid_data_judge;	
 							else
 								transfering_local_acquisition_data <= first_word_output;	
@@ -1639,7 +1648,10 @@ begin
 						-- {
 							first_word <= first_word;
 							second_word <= local_acquisition_data_dout(1);
-							if ( ( first_word = (x"81" & "00000" & boardid)) and (local_acquisition_data_dout(1)(15 downto 8) = x"00")) then
+							if is_packet_start_token(first_word(15 downto 8))
+							   and first_word(7 downto 0) = "00000" & boardid
+							   and local_acquisition_data_dout(1)(15 downto 8) = x"00"
+							then
 								local_acquisition_data_rd(1) <= '0';
 								local_acquisition_data_dout_to_Daisychain_wr_i <= '1';
 								local_acquisition_data_dout_to_Daisychain_i <= first_word;
