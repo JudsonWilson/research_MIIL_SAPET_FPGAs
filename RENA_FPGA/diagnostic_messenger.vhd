@@ -84,11 +84,10 @@ architecture Behavioral of diagnostic_messenger is
 	constant num_sendstate_bits  : INTEGER := 3;
 	constant SENDSTATE_IDLE      : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "000";
 	constant SENDSTATE_RENA_ADDR : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "001";
-	constant SENDSTATE_HEADER_3  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "010";
-	constant SENDSTATE_RENA1     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "011";
-	constant SENDSTATE_RENA2     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "100";
-	constant SENDSTATE_BUGS      : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "101";
-	constant SENDSTATE_LASTBYTE  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "110";
+	constant SENDSTATE_RENA1     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "010";
+	constant SENDSTATE_RENA2     : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "011";
+	constant SENDSTATE_BUGS      : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "100";
+	constant SENDSTATE_LASTBYTE  : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0) := "101";
 
 	signal send_state            : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0);
 	signal send_state_next       : STD_LOGIC_VECTOR (num_sendstate_bits-1 downto 0);
@@ -164,15 +163,7 @@ begin
 				packet_data_next <= "0" & fpga_addr & "0"; -- Lower bit, chip_id=0, to match layout of the other data packets.
 				packet_data_wr_next <= '1';
 				-- Send the diagnostic packet identifier on next byte
-				send_state_next <= SENDSTATE_HEADER_3;
-
-			when SENDSTATE_HEADER_3 =>
-				-- Send the third header byte, x"84", signifying a diagnostic packet.
-				packet_data_next <= x"84";
-				packet_data_wr_next <= '1';
-				-- Start sending RENA data on next state
 				send_state_next <= SENDSTATE_RENA1;
-				send_counter_next <= to_unsigned(0, num_send_counter_bits);
 
 			when SENDSTATE_RENA1 =>
 				-- Fill the packet with the top 6 bits of send_copy_rena1_settings
