@@ -243,16 +243,17 @@ end component;
 
 component RS232_tx_buffered
 	port(
-		debugOut    : out STD_LOGIC_VECTOR(2 downto 0);
-		mclk      : IN std_logic;
-		data1     : IN std_logic_vector(7 downto 0);
-		new_data1 : IN std_logic;
-		data2     : IN std_logic_vector(7 downto 0);
-		new_data2 : IN std_logic;	
-		data3     : IN std_logic_vector(7 downto 0);
-		new_data3 : IN std_logic;	
-		tx_busy   : OUT std_logic;
-		tx        : OUT std_logic);
+		debugOut       : out STD_LOGIC_VECTOR(2 downto 0);
+		mclk           : IN std_logic;
+		data_diag      : IN std_logic_vector(7 downto 0);
+		new_data_diag  : IN std_logic;	
+		data_diag_full : OUT std_logic;
+		data1          : IN std_logic_vector(7 downto 0);
+		new_data1      : IN std_logic;
+		data2          : IN std_logic_vector(7 downto 0);
+		new_data2      : IN std_logic;	
+		tx_busy        : OUT std_logic;
+		tx             : OUT std_logic);
 end component;
 
 component OperationalStateController is
@@ -340,8 +341,9 @@ component diagnostic_messenger is
 
 		send  : in  STD_LOGIC; -- Pulse to send the current state out to the TX, and reset the state
 
-		packet_data    : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
-		packet_data_wr : out STD_LOGIC;                     -- Tells the TX that data is valid. Pulse once per byte.
+		packet_data      : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
+		packet_data_wr   : out STD_LOGIC;                     -- Tells the TX that data is valid. Pulse once per byte.
+		packet_fifo_full : in STD_LOGIC;                      -- Notification that the receiving FIFO is full and data should not be written.
 
 		rena1_settings    : in STD_LOGIC_VECTOR (num_rena_settings_bits-1 downto 0); --Last value that was programmed to rena1
 		rena2_settings    : in STD_LOGIC_VECTOR (num_rena_settings_bits-1 downto 0); --Last value that was programmed to rena2
@@ -432,6 +434,7 @@ signal diagnostic_full_rena2_settings : std_logic_vector(129-1 downto 0);
 signal diagnostic_bug_notifications : std_logic_vector(29 downto 0);
 signal diagnostic_packet_data    : std_logic_vector(7 downto 0);
 signal diagnostic_packet_data_wr : std_logic;
+signal diagnostic_packet_fifo_full    : std_logic;
 signal diagnostic_send : std_logic;
 
 begin
@@ -723,12 +726,13 @@ RX_Decoder:  RX_Decode port map(
 TX_2buffers: RS232_tx_buffered PORT MAP(
 		debugOut => txDebug,
 		mclk => systemClk,
+		data_diag => diagnostic_packet_data,
+		new_data_diag => diagnostic_packet_data_wr,
+		data_diag_full => diagnostic_packet_fifo_full,
 		data1 => data1,
 		new_data1 => new_data1,
 		data2 => data2,
 		new_data2 => new_data2,
-		data3 => diagnostic_packet_data,
-		new_data3 => diagnostic_packet_data_wr,
 		tx_busy => tx_busy,
 		tx => tx
 	);
@@ -858,6 +862,7 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 		send  => diagnostic_send,
 		packet_data    => diagnostic_packet_data,
 		packet_data_wr => diagnostic_packet_data_wr,
+		packet_fifo_full => diagnostic_packet_fifo_full,
 		rena1_settings    => diagnostic_full_rena1_settings,
 		rena2_settings    => diagnostic_full_rena2_settings,
 		bug_notifications => diagnostic_bug_notifications

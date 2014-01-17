@@ -31,17 +31,18 @@ use WORK.SAPET_PACKETS.ALL;
 
 entity RS232_tx_buffered is
 Port ( 
-	debugOut    : out STD_LOGIC_VECTOR (2 downto 0);
-	mclk 			: 	in STD_LOGIC;
-	data1 		: 	in STD_LOGIC_VECTOR (7 downto 0);
-	new_data1	:  in STD_LOGIC;
-	data2 		: 	in STD_LOGIC_VECTOR (7 downto 0);
-	new_data2	:  in STD_LOGIC;
-	data3 		: 	in STD_LOGIC_VECTOR (7 downto 0);
-	new_data3	:  in STD_LOGIC;
-	tx_busy 		: 	out STD_LOGIC;
-	tx 			: 	out STD_LOGIC
-	);
+	debugOut       : out STD_LOGIC_VECTOR (2 downto 0);
+	mclk           :  in STD_LOGIC;
+	data_diag      :  in STD_LOGIC_VECTOR (7 downto 0);
+	new_data_diag  :  in STD_LOGIC;
+	data_diag_full : out STD_LOGIC;
+	data1          :  in STD_LOGIC_VECTOR (7 downto 0);
+	new_data1      :  in STD_LOGIC;
+	data2          :  in STD_LOGIC_VECTOR (7 downto 0);
+	new_data2      :  in STD_LOGIC;
+	tx_busy        : out STD_LOGIC;
+	tx             : out STD_LOGIC
+);
 end RS232_tx_buffered;
 
 architecture Behavioral of RS232_tx_buffered is
@@ -108,9 +109,14 @@ signal next_bit_counter : natural range 0 to 7 := 0;
 signal shift_register: STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 signal next_shift_register : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
+signal fifo_data_diag_empty : std_logic;
 signal fifo_empty1 : std_logic;
 signal fifo_empty2 : std_logic;
-signal fifo_empty3 : std_logic;
+
+signal fifo_data_diag_full : std_logic;
+
+signal fifo_data_diag_out : std_logic_vector(7 downto 0);
+signal get_next_fifo_data_diag : std_logic;
 
 signal fifo_data_out1 : std_logic_vector(7 downto 0);
 signal get_next_fifo_data1 : std_logic;
@@ -118,9 +124,7 @@ signal get_next_fifo_data1 : std_logic;
 signal fifo_data_out2 : std_logic_vector(7 downto 0);
 signal get_next_fifo_data2 : std_logic;
 
-signal fifo_data_out3 : std_logic_vector(7 downto 0);
-signal get_next_fifo_data3 : std_logic;
-
+-- "11" = data_diag, "01" = data1, "10" = data2
 signal current_fifo : std_logic_vector(1 downto 0);
 signal next_current_fifo : std_logic_vector(1 downto 0);
 
@@ -135,6 +139,19 @@ signal next_crc_prev_crc : std_logic_vector(7 downto 0);
 signal crc_new_crc       : std_logic_vector(7 downto 0);
 
 begin
+
+data_diag_full <= fifo_data_diag_full;
+
+TX_FIFO_DIAG : TX_Fifo port map(
+	clk	=>   	mclk,
+	din	=> 	data_diag,
+	rd_en	=>		get_next_fifo_data_diag,
+	srst	=> 	'0',
+	wr_en	=> 	new_data_diag,
+	dout	=>		fifo_data_diag_out,
+	empty	=> 	fifo_data_diag_empty,
+	full	=>		fifo_data_diag_full
+);
 
 TX_FIFO1 : TX_Fifo port map(
 	clk	=>   	mclk,
@@ -155,17 +172,6 @@ TX_FIFO2 : TX_Fifo port map(
 	wr_en	=> 	new_data2,
 	dout	=>		fifo_data_out2,
 	empty	=> 	fifo_empty2,
-	full	=>		open
-);
-
-TX_FIFO3 : TX_Fifo port map(
-	clk	=>   	mclk,
-	din	=> 	data3,
-	rd_en	=>		get_next_fifo_data3,
-	srst	=> 	'0',
-	wr_en	=> 	new_data3,
-	dout	=>		fifo_data_out3,
-	empty	=> 	fifo_empty3,
 	full	=>		open
 );
 
@@ -199,22 +205,22 @@ end process;
 --"current_fifo" interface to reduce code elsewhere. Follows the model that only
 --one fifo is used at a time (on the output side).
 fifo_mux_proc: process( next_current_fifo, current_fifo,
+                        fifo_data_diag_out, fifo_data_diag_empty,
                         fifo_data_out1, fifo_empty1,
                         fifo_data_out2, fifo_empty2,
-                        fifo_data_out3, fifo_empty3,
                         get_next_current_fifo_data
                       )
 begin
 	case current_fifo is
+	when "11" =>
+		current_fifo_empty <= fifo_data_diag_empty;
+		current_fifo_data_out <= fifo_data_diag_out;
 	when "01" =>
 		current_fifo_empty <= fifo_empty1;
 		current_fifo_data_out <= fifo_data_out1;
-	when "10" =>
+	when others =>
 		current_fifo_empty <= fifo_empty2;
 		current_fifo_data_out <= fifo_data_out2;
-	when others =>
-		current_fifo_empty <= fifo_empty3;
-		current_fifo_data_out <= fifo_data_out3;
 	end case;
 
 	--Update "get_next_fifo_data#" instantaneously after a transition of
@@ -223,24 +229,24 @@ begin
 	--Do this because we only switch fifos when data is available on
 	--another fifo, and we want the first byte of data on the next tick.
 	case next_current_fifo is
+	when "11" =>
+		get_next_fifo_data_diag <= get_next_current_fifo_data;
+		get_next_fifo_data1     <= '0';
+		get_next_fifo_data2     <= '0';
 	when "01" =>
-		get_next_fifo_data1 <= get_next_current_fifo_data;
-		get_next_fifo_data2 <= '0';
-		get_next_fifo_data3 <= '0';
-	when "10" =>
-		get_next_fifo_data1 <= '0';
-		get_next_fifo_data2 <= get_next_current_fifo_data;
-		get_next_fifo_data3 <= '0';
+		get_next_fifo_data_diag <= '0';
+		get_next_fifo_data1     <= get_next_current_fifo_data;
+		get_next_fifo_data2     <= '0';
 	when others =>
-		get_next_fifo_data1 <= '0';
-		get_next_fifo_data2 <= '0';
-		get_next_fifo_data3 <= get_next_current_fifo_data;
+		get_next_fifo_data_diag <= '0';
+		get_next_fifo_data1     <= '0';
+		get_next_fifo_data2     <= get_next_current_fifo_data;
 	end case;
 end process fifo_mux_proc;
 
 
 process( state, data_source, baudrate_counter, shift_register, bit_counter,
-         fifo_empty1, fifo_empty2, fifo_empty3,
+         fifo_empty1, fifo_empty2, fifo_data_diag_empty,
          current_fifo, current_fifo_data_out, current_fifo_empty,
          crc_new_byte, crc_prev_crc, crc_new_crc
        )
@@ -250,14 +256,14 @@ begin
 		-- 000
 		when IDLE =>
 			-- If data to send
-			if fifo_empty1 = '0' or fifo_empty2 = '0' or fifo_empty3 = '0' then
+			if fifo_data_diag_empty = '0' or fifo_empty1 = '0' or fifo_empty2 = '0' then
 				--choose a fifo
-				if fifo_empty1 = '0' then
-					next_current_fifo <= "01";
-				elsif fifo_empty2 = '0' then
-					next_current_fifo <= "10";
-				else
+				if fifo_data_diag_empty = '0' then
 					next_current_fifo <= "11";
+				elsif fifo_empty1 = '0' then
+					next_current_fifo <= "01";
+				else -- fifo_empty2 = '0'
+					next_current_fifo <= "10";
 				end if;
 				--Setup retrieval of data
 				next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
@@ -504,8 +510,8 @@ begin
 				-- sure we empty all FIFOs before we clear the busy flag,
 				-- but order of priority probably does not matter because
 				-- no FIFOs should fill when busy.
-				-- Data fifos (1 and 2) have higher priority than
-				-- diagnostic fifo (3)
+				-- Diagnostic FIFO has higher priority than the data
+				-- FIFOs (1 and 2).
 				next_baudrate_counter <= max_counter - 1;
 				next_shift_register <= shift_register;
 				next_bit_counter <= 7;
@@ -514,13 +520,13 @@ begin
 				next_crc_prev_crc <= crc_prev_crc; -- do not update crc, hold inputs constant
 				next_crc_new_byte <= crc_new_byte;
 				--switch fifo if above condition true
-				if fifo_empty1 = '0' or fifo_empty2 = '0' or fifo_empty3 = '0' then
-					if fifo_empty1 = '0' then
-						next_current_fifo <= "01";
-					elsif fifo_empty2 = '0' then
-						next_current_fifo <= "10";
-					else
+				if fifo_data_diag_empty = '0' or fifo_empty1 = '0' or fifo_empty2 = '0' then
+					if fifo_data_diag_empty = '0' then
 						next_current_fifo <= "11";
+					elsif fifo_empty1 = '0' then
+						next_current_fifo <= "01";
+					else -- fifo_empty2 = '0'
+						next_current_fifo <= "10";
 					end if;
 					next_state <= FINISH_RETRIEVE_DATA_FROM_FIFO;
 					next_state_out <= "001";

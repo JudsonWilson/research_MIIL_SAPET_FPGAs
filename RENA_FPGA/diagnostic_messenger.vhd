@@ -53,8 +53,9 @@ entity diagnostic_messenger is
 
 		send  : in STD_LOGIC; -- Pulse to send the current state out to the TX, and reset the state
 
-		packet_data    : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
-		packet_data_wr : out STD_LOGIC;                     -- Tells the TX that data is valid. Pulse once per byte.
+		packet_data      : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
+		packet_data_wr   : out STD_LOGIC;                     -- Tells the TX that data is valid. Pulse once per byte.
+		packet_fifo_full : in STD_LOGIC;                      -- Notification that the receiving FIFO is full and data should not be written.
 
 		rena1_settings    : in STD_LOGIC_VECTOR (diagnostic_num_rena_settings_bits-1 downto 0); --Last value that was programmed to rena1
 		rena2_settings    : in STD_LOGIC_VECTOR (diagnostic_num_rena_settings_bits-1 downto 0); --Last value that was programmed to rena2
@@ -139,7 +140,11 @@ begin
 		-- Default: Don't update counter
 		send_counter_next <= send_counter;
 
-		case send_state is
+		if packet_fifo_full = '1' then
+			-- Do nothing if receiving FIFO is full
+			send_state_next <= send_state;
+		else
+			case send_state is
 			when SENDSTATE_IDLE =>
 				if send = '1' then
 					-- Start a transmission --
@@ -224,7 +229,8 @@ begin
 
 			when others =>
 				send_state_next <= SENDSTATE_IDLE;
-		end case;
+			end case;
+		end if;
 	end process;
 end Behavioral;
 
