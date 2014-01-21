@@ -2,25 +2,27 @@
 -- Company:      Stanford MIIL (Molecular Imaging Instrumentation Lab)
 -- Engineer:     Judson Wilson, based on code by Hua Liu.
 --
--- Create Date:    01/04/2013 
+-- Create Date:    01/04/2014 
 -- Design Name:
 -- Module Name:    smart_packets_fifo_1024_16
 -- Project Name:
 -- Target Devices:
 -- Tool versions:
 -- Description:
---     Wraps the complete_packets_fifo_1024_16 component with pipeline logic that
--- exposes the source and destination bytes of the packet. It has the following
--- properties (from the complete_packets_fifo_1024_16):
+--     Wraps the fifo_1024_16_counter component with pipeline logic that
+-- ensures packets enter and leave as a complete packet, and also exposes
+-- the source and destination node addresses on first notification.
 --
 --     Wraps a fifo with logic that allows only full packets to enter/exit
--- gaplessly. This is done using the following methods:
+-- (almost) gaplessly. This is done using the following methods:
 --     a) Packets are only placed in the fifo if, at the first byte, there
 --        is enough room for a complete packet. Otherwise the packet is
 --        effectively erased. This prevents a partial packet from getting
 --        in and the buffer overflowing.
 --     b) The output is only signaled as ready if there is at least one
---        full packet inside.
+--        full packet inside. Note that there could be SMALL necessary
+--        gaps in reading the output if the input was fed with gaps
+--        and the data has yet to fully propogate the FIFO.
 -- This code originates from code that occurred multiple times in the
 -- Daisychain Module.
 --
@@ -192,9 +194,9 @@ begin
 	----------------------------------------------------------------------------
 	-- State Machine Asynchronous Logic
 	-- - React to state changes and external logic.
-	-- - Generally attempts to grab first word from underlying packet fifo,
-	--   store it, and then present the source + destination as outputs and
-	--   then act like a packet fifo until the whole packet is removed.
+	-- - Generally looks for a packet, and either clocks it into the FIFO
+	--   if the FIFO has enough room for the maximum-sized packet, or it
+	--   otherwise clocks it into nowhere (throws it away).
 	----------------------------------------------------------------------------
 	input_manager_FSM_async_logic_process: process(
 		din, din_wr_en, word_fifo_bytes_used
