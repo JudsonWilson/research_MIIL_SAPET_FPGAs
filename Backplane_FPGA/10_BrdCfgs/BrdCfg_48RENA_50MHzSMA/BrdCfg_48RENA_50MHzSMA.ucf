@@ -1,0 +1,108 @@
+
+#NET "." TNM_NET = "clk_50MHz";
+#TIMEGRP Grpclk_50MHz =  "clk_50MHz";
+#TIMESPEC TS_clk_50 = PERIOD "Grpclk_50MHz" 12 ns HIGH 50 %
+
+# Reset
+#NET "reset" LOC = AN33 | CLOCK_DEDICATED_ROUTE = "FALSE"; # HDR J6 - Pin 64
+NET "reset" LOC = AN32 | CLOCK_DEDICATED_ROUTE = "FALSE"; # HDR J4 - Pin 64
+
+# Clocks
+NET "clk_50MHz_p" LOC = H14 | IOSTANDARD = LVDS_25 | TNM_NET = "clk_50MHz"; # J10 SMA Connector
+NET "clk_50MHz_n" LOC = H15 | IOSTANDARD = LVDS_25;                         # J11 SMA Connector
+TIMESPEC "TS_clk_50" = PERIOD "clk_50MHz" 20 ns HIGH 50%;
+
+# for my Spartan board
+#NET "Tx" LOC = L33;
+#NET "Rx[0]" LOC = M32;
+#NET "Rx[1]" LOC = AK33;
+#NET "Rx0" LOC = M32;
+#NET "Rx1" LOC = AK33;
+#NET "clk_12MHz" LOC = J32;
+#NET "Reset_out" LOC = J34;
+#NET "Spartan_signal_input" LOC = AK7;
+#NET "Spartan_signal_output" LOC = H32;
+
+#Debug pin
+NET "compare_result" LOC = L34;
+
+## for Yi's Spartan board
+#NET "rena0_clk_50MHz" LOC = G32;  # HDR J6 - Pin 10
+#NET "rena0_rx" LOC = M32;         # HDR J6 - Pin 20
+#NET "rena0_tx" LOC = Y34;         # HDR J6 - Pin 30
+#
+#NET "rena1_clk_50MHz" LOC = AK32; # HDR J6 - Pin 50
+#NET "rena1_rx" LOC = AL34;        # HDR J6 - Pin 52
+#NET "rena1_tx" LOC = AL33;        # HDR J6 - Pin 54
+
+#Clock pin for probing
+NET "debug_clk_50MHz" LOC = H33;  # HDR J6 - Pin 2
+NET "rena_tx" LOC = AN33;         # HDR J6 - Pin 64
+NET "rena0_rx" LOC = P34;         # HDR J4 - Pin 16
+
+
+
+
+# GTP
+INST "Inst_datatransmission/Inst_GTP_module/inst_diff" LOC = BUFDS_X0Y3;
+NET "gtp_clkp_pin" LOC = Y4;
+NET "gtp_clkn_pin" LOC = Y3;
+INST "Inst_datatransmission/Inst_GTP_module/GTPwrapper_i/tile0_gtp_wrapper_i/gtp_dual_i" LOC = GTP_DUAL_X0Y3;
+NET "gtp_txp" LOC = AC2;
+NET "gtp_rxp" LOC = W1;
+NET "gtp_rxn" LOC = Y1;
+NET "gtp_txn" LOC = AB2;
+
+# Ethernet
+NET "fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin" TIG;
+NET "fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin" LOC = J14;
+#Net fpga_0_Hard_Ethernet_MAC_MII_TX_CLK_0_pin LOC = K17  |  IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[0]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[0]" LOC = AF11;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[1]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[1]" LOC = AE11;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[2]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[2]" LOC = AH9;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[3]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[3]" LOC = AH10;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[4]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[4]" LOC = AG8;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[5]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[5]" LOC = AH8;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[6]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[6]" LOC = AG10;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[7]" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin[7]" LOC = AG11;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TX_EN_0_pin" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TX_EN_0_pin" LOC = AJ10;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TX_ER_0_pin" IOSTANDARD = LVDCI_33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TX_ER_0_pin" LOC = AJ9;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TX_CLK_0_pin" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_TX_CLK_0_pin" LOC = J16;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[0]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[0]" LOC = A33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[1]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[1]" LOC = B33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[2]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[2]" LOC = C33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[3]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[3]" LOC = C32;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[4]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[4]" LOC = D32;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[5]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[5]" LOC = C34;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[6]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[6]" LOC = D34;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[7]" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[7]" LOC = F33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_DV_0_pin" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_DV_0_pin" LOC = E32;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_ER_0_pin" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_ER_0_pin" LOC = E33;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin" IOSTANDARD = LVCMOS25;
+NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin" LOC = H17;
+
+NET "boardid[0]" LOC = AE26;
+NET "boardid[1]" LOC = AC25;
+NET "boardid[2]" LOC = AC24;
