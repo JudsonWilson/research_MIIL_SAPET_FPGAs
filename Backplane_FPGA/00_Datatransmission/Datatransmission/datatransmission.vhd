@@ -221,22 +221,16 @@ architecture Behavioral of datatransmission is
 	end component;
 	component acquisition_module is
 		port (
-	bug_in_acqusition_process			: out std_logic;
-	bug_in_acqusition_write_fifo 			: out std_logic;
-	bug_in_write_number_over_flow			: out std_logic;
-	bug_in_xx_8102_xx_in_acquisition          : out std_logic;
-		acquisition_data_number			: out std_logic_vector(15 downto 0);
-
-			     reset 				: in std_logic;
-			     boardid				: in std_logic_vector(2 downto 0);
-			     clk_50MHz				: in std_logic;
-		-- Interface with Daisychain
-			     local_acquisition_data_dout_to_Daisychain_wr : out std_logic;
-			     local_acquisition_data_dout_to_Daisychain : out std_logic_vector(15 downto 0);
-			     Rx0				: in std_logic;
-			     Rx1 				: in std_logic
-		--	     Rx					: in std_logic_vector(1 downto 0)		
-		     );
+			reset       : in std_logic;
+			boardid     : in std_logic_vector(2 downto 0);
+			clk_50MHz   : in std_logic;
+			-- Interface with Daisychain
+			dout_wr_en  : out std_logic;
+			dout        : out std_logic_vector(15 downto 0);
+			-- Input from IOBs
+			Rx0         : in std_logic;
+			Rx1         : in std_logic
+		);
 	end component;
 
 	component serializer_preprocessor is
@@ -356,20 +350,16 @@ begin
 		 );
 	Inst_acquisition_module: acquisition_module
 	port map (
-	bug_in_acqusition_process		=> bug_in_acqusition_process_i,
-	bug_in_acqusition_write_fifo		=> bug_in_acqusition_write_fifo_i,
-	bug_in_write_number_over_flow		=> bug_in_write_number_over_flow_i,
-	bug_in_xx_8102_xx_in_acquisition        => bug_in_xx_8102_xx_in_acquisition_i,
-
-		acquisition_data_number			=> acquisition_data_number_i,
-			reset			=> reset_i,
-			boardid			=> boardid,
-			clk_50MHz		=> clk_50MHz_i,
-			local_acquisition_data_dout_to_Daisychain => acquisition_data_from_local_to_GTP,
-			local_acquisition_data_dout_to_Daisychain_wr => acquisition_data_from_local_to_GTP_wr,
-			Rx0			=> rena0_rx_i,
-			Rx1			=> rena1_rx_i
-		);
+		reset       => reset_i,
+		boardid     => boardid,
+		clk_50MHz   => clk_50MHz_i,
+		-- Interface with Daisychain
+		dout_wr_en  => acquisition_data_from_local_to_GTP_wr,
+		dout        => acquisition_data_from_local_to_GTP,
+		-- Input from IOBs
+		Rx0         => rena0_rx_i,
+		Rx1         => rena1_rx_i
+	);
 
 	-- This component proprocesses the data before it goes to the serializer.
 	-- The serializer will serialize the data, verbatum.
