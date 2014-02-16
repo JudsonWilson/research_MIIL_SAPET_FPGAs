@@ -58,6 +58,12 @@ architecture Behavioral of input_chooser_2_sources is
 	signal reset_i			: std_logic := '1';
 	signal clk_i         : std_logic;
 
+	signal dout_rd_en_i             : std_logic;
+	signal dout_packet_available_i  : std_logic;
+	signal dout_empty_notready_i    : std_logic;
+	signal dout_i                   : std_logic_vector(15 downto 0);
+	signal dout_end_of_packet_i     : std_logic;
+
 	-- Assign one of these to input_switch_channel to select a channel (immediately).
 	constant INPUT_CHANNEL_DONT_CHANGE : std_logic_vector(3 downto 1) := "000";
 	constant INPUT_CHANNEL_0           : std_logic_vector(3 downto 1) := "001";
@@ -85,6 +91,12 @@ architecture Behavioral of input_chooser_2_sources is
 
 	signal output_end_word       : std_logic_vector(15 downto 0);
 	signal output_end_word_next  : std_logic_vector(15 downto 0);
+
+	signal unsynced_dout_rd_en            : std_logic := '0';
+	signal unsynced_dout_packet_available : std_logic := '0';
+	signal unsynced_dout_empty_notready   : std_logic := '1';
+	signal unsynced_dout                  : std_logic_vector(15 downto 0) := x"0000";
+	signal unsynced_dout_end_of_packet    : std_logic := '1';
 
 	component input_fifo_switch
 	port (
@@ -115,10 +127,35 @@ architecture Behavioral of input_chooser_2_sources is
 	);
 	end component;
 
+	component packet_bus_output_synchronizer is
+	port (
+		reset       : in std_logic;
+		clk         : in std_logic;
+		-- Input, Source Port
+		din_rd_en  : out std_logic;
+		din_packet_available : in std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+		din_empty_notready   : in std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		din        : in std_logic_vector(15 downto 0);
+		din_end_of_packet : in std_logic;
+		-- Output Port
+		dout_rd_en  : in std_logic;
+		dout_packet_available : out std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		dout        : out std_logic_vector(15 downto 0);
+		dout_end_of_packet : out std_logic
+	);
+	end component;
+
 begin
 	-- pass through intermediate signals
 	reset_i <= reset;
 	clk_i <= clk;
+
+	dout_rd_en_i          <= dout_rd_en;
+	dout_packet_available <= dout_packet_available_i;
+	dout_empty_notready   <= dout_empty_notready_i;
+	dout                  <= dout_i;
+	dout_end_of_packet    <= dout_end_of_packet_i;
 
 
 	-- Input Switch:
@@ -209,7 +246,7 @@ begin
 	--   then act like a packet fifo until the whole packet is removed.
 	----------------------------------------------------------------------------
 	input_chooser_FSM_async_logic_process: process(
-		dout_rd_en,
+		unsynced_dout_rd_en,
 		input_chooser_state,
 		output_end_word,
 		router_ok_receive_channel_0, router_ok_receive_channel_1,
@@ -219,8 +256,8 @@ begin
 		-- default behaviors
 		input_chooser_highest_priority_source_next <= input_chooser_highest_priority_source;
 		output_end_word_next <= output_end_word;
-		dout_end_of_packet <= '0';
-		dout_packet_available <= '0';
+		unsynced_dout_end_of_packet <= '0';
+		unsynced_dout_packet_available <= '0';
 
 		case input_chooser_state is
 		-- First state notifies when there is a packet available.
@@ -228,19 +265,19 @@ begin
 		-- enables that input's read signal, and then swaps the prioritization
 		-- register to prioritize the other source next time.
 		when wait_for_first_read =>
-			dout <= output_end_word;
-			dout_end_of_packet <= '1';
+			unsynced_dout <= output_end_word;
+			unsynced_dout_end_of_packet <= '1';
 			-- check if there is data ready
 			-- output signaling
 			if router_ok_receive_channel_0 = '1' or router_ok_receive_channel_1 = '1' then
-				dout_empty_notready <= '0';
-				dout_packet_available <= '1';
+				unsynced_dout_empty_notready <= '0';
+				unsynced_dout_packet_available <= '1';
 			else 
-				dout_empty_notready <= '1';
-				dout_packet_available <= '0';
+				unsynced_dout_empty_notready <= '1';
+				unsynced_dout_packet_available <= '0';
 			end if;
 			-- handle incoming read signal
-			if dout_rd_en = '1' then
+			if unsynced_dout_rd_en = '1' then
 				input_switch_rd_en <= '1';
 			
 				if router_ok_receive_channel_0 = '1' then
@@ -272,23 +309,23 @@ begin
 
 		-- Handle transfer until the packet is done.
 		when transferring =>
-			dout <= input_switch_dout;
+			unsynced_dout <= input_switch_dout;
 			if word_contains_packet_end_token(input_switch_dout) then
 				-- If end of packet, hold the last packet outputs and immediately
 				-- attempt to find the next packet to output.
 				-- Note that this causes a 1 cycle gap in transmissions between packets,
 				-- this could probably be coded out, was originally put in to allow
 				-- state machines with a delay to over-run the output by 1 cycle.
-				dout_end_of_packet <= '1';
-				dout_empty_notready <= '1';
+				unsynced_dout_end_of_packet <= '1';
+				unsynced_dout_empty_notready <= '1';
 				output_end_word_next <= input_switch_dout; -- we will hold this word while a new word comes in
 				input_switch_rd_en <= '0';
 				input_chooser_state_next <= wait_for_first_read;
 			else
 				-- keep reading
-				dout_end_of_packet <= '0';
-				dout_empty_notready <= input_switch_dout_empty_notready;
-				input_switch_rd_en <= dout_rd_en; -- trusting the user to obey dout_empty_notready!
+				unsynced_dout_end_of_packet <= '0';
+				unsynced_dout_empty_notready <= input_switch_dout_empty_notready;
+				input_switch_rd_en <= unsynced_dout_rd_en; -- trusting the user to obey dout_empty_notready!
 				input_chooser_state_next <= transferring;
 			end if;
 
@@ -301,11 +338,40 @@ begin
 			input_switch_channel <= INPUT_CHANNEL_0; -- anything valid
 			input_switch_rd_en <= '0';
 			-- - output
-			dout <= x"0000";
-			dout_packet_available <= '0';
-			dout_end_of_packet <= '1'; -- Attempt to get any readers to stop reading.
-			dout_empty_notready <= '1';
+			unsynced_dout <= x"0000";
+			unsynced_dout_packet_available <= '0';
+			unsynced_dout_end_of_packet <= '1'; -- Attempt to get any readers to stop reading.
+			unsynced_dout_empty_notready <= '1';
 		end case;
 	end process;
+
+	--=============================================================================
+	-- Output synchronizer
+	-- - This component adds a layer to the output that makes all signals
+	--   syncronous, at the (tiny) expensive of adding a cycle of propogation
+	--   delay between the source of the data and the use of the data. This delay
+	--   does NOT effect how the interface is used, the relative delays between
+	--   input/output of the entire output port interface are preserved. There
+	--   is only delay to the input port interface.
+	--=============================================================================
+
+	output_synchronizer : packet_bus_output_synchronizer
+	port map (
+		reset       => reset_i,
+		clk         => clk_i,
+		-- Input, Source Port
+		din_rd_en  => unsynced_dout_rd_en,
+		din_packet_available => unsynced_dout_packet_available,
+		din_empty_notready   => unsynced_dout_empty_notready,
+		din        => unsynced_dout,
+		din_end_of_packet =>unsynced_dout_end_of_packet,
+		-- Output Port
+		dout_rd_en  => dout_rd_en_i,
+		dout_packet_available => dout_packet_available_i,
+		dout_empty_notready   => dout_empty_notready_i,
+		dout        => dout_i,
+		dout_end_of_packet => dout_end_of_packet_i
+	);
+
 
 end Behavioral;					
