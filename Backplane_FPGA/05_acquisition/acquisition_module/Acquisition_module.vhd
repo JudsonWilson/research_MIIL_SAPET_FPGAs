@@ -64,30 +64,9 @@ architecture Behavioral of acquisition_module is
 	signal fifo_1_dout    : std_logic_vector(15 downto 0);
 	signal fifo_1_end_of_packet     : std_logic;
 
-	-- Assign one of these to input_switch_channel to select a channel (immediately).
-	constant INPUT_CHANNEL_DONT_CHANGE : std_logic_vector(3 downto 1) := "000";
-	constant INPUT_CHANNEL_0           : std_logic_vector(3 downto 1) := "001";
-	constant INPUT_CHANNEL_1           : std_logic_vector(3 downto 1) := "010";
-
-	signal input_switch_rd_en   : std_logic := '0';
-	signal input_switch_channel : std_logic_vector(3 downto 1) := INPUT_CHANNEL_DONT_CHANGE;
-	signal input_switch_dout                : std_logic_vector(15 downto 0) := x"0000";
-	signal input_switch_dout_empty_notready : std_logic := '0';
-	signal input_switch_dout_end_of_packet  : std_logic := '0';
-
-	signal channel_0_ready_immediately : std_logic := '0';
-	signal channel_1_ready_immediately : std_logic := '0';
-
-	signal router_ok_receive_channel_0 : std_logic := '0';
-	signal router_ok_receive_channel_1 : std_logic := '0';
-
-	-- For the following signals, 0 indicates channel 0, 1 indictions channel 1
-	signal router_highest_priority_source      : std_logic := '0'; 
-	signal router_highest_priority_source_next : std_logic := '0'; 
-
-	type   router_state_machine_state_type is (idle, transferring);
-	signal router_state_machine_state      : router_state_machine_state_type := idle;
-	signal router_state_machine_state_next : router_state_machine_state_type := idle;
+	signal chooser_dout_rd_en          : std_logic;
+	signal chooser_dout_empty_notready : std_logic;
+	signal chooser_dout                : std_logic_vector(15 downto 0);
 
 	component deserializer is
 		port(
@@ -116,32 +95,28 @@ architecture Behavioral of acquisition_module is
 		);
 	end component;
 
-	component input_fifo_switch
+	component input_chooser_2_sources is
 	port (
-		reset         : in std_logic;
-		clk           : in std_logic;
-		-- control logic
-		in_rd_en      : in std_logic;
-		in_use_input_1 : in std_logic; -- one-hot source selectors, act immediately
-		in_use_input_2 : in std_logic;
-		in_use_input_3 : in std_logic;
-		-- fifo interfaces
-		fifo_dout_1    : in std_logic_vector(15 downto 0);
-		fifo_dout_2    : in std_logic_vector(15 downto 0);
-		fifo_dout_3    : in std_logic_vector(15 downto 0);
-		fifo_rd_en_1   : out std_logic;
-		fifo_rd_en_2   : out std_logic;
-		fifo_rd_en_3   : out std_logic;
-		fifo_dout_empty_notready_1 : in std_logic;
-		fifo_dout_empty_notready_2 : in std_logic;
-		fifo_dout_empty_notready_3 : in std_logic;
-		fifo_dout_end_of_packet_1  : in std_logic;
-		fifo_dout_end_of_packet_2  : in std_logic;
-		fifo_dout_end_of_packet_3  : in std_logic;
-		-- output data
-		dout  : out std_logic_vector(15 downto 0);
+		reset       : in std_logic;
+		clk         : in std_logic;
+		-- Input, Source Port 0
+		din_0_rd_en  : out std_logic;
+		din_0_packet_available : in std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+		din_0_empty_notready   : in std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		din_0        : in std_logic_vector(15 downto 0);
+		din_0_end_of_packet : in std_logic;
+		-- Input, Source Port 1
+		din_1_rd_en  : out std_logic;
+		din_1_packet_available : in std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+		din_1_empty_notready   : in std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		din_1        : in std_logic_vector(15 downto 0);
+		din_1_end_of_packet : in std_logic;
+		-- Output Port
+		dout_rd_en  : in std_logic;
+		dout_packet_available : out std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
 		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
-		dout_end_of_packet    : out std_logic
+		dout        : out std_logic_vector(15 downto 0);
+		dout_end_of_packet : out std_logic
 	);
 	end component;
 
@@ -233,159 +208,66 @@ begin
 
 	--====================================================================
 	--====================================================================
-	-- Router:
+	-- Input Chooser:
 	--     Data can flow from one and only one input channel to the
-	--     output. This router hardware has 2 main parts:
-	--      1) Input Switch - Basically acts like a complicated MUX to
-	--         present multiple input fifo sources as a single interface.
-	--      3) Routing Process - Looks at the available sources, chooses
-	--         one, and then switches the desired input to the output
-	--         and clocks the bytes through.
-	--     This is a simplified version of the router that is (at the time
-	--     of this writing) being used in the Daisychain_module.
+	--     output. This component produces a single interface output
+	--     for multiple fifos, and the output side is designed to work
+	--     exactly like packet fifo would.
 	--====================================================================
 	--====================================================================
 
-	-- Input Switch:
-	-- Hybrid synchronous/combinational mux system to provide a single
-	-- interface to two different fifos
-	input_switch_instance : input_fifo_switch
+	input_chooser: input_chooser_2_sources
 	port map (
-		reset         => reset,
-		clk           => clk_50MHz,
-		-- control logic
-		in_rd_en       => input_switch_rd_en,
-		in_use_input_1 => input_switch_channel(1), -- channel 0
-		in_use_input_2 => input_switch_channel(2), -- channel 1
-		in_use_input_3 => '0',
-		-- fifo interfaces
-		fifo_dout_1    => fifo_0_dout,
-		fifo_dout_2    => fifo_1_dout,
-		fifo_dout_3    => x"0000",
-		fifo_rd_en_1   => fifo_0_rd_en,
-		fifo_rd_en_2   => fifo_1_rd_en,
-		fifo_rd_en_3   => open,
-		fifo_dout_empty_notready_1 => fifo_0_empty_notready,
-		fifo_dout_empty_notready_2 => fifo_1_empty_notready,
-		fifo_dout_empty_notready_3 => '0',
-		fifo_dout_end_of_packet_1  => fifo_0_end_of_packet,
-		fifo_dout_end_of_packet_2  => fifo_1_end_of_packet,
-		fifo_dout_end_of_packet_3  => '0',
-		-- output signals
-		dout  => dout,
-		dout_empty_notready  => input_switch_dout_empty_notready,
-		dout_end_of_packet   => input_switch_dout_end_of_packet
+		reset       => reset,
+		clk         => clk_50MHz,
+		-- Input, Source Port 0
+		din_0_rd_en  => fifo_0_rd_en,
+		din_0_packet_available => fifo_0_packet_available,
+		din_0_empty_notready   => fifo_0_empty_notready,
+		din_0        => fifo_0_dout,
+		din_0_end_of_packet => fifo_0_end_of_packet,
+		-- Input, Source Port 1
+		din_1_rd_en  => fifo_1_rd_en,
+		din_1_packet_available => fifo_1_packet_available,
+		din_1_empty_notready   => fifo_1_empty_notready,
+		din_1        => fifo_1_dout,
+		din_1_end_of_packet => fifo_1_end_of_packet,
+		-- Output Port
+		dout_rd_en  => chooser_dout_rd_en,
+		dout_packet_available => open,
+		dout_empty_notready   => chooser_dout_empty_notready,
+		dout        => chooser_dout,
+		dout_end_of_packet => open
 	);
 
-	-------------------------------------------------------------------------------
-	-- Source Prioritization
-	--  - Combinational logic to determine which sources (fifo_0 or fifo_1) to use
-	--    for next packet routing, based upon priority and availibility.
-	-------------------------------------------------------------------------------
-	
-	-- Condense the conditions for a fifo to be ready to read immediately into simpler signals. Note
-	-- that checking empty_notready = '0' is currently redundant, but good practice.
-	channel_0_ready_immediately <=
-		'1' when fifo_0_packet_available = '1' and fifo_0_empty_notready = '0' else '0';
-	channel_1_ready_immediately <=
-		'1' when fifo_1_packet_available = '1' and fifo_1_empty_notready = '0' else '0';
 
-	-- signal which, (of one or neither) recievers are ready based upon whether both
-	--  a) there is data available AND
-	--  b) it is this channels's turn in alternating priority, or the other channel is not ready, thus forfeits its turn.
-	router_ok_receive_channel_0 <=
-		'1' when (channel_0_ready_immediately = '1')
-		         and ((router_highest_priority_source = '0') or (channel_1_ready_immediately = '0'))
-		else '0';
-	router_ok_receive_channel_1 <=
-		'1' when channel_1_ready_immediately = '1'
-		         and ((router_highest_priority_source = '1') or (channel_0_ready_immediately = '0'))
-		else '0';
+	--====================================================================
+	--====================================================================
+	-- Output Machine
+	--     All of the FIFO hardware in this component relies on other
+	-- logic to actuate it's output, once it signals that data is ready.
+	-- i.e. hardware needs to read the flags and feed rd_en pulses.
+	--     This "Output Machine" pulls the data out of the input chooser
+	-- and pushes it out the ouput port of this component into whatever
+	-- is recieving on the other side - most likely the input of a FIFO.
+	--====================================================================
+	--====================================================================
 
-	-------------------------------------------------------------------------------
-	-- Router State Machine
-	-- - Looks for a channel thats ready, flips the input mux switch, then pulls
-	--   data out of the channel and pushes it to the output port
-	-------------------------------------------------------------------------------
+	-- We use a cheap trick - when empty_notready flag is false, then
+	-- can read the fifo and output it next turn.
+	dout <= chooser_dout;
 	
-	router_state_machine_flipflop_process: process(reset, clk_50MHz)
+	chooser_dout_rd_en <= not chooser_dout_empty_notready;
+
+	output_machine_flipflop_process: process(reset, clk_50MHz)
 	begin
 		if reset = '1' then
-			router_state_machine_state <= idle;
-			router_highest_priority_source <= '0';
+			dout_wr_en <= '0';
 		elsif clk_50MHz'event and clk_50MHz = '1' then
-			router_state_machine_state <= router_state_machine_state_next;
-			router_highest_priority_source <= router_highest_priority_source_next;
+			dout_wr_en <= chooser_dout_rd_en;
 		end if;
 	end process;
 
-
-	router_state_machine_async_logic_process: process(
-		router_state_machine_state,
-		router_highest_priority_source,
-		router_ok_receive_channel_0, router_ok_receive_channel_1,
-		input_switch_dout_end_of_packet, input_switch_dout_empty_notready
-	)
-	begin
-		-- By default, hold priority source constant for all states.
-		-- Override this when actually sending from one of the sources.
-		router_highest_priority_source_next <= router_highest_priority_source;
-
-		case router_state_machine_state is
-		when idle =>
-			-- Always true in this state, as dout is not ready because
-			-- input_switch_rd_en has not pulled out the first byte yet.
-			dout_wr_en <= '0';
-
-			-- It is time to transfer from channel 0
-			if router_ok_receive_channel_0 = '1' then
-				-- Update priority to channel_1 for next time after this.
-				router_highest_priority_source_next <= '1';
-				-- Start transfer
-				input_switch_channel <= INPUT_CHANNEL_0;
-				input_switch_rd_en <= '1';
-				router_state_machine_state_next <= transferring;
-			-- It is time to transfer from channel 1
-			elsif router_ok_receive_channel_1 = '1' then
-				-- Update priority to channel_1 for next time after this.
-				router_highest_priority_source_next <= '0';
-				-- Start transfer
-				input_switch_channel <= INPUT_CHANNEL_1;
-				input_switch_rd_en <= '1';
-				router_state_machine_state_next <= transferring;
-			-- No data to transmit.
-			else
-				input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
-				input_switch_rd_en <= '0';
-				router_state_machine_state_next <= idle;
-				router_highest_priority_source_next <= router_highest_priority_source;
-			end if;
-
-		-- In this state, keep sending packet bytes until the packet is done.
-		when transferring =>
-			input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
-			
-			-- If the packet is done, finish up.
-			if input_switch_dout_end_of_packet = '1' then
-				input_switch_rd_en <= '0';
-				dout_wr_en <= '1'; -- Send the output switch the final word.
-				router_state_machine_state_next <= idle;
-			-- If not at end of packet, clock more data if available.
-			else
-				-- If data isn't ready, hold state, don't ask for more, wait till later
-				-- to write the output so we don't need to track that we have done that.
-				if input_switch_dout_empty_notready = '1' then
-					input_switch_rd_en <= '0';
-					dout_wr_en <= '0';
-				-- If data is ready, get it, send previous output.
-				else
-					input_switch_rd_en <= '1';
-					dout_wr_en <= '1';
-				end if;
-				router_state_machine_state_next <= transferring;
-			end if;
-		end case;
-	end process;
 
 end Behavioral;
 
