@@ -196,6 +196,7 @@ architecture Behavioral of Daisychain_module is
 		-- output data
 		dout  : out std_logic_vector(15 downto 0);
 		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		dout_empty_notready_source_last_tick   : out std_logic; -- Same as dout_empty_notready, assuming you haven't changed inputs. Can help solve combinatorial loop issues.
 		dout_end_of_packet    : out std_logic
 	);
 	end component;
@@ -463,6 +464,7 @@ begin
 		-- output signals
 		dout  => input_switch_dout,
 		dout_empty_notready  => input_switch_dout_empty_notready,
+		dout_empty_notready_source_last_tick => open, -- Could use this to get better timing in the middle of a packet, prevent combinatorial loops, etc. Maybe later.
 		dout_end_of_packet   => input_switch_dout_end_of_packet
 
 	);

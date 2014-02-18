@@ -53,6 +53,7 @@ entity input_fifo_switch is
 		-- output signals
 		dout  : out std_logic_vector(15 downto 0);
 		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		dout_empty_notready_source_last_tick   : out std_logic; -- Same as dout_empty_notready, assuming you haven't changed inputs. Can help solve combinatorial loop issues.
 		dout_end_of_packet    : out std_logic
 	);
 end input_fifo_switch;
@@ -134,9 +135,12 @@ begin
 		end if;
 		
 		-- Connect the approprate dout, and dout_end_of_packet
-		if    previous_input_selection(1) = '1' then  dout <= fifo_dout(1);  dout_end_of_packet <= fifo_dout_end_of_packet(1);
-		elsif previous_input_selection(2) = '1' then  dout <= fifo_dout(2);  dout_end_of_packet <= fifo_dout_end_of_packet(2);
-		else                                          dout <= fifo_dout(3);  dout_end_of_packet <= fifo_dout_end_of_packet(3);
+		if    previous_input_selection(1) = '1' then
+			dout <= fifo_dout(1); dout_empty_notready_source_last_tick <= fifo_dout_empty_notready(1); dout_end_of_packet <= fifo_dout_end_of_packet(1);
+		elsif previous_input_selection(2) = '1' then
+			dout <= fifo_dout(2); dout_empty_notready_source_last_tick <= fifo_dout_empty_notready(2); dout_end_of_packet <= fifo_dout_end_of_packet(2);
+		else
+			dout <= fifo_dout(3); dout_empty_notready_source_last_tick <= fifo_dout_empty_notready(3); dout_end_of_packet <= fifo_dout_end_of_packet(3);
 		end if;
 
 	end process;

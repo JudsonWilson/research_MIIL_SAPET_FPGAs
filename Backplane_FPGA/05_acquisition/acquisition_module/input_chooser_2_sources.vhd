@@ -72,7 +72,8 @@ architecture Behavioral of input_chooser_2_sources is
 	signal input_switch_rd_en   : std_logic := '0';
 	signal input_switch_channel : std_logic_vector(3 downto 1) := INPUT_CHANNEL_DONT_CHANGE;
 	signal input_switch_dout                : std_logic_vector(15 downto 0) := x"0000";
-	signal input_switch_dout_empty_notready : std_logic := '0';
+	signal input_switch_dout_empty_notready : std_logic := '1';
+	signal input_switch_dout_empty_notready_source_last_tick : std_logic := '1';
 	signal input_switch_dout_end_of_packet  : std_logic := '0';
 
 	signal channel_0_ready_immediately : std_logic := '0';
@@ -123,6 +124,7 @@ architecture Behavioral of input_chooser_2_sources is
 		-- output data
 		dout  : out std_logic_vector(15 downto 0);
 		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+		dout_empty_notready_source_last_tick   : out std_logic; -- Same as dout_empty_notready, assuming you haven't changed inputs. Can help solve combinatorial loop issues.
 		dout_end_of_packet    : out std_logic
 	);
 	end component;
@@ -187,6 +189,7 @@ begin
 		-- output signals
 		dout  => input_switch_dout,
 		dout_empty_notready  => input_switch_dout_empty_notready,
+		dout_empty_notready_source_last_tick => input_switch_dout_empty_notready_source_last_tick,
 		dout_end_of_packet   => input_switch_dout_end_of_packet
 	);
 
@@ -252,7 +255,7 @@ begin
 		output_end_word,
 		router_ok_receive_channel_0, router_ok_receive_channel_1,
 		input_switch_dout, input_switch_dout_empty_notready,
-		input_switch_dout_end_of_packet
+		input_switch_dout_empty_notready_source_last_tick, input_switch_dout_end_of_packet
 	)
 	begin
 		-- default behaviors
@@ -328,7 +331,7 @@ begin
 			else
 				-- keep reading
 				unsynced_dout_end_of_packet <= '0';
-				unsynced_dout_empty_notready <= input_switch_dout_empty_notready;
+				unsynced_dout_empty_notready <= input_switch_dout_empty_notready_source_last_tick; -- Using this port to prevent combinatorial loop. Using input_switch_dout_empty_notready causes a grand loop because the signal depends on the input source selection, which is combinatorial logic.
 				input_switch_rd_en <= unsynced_dout_rd_en; -- trusting the user to obey dout_empty_notready!
 				input_chooser_state_next <= transferring;
 			end if;
