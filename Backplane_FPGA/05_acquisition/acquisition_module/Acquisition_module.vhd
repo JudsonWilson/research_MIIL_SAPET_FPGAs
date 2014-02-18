@@ -186,7 +186,7 @@ begin
 		clk_50MHz     => clk_50Mhz,
 		boardid       => boardid,
 		-- Interface, serial input, parallel output
-		s_in          => Rx0,
+		s_in          => Rx1,
 		p_out_wr      => fifo_1_din_wr,
 		p_out_data    => fifo_1_din
 	);
