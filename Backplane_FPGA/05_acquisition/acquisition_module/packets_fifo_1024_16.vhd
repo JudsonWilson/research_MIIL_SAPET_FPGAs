@@ -61,6 +61,11 @@ architecture Behavioral of packets_fifo_1024_16 is
 	signal din_wr_en_i   : std_logic;
 	signal din_i         : std_logic_vector(15 downto 0);
 	signal bytes_received_i     : std_logic_vector(63 downto 0); -- includes those that are thrown away to preempt buffer overflow
+	signal dout_rd_en_i             : std_logic;
+	signal dout_packet_available_i  : std_logic;
+	signal dout_empty_notready_i    : std_logic;
+	signal dout_i                   : std_logic_vector(15 downto 0);
+	signal dout_end_of_packet_i     : std_logic;
 
 	-- word-fifo signals
 	signal word_fifo_wr_en       : std_logic;
@@ -87,6 +92,14 @@ architecture Behavioral of packets_fifo_1024_16 is
 
 	constant default_output : std_logic_vector(15 downto 0) := x"00" & packet_end_token; -- Use this at startup, etc, on the outputs.
 
+	-- Combinatorial signals (i.e. combinatorial after flip-flop) that go to the output synchronizer
+	signal dout_rd_en_unsync             : std_logic;
+	signal dout_packet_available_unsync  : std_logic;
+	signal dout_empty_notready_unsync    : std_logic;
+	signal dout_unsync                   : std_logic_vector(15 downto 0);
+	signal dout_end_of_packet_unsync     : std_logic;
+
+
 	-- Actual depth is 1023 (not 1024!). Decrease by 5 for increased robustness handling off-by-1 errors, etc.
 	constant fifo_word_depth : integer := 1018;
 	-- The write depth must be less than this number to ensure a full packet can be added to the FIFO.
@@ -108,12 +121,37 @@ architecture Behavioral of packets_fifo_1024_16 is
 		);
 	end component;
 
+	component packet_bus_output_synchronizer
+		port (
+			reset       : in std_logic;
+			clk         : in std_logic;
+			-- Input, Source Port
+			din_rd_en  : out std_logic;
+			din_packet_available : in std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+			din_empty_notready   : in std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+			din        : in std_logic_vector(15 downto 0);
+			din_end_of_packet : in std_logic;
+			-- Output Port
+			dout_rd_en  : in std_logic;
+			dout_packet_available : out std_logic; -- Goes to '1' before first word of packet is read, goes to '0' immediately afterwards.
+			dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
+			dout        : out std_logic_vector(15 downto 0);
+			dout_end_of_packet : out std_logic
+		);
+	end component;
+
+
 begin
 	-- pass through intermediate signals
 	reset_i <= reset;
 	clk_i <= clk;
 	din_wr_en_i <= din_wr_en;
 	din_i <= din;
+	dout_rd_en_i           <= dout_rd_en;
+	dout_packet_available  <= dout_packet_available_i;
+	dout_empty_notready    <= dout_empty_notready_i;
+	dout                   <= dout_i;
+	dout_end_of_packet     <= dout_end_of_packet_i;
 	bytes_received <= bytes_received_i;
 
 	--------------------------------------------------------------------
@@ -187,7 +225,7 @@ begin
 	--   otherwise clocks it into nowhere (throws it away).
 	----------------------------------------------------------------------------
 	input_manager_FSM_async_logic_process: process(
-		din, din_wr_en, word_fifo_bytes_used
+		din, din_wr_en, word_fifo_bytes_used, input_manager_state
 	)
 	begin
 		word_fifo_din <= din; -- delays the fifo input data by 1 clock cycle to match the delayed wr_en signal below.
@@ -292,15 +330,16 @@ begin
 	--   control logic).
 	----------------------------------------------------------------------------
 	output_manager_FSM_async_logic_process: process(
-		dout_rd_en,
+		dout_rd_en_unsync,
 		word_fifo_dout, word_fifo_empty,
+		packet_depth_counter,
 		output_manager_state
 	)
 	begin
 		-- default behaviors
 		output_manager_state_next <= output_manager_state; -- keep state constant
-		dout_end_of_packet <= '0';
-		dout_packet_available <= '0';
+		dout_end_of_packet_unsync <= '0';
+		dout_packet_available_unsync <= '0';
 		packet_depth_counter_decrement <= '0';
 
 		case output_manager_state is
@@ -310,7 +349,7 @@ begin
 		when startup =>
 			if packet_depth_counter > 0 and word_fifo_empty = '0' then
 				-- Data is ready to read.
-				if dout_rd_en = '1' then
+				if dout_rd_en_unsync = '1' then
 					-- If user is trying to read the data, decrement the packet counter
 					-- and start reading it.
 					word_fifo_rd_en <= '1';
@@ -320,16 +359,16 @@ begin
 					-- Otherwise do nothing.
 					word_fifo_rd_en <= '0';
 				end if;
-				dout_empty_notready <= '0';
-				dout_packet_available <= '1';
+				dout_empty_notready_unsync <= '0';
+				dout_packet_available_unsync <= '1';
 			else
 				-- keep waiting
 				word_fifo_rd_en <= '0';
-				dout_empty_notready <= '1';
-				dout_packet_available <= '0';
+				dout_empty_notready_unsync <= '1';
+				dout_packet_available_unsync <= '0';
 			end if;
-			dout_end_of_packet <= '1';
-			dout <= default_output;
+			dout_end_of_packet_unsync <= '1';
+			dout_unsync <= default_output;
 		-- This state only exists to handle the initial state where the FIFO output
 		-- is not guaranteed. After this state, the FIFO output will be held between
 		-- packets, and should have the packet_end_token in it.
@@ -338,7 +377,7 @@ begin
 			if word_contains_packet_end_token(word_fifo_dout) then
 				if packet_depth_counter > 0 and word_fifo_empty = '0' then
 					-- Data is ready to read.
-					if dout_rd_en = '1' then
+					if dout_rd_en_unsync = '1' then
 						-- If user is trying to read the data, decrement the packet counter
 						-- and start reading it.
 						word_fifo_rd_en <= '1';
@@ -347,25 +386,25 @@ begin
 						-- Otherwise do nothing.
 						word_fifo_rd_en <= '0';
 					end if;
-					dout_empty_notready <= '0';
-					dout_packet_available <= '1';
+					dout_empty_notready_unsync <= '0';
+					dout_packet_available_unsync <= '1';
 				else
 					-- keep waiting
 					word_fifo_rd_en <= '0';
-					dout_empty_notready <= '1';
-					dout_packet_available <= '0';
+					dout_empty_notready_unsync <= '1';
+					dout_packet_available_unsync <= '0';
 				end if;
-				dout_end_of_packet <= '1';
+				dout_end_of_packet_unsync <= '1';
 			-- If not end of packet, allow user to keep reading along,
 			-- don't signal any new packets avaiable.
 			else
 				-- keep reading
-				dout_end_of_packet <= '0';
-				dout_empty_notready <= word_fifo_empty;
-				word_fifo_rd_en <= dout_rd_en; -- trusting the user to obey dout_empty_notready!
-				dout_packet_available <= '0';
+				dout_end_of_packet_unsync <= '0';
+				dout_empty_notready_unsync <= word_fifo_empty;
+				word_fifo_rd_en <= dout_rd_en_unsync; -- trusting the user to obey dout_empty_notready_unsync!
+				dout_packet_available_unsync <= '0';
 			end if;
-			dout <= word_fifo_dout;
+			dout_unsync <= word_fifo_dout;
 
 		when others =>
 			-- Neutralize everything
@@ -374,11 +413,41 @@ begin
 			-- - word fifo
 			word_fifo_rd_en <= '0';
 			-- - output
-			dout <= default_output;
-			dout_packet_available <= '0';
-			dout_end_of_packet <= '1'; -- Attempt to get any readers to stop reading.
-			dout_empty_notready <= '1';
+			dout_unsync <= default_output;
+			dout_packet_available_unsync <= '0';
+			dout_end_of_packet_unsync <= '1'; -- Attempt to get any readers to stop reading.
+			dout_empty_notready_unsync <= '1';
 		end case;
 	end process;
+
+
+	--=============================================================================
+	-- Output synchronizer
+	-- - This component adds a layer to the output that makes all signals
+	--   syncronous with no combinatorial logic after the flip-flop.
+	--   This comes at the (tiny) expensive of adding a cycle of propogation
+	--   delay between the source interface and the output interface. This delay
+	--   does NOT effect how the interface is used. The relative delays within
+	--   the interface/port are not changed - only between the input and output
+	--   interfaces is there a difference.
+	--=============================================================================
+
+	output_synchronizer: packet_bus_output_synchronizer 
+	port map (
+		reset       => reset_i,
+		clk         => clk_i,
+		-- Input, Source Port
+		din_rd_en             => dout_rd_en_unsync,
+		din_packet_available  => dout_packet_available_unsync,
+		din_empty_notready    => dout_empty_notready_unsync,
+		din                   => dout_unsync,
+		din_end_of_packet     => dout_end_of_packet_unsync,
+		-- Output Port
+		dout_rd_en             => dout_rd_en_i,
+		dout_packet_available  => dout_packet_available_i,
+		dout_empty_notready    => dout_empty_notready_i,
+		dout                   => dout_i,
+		dout_end_of_packet     => dout_end_of_packet_i
+	);
 
 end Behavioral;
