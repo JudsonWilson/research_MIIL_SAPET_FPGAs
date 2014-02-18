@@ -81,7 +81,8 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 	signal reset_i                  : std_logic;
 	signal clk_200MHz_i             : std_logic;
 	signal clk_125MHz_i             : std_logic;
-	signal clk_50MHz_i              : std_logic;
+	signal clk_50MHz_in             : std_logic;
+	signal clk_50MHz_sys            : std_logic;
 	-- UDP relative interface
 	signal compare_result_i         : std_logic;
 	-- Ethernet physical chip device interface
@@ -183,7 +184,7 @@ begin
 	-- Port connections
 	--
 	reset_i         <= reset;
-	debug_clk_50MHz <= clk_50MHz_i;
+	debug_clk_50MHz <= clk_50MHz_sys;
 	-- UDP relative interface
 	compare_result  <= compare_result_i;
 	-- Ethernet physical chip device interface
@@ -232,7 +233,7 @@ begin
 			IOSTANDARD => "LVDS_25"
 		)
 		port map (
-			O =>  clk_50MHz_i, -- Clock buffer output
+			O =>  clk_50MHz_in, -- Clock buffer output
 			I =>  clk_50MHz_p, -- Diff_p clock buffer input (connect to top-level port)
 			IB => clk_50MHz_n  -- Diff_n clock buffer input (connect to top-level port)
 		);
@@ -241,11 +242,11 @@ begin
 		port map (
 			-- global input
 			reset 		=> reset_i,
-			clk_source      => clk_50MHz_i,	
+			clk_source  => clk_50MHz_in,
 			-- global output
 			clk_sample	=> open, --250MHz clock
 			clk_125MHz	=> clk_125MHz_i,
-			clk_50MHz	=> open,
+			clk_50MHz	=> clk_50MHz_sys,
 			clk_12MHz	=> open
 		);
 
@@ -253,7 +254,7 @@ begin
 		port map (
 			reset      => reset_i,
 			clk_125MHz => clk_125MHz_i,
-			clk_50MHz  => clk_50MHz_i,
+			clk_50MHz  => clk_50MHz_sys,
 			-- UDP relative interface
 			compare_result => compare_result_i,
 			-- Ethernet physical chip device interface
