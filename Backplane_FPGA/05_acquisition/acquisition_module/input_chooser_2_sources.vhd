@@ -305,12 +305,14 @@ begin
 				end if;
 			-- handle lack of read signal
 			else
+				input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
 				input_switch_rd_en <= '0';
 				input_chooser_state_next <= wait_for_first_read;
 			end if;
 
 		-- Handle transfer until the packet is done.
 		when transferring =>
+			input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
 			unsynced_dout <= input_switch_dout;
 			if input_switch_dout_end_of_packet = '1' then
 				-- If end of packet, hold the last packet outputs and immediately
