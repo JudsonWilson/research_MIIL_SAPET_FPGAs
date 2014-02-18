@@ -248,6 +248,7 @@ begin
 	input_chooser_FSM_async_logic_process: process(
 		unsynced_dout_rd_en,
 		input_chooser_state,
+		input_chooser_highest_priority_source,
 		output_end_word,
 		router_ok_receive_channel_0, router_ok_receive_channel_1,
 		input_switch_dout, input_switch_dout_empty_notready
