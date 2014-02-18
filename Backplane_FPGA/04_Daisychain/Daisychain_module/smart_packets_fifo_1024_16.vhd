@@ -199,7 +199,7 @@ begin
 	--   otherwise clocks it into nowhere (throws it away).
 	----------------------------------------------------------------------------
 	input_manager_FSM_async_logic_process: process(
-		din, din_wr_en, word_fifo_bytes_used
+		din, din_wr_en, word_fifo_bytes_used, input_manager_state
 	)
 	begin
 		word_fifo_din <= din; -- delays the fifo input data by 1 clock cycle to match the delayed wr_en signal below.
@@ -313,6 +313,7 @@ begin
 	output_manager_FSM_async_logic_process: process(
 		dout_rd_en,
 		word_fifo_dout, word_fifo_empty,
+		packet_depth_counter,
 		output_manager_state, output_first_word, output_source_node, output_destination_node,
 		output_end_word
 	)
