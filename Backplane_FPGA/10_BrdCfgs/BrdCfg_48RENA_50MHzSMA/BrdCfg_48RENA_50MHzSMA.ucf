@@ -37,10 +37,10 @@ NET "compare_result" LOC = L34;
 
 #Clock pin for probing
 NET "debug_clk_50MHz" LOC = H33;  # HDR J6 - Pin 2
+#RENA/Frontend Board Connections
 NET "rena_tx" LOC = AN33;         # HDR J6 - Pin 64
-NET "rena0_rx" LOC = P34;         # HDR J4 - Pin 16
-
-
+NET "rena0_rx" LOC = P34;         # HDR J6 - Pin 22
+NET "rena2_rx" LOC = T34;         # HDR J4 - Pin 22
 
 
 # GTP

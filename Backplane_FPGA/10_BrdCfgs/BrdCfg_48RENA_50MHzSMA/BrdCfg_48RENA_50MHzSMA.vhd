@@ -59,6 +59,7 @@ entity BrdCfg_48RENA_50MHzSMA is
 		-- RENA Board connections
 		rena_tx                  : out std_logic;
 		rena0_rx                 : in  std_logic;
+		rena2_rx                 : in  std_logic;
 		
 --		rena0_clk_50MHz          : out std_logic;
 --		rena0_tx                 : out std_logic;
@@ -110,6 +111,7 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 	signal rena1_clk_50MHz_i        : std_logic;
 	signal rena1_tx_i               : std_logic;
 	signal rena1_rx_i               : std_logic;
+	signal rena2_rx_i               : std_logic;
 	-- Other
 	signal boardid_i                : std_logic_vector(2 downto 0);
 	-- My custom spartan board
@@ -211,6 +213,7 @@ begin
 	--rena1_clk_50MHz    <= rena1_clk_50MHz_i;
 	--rena1_tx           <= rena1_tx_i;
 	rena1_rx_i         <= '1'; --rena1_rx;
+	rena2_rx_i         <= rena2_rx;
 	-- Other
 	boardid_i          <= boardid;
 	-- My custom spartan board
@@ -279,7 +282,7 @@ begin
 			rena0_rx        => rena0_rx_i,
 			rena1_clk_50MHz => rena1_clk_50MHz_i,
 			rena1_tx        => rena1_tx_i,
-			rena1_rx        => rena1_rx_i,
+			rena1_rx        => rena2_rx_i, --! Rena 2 Connected!
 			-- Other
 			boardid         => boardid_i,
 			-- My custom spartan board
