@@ -251,7 +251,8 @@ begin
 		input_chooser_highest_priority_source,
 		output_end_word,
 		router_ok_receive_channel_0, router_ok_receive_channel_1,
-		input_switch_dout, input_switch_dout_empty_notready
+		input_switch_dout, input_switch_dout_empty_notready,
+		input_switch_dout_end_of_packet
 	)
 	begin
 		-- default behaviors
@@ -311,7 +312,7 @@ begin
 		-- Handle transfer until the packet is done.
 		when transferring =>
 			unsynced_dout <= input_switch_dout;
-			if word_contains_packet_end_token(input_switch_dout) then
+			if input_switch_dout_end_of_packet = '1' then
 				-- If end of packet, hold the last packet outputs and immediately
 				-- attempt to find the next packet to output.
 				-- Note that this causes a 1 cycle gap in transmissions between packets,
