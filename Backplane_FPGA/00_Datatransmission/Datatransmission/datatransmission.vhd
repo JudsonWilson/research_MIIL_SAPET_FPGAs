@@ -130,8 +130,7 @@ architecture Behavioral of datatransmission is
 
 	-- RENA Board related
 	signal rena_tx_i				: std_logic; -- Shared tx amongst all RENA Boards.
-	signal rena0_rx_i				: std_logic;
-	signal rena1_rx_i				: std_logic;
+	signal rena_rx_array  : std_logic_vector(1 downto 0);
 
 	component UDP_module
 		port (
@@ -220,6 +219,7 @@ architecture Behavioral of datatransmission is
 		     );
 	end component;
 	component acquisition_module is
+		generic (N_sources : positive);
 		port (
 			reset       : in std_logic;
 			boardid     : in std_logic_vector(2 downto 0);
@@ -228,8 +228,7 @@ architecture Behavioral of datatransmission is
 			dout_wr_en  : out std_logic;
 			dout        : out std_logic_vector(15 downto 0);
 			-- Input from IOBs
-			Rx0         : in std_logic;
-			Rx1         : in std_logic
+			Rx          : in std_logic_vector(N_sources-1 downto 0)
 		);
 	end component;
 
@@ -266,11 +265,10 @@ begin
 	Reset_out		<= reset_i;
 	error_check_output <= fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin;
 	-- RENA Board port connections
+	rena_rx_array    <= rena0_rx & rena1_rx;
 	rena0_clk_50MHz  <= clk_50MHz_i;
-	rena0_rx_i       <= rena0_rx;
 	rena0_tx         <= rena_tx_i;
 	rena1_clk_50MHz  <= clk_50MHz_i;
-	rena1_rx_i       <= rena1_rx;
 	rena1_tx         <= rena_tx_i;
 
 	fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin <= not reset_i;	
@@ -349,6 +347,7 @@ begin
 			 dout_to_serializing    => current_board_configure_data
 		 );
 	Inst_acquisition_module: acquisition_module
+	generic map (N_sources => 2)
 	port map (
 		reset       => reset_i,
 		boardid     => boardid,
@@ -357,8 +356,7 @@ begin
 		dout_wr_en  => acquisition_data_from_local_to_GTP_wr,
 		dout        => acquisition_data_from_local_to_GTP,
 		-- Input from IOBs
-		Rx0         => rena0_rx_i,
-		Rx1         => rena1_rx_i
+		Rx          => rena_rx_array
 	);
 
 	-- This component proprocesses the data before it goes to the serializer.
