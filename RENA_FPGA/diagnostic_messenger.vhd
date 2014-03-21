@@ -25,13 +25,12 @@ use IEEE.NUMERIC_STD.ALL;
 
 -- TODO: put this in a package so that other components can use these constants.
 package P is
-	constant diagnostic_num_rena_settings_bits    : INTEGER := 36+36     -- anode mask = 36; cathode mask = 36;
-	                                                           +42       -- last channel { Which = 1; Settings = 41; } = 42
-	                                                           +1+1+1    -- OR Mode Triggers = 1; Force Trigger Mode = 1; Selective Reade = 1;
-	                                                           +1+1      -- Enable Readout = 1; Coincidence Read = 1;
-	                                                           +1+1+6+2; -- Follower{ Mode 1&2 = 1+1; Chan = 6; tclk = 2};
-	                                                            -- Total = 129
-	constant diagnostic_num_rena_settings_packets : INTEGER := (129 + 5) / 6; -- Adding 5 ensures a round-up operation on the division
+	constant diagnostic_num_rena_settings_bits    : INTEGER := 42      -- last channel { Which = 1; Settings = 41; } = 42
+	                                                           +1+1    -- OR Mode Triggers = 1; Force Trigger Mode = 1;
+	                                                           +1      -- Enable Readout = 1;
+	                                                           +1+6+2; -- Follower{ Mode 1 or 2 = 1; Chan = 6; tclk = 2};
+	                                                            -- Total = 54
+	constant diagnostic_num_rena_settings_packets : INTEGER := 9;      -- =54/6
 end package;
 
 library IEEE;
@@ -70,7 +69,7 @@ architecture Behavioral of diagnostic_messenger is
 	signal packet_data_next    : STD_LOGIC_VECTOR (7 downto 0);
 	signal packet_data_wr_next : STD_LOGIC;
 
-	signal bugs_notified       : STD_LOGIC_VECTOR (num_bug_bits-1 downto 0); -- These bits remain high once a corresponding bug_notification bit pulse occurs.
+	signal bugs_notified       : STD_LOGIC_VECTOR (num_bug_bits-1 downto 0) := (others => '0'); -- These bits remain high once a corresponding bug_notification bit pulse occurs.
 	signal bugs_notified_next  : STD_LOGIC_VECTOR (num_bug_bits-1 downto 0);
 
 	-- Stored copies for sending, such that nothing changes mid-transition.
@@ -78,7 +77,7 @@ architecture Behavioral of diagnostic_messenger is
 	signal send_copy_rena1_settings_next : STD_LOGIC_VECTOR (diagnostic_num_rena_settings_bits-1 downto 0);
 	signal send_copy_rena2_settings      : STD_LOGIC_VECTOR (diagnostic_num_rena_settings_bits-1 downto 0);
 	signal send_copy_rena2_settings_next : STD_LOGIC_VECTOR (diagnostic_num_rena_settings_bits-1 downto 0);
-	signal send_copy_bugs_notified       : STD_LOGIC_VECTOR (num_bug_bits-1 downto 0);
+	signal send_copy_bugs_notified       : STD_LOGIC_VECTOR (num_bug_bits-1 downto 0) := (others => '0');
 	signal send_copy_bugs_notified_next  : STD_LOGIC_VECTOR (num_bug_bits-1 downto 0);
 
 	-- Sending State Machine
@@ -97,6 +96,10 @@ architecture Behavioral of diagnostic_messenger is
 	signal send_counter      : unsigned (num_send_counter_bits-1 downto 0);
 	signal send_counter_next : unsigned (num_send_counter_bits-1 downto 0);
 begin
+
+	--=====================================================================
+	-- Main DFF
+	--=====================================================================
 	-- State transition on clock, or reset
 	state_transition_process: process(clk, reset)
 	begin
@@ -121,12 +124,14 @@ begin
 		end if;
 	end process;
 
+	--=====================================================================
 	-- State machine updator, etc
+	--=====================================================================
 	compute_next_state_process: process( bugs_notified, bug_notifications,
 	                                     rena1_settings, rena2_settings,
 	                                     send,
 	                                     send_copy_rena1_settings, send_copy_rena2_settings, send_copy_bugs_notified,
-	                                     send_state, send_counter)
+	                                     send_state, send_counter, packet_fifo_full, fpga_addr)
 	begin
 		--By default, don't send data
 		packet_data_next    <= (others => '0');
@@ -175,8 +180,7 @@ begin
 				packet_data_next <= "00" & send_copy_rena1_settings(diagnostic_num_rena_settings_bits-1 downto diagnostic_num_rena_settings_bits-1-5);
 				packet_data_wr_next <= '1';
 				-- Shift send_copy_rena1_settings up by 6 for the next packet
-				send_copy_rena1_settings_next
-				    <= send_copy_rena1_settings(diagnostic_num_rena_settings_bits-1-6 downto 0) & "000000";
+				send_copy_rena1_settings_next <= send_copy_rena1_settings(diagnostic_num_rena_settings_bits-1-6 downto 0) & "000000";
 				if send_counter >= diagnostic_num_rena_settings_packets - 1 then
 					-- Now send rena2 settings.
 					send_state_next <= SENDSTATE_RENA2;
@@ -192,8 +196,7 @@ begin
 				packet_data_next <= "00" & send_copy_rena2_settings(diagnostic_num_rena_settings_bits-1 downto diagnostic_num_rena_settings_bits-1-5);
 				packet_data_wr_next <= '1';
 				-- Shift send_copy_rena2_settings up by 6 for the next packet
-				send_copy_rena2_settings_next
-				    <= send_copy_rena2_settings(diagnostic_num_rena_settings_bits-1-6 downto 0) & "000000";
+				send_copy_rena2_settings_next <= send_copy_rena2_settings(diagnostic_num_rena_settings_bits-1-6 downto 0) & "000000";
 				if send_counter >= diagnostic_num_rena_settings_packets - 1 then
 					-- Now send bug notifications
 					send_state_next <= SENDSTATE_BUGS;
@@ -209,14 +212,13 @@ begin
 				packet_data_next <= "00" & send_copy_bugs_notified(num_bug_bits-1 downto num_bug_bits-1-5);
 				packet_data_wr_next <= '1';
 				-- Shift send_copy_bugs_notified up by 6 for the next packet
-				send_copy_bugs_notified_next
-				    <= send_copy_bugs_notified(num_bug_bits-1-6 downto 0) & "000000";
+				send_copy_bugs_notified_next <= send_copy_bugs_notified(num_bug_bits-1-6 downto 0) & "000000";
 				if send_counter >= num_bug_packets - 1 then
 					-- Now send end of packet
 					send_state_next <= SENDSTATE_LASTBYTE;
 					send_counter_next <= to_unsigned(0, num_send_counter_bits);
 				else
-					-- Continue sending rena2 settings.
+					-- Continue sending bug flags.
 					send_state_next <= send_state;
 					send_counter_next <= send_counter + 1;
 				end if;

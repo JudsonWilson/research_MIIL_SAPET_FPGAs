@@ -9,8 +9,12 @@
 #TIMESPEC TS_mclk = PERIOD "mclk" 20 ns HIGH 50 %;
 
 # Not using built-in 100 ohm termination resistor
-NET "MCLKp" LOC = "P88" | IOSTANDARD = LVDS_25 | DIFF_TERM = FALSE; # positive
-NET "MCLKn" LOC = "P89" | IOSTANDARD = LVDS_25 | DIFF_TERM = FALSE; # negative
+NET "MCLKp" DIFF_TERM = "FALSE";
+# positive
+NET "MCLKp" IOSTANDARD = LVDS_25;
+NET "MCLKn" DIFF_TERM = "FALSE";
+# negative
+NET "MCLKn" IOSTANDARD = LVDS_25;
 # Need to apply period constraint only to the P side of the signal
 NET "MCLKp" TNM_NET = "MCLKp";
 TIMESPEC TS_MCLKp = PERIOD "MCLKp" 20 ns HIGH 50 %;
@@ -21,9 +25,9 @@ TIMESPEC TS_MCLKp = PERIOD "MCLKp" 20 ns HIGH 50 %;
 #communication pins from the modules
 
 # positive
-NET "TXp" LOC = "P85" | IOSTANDARD = LVDS_25;
+NET "TXp" IOSTANDARD = LVDS_25;
 # negative
-NET "TXn" LOC = "P86" | IOSTANDARD = LVDS_25;
+NET "TXn" IOSTANDARD = LVDS_25;
 
 #chip 1 pins
 
@@ -74,6 +78,10 @@ NET "ACQUIRE2n" IOSTANDARD = LVDS_25;
 # Placement constraints
 #=========================================================================
 
+#NET "ITRIG" LOC = P78;
+#NET "UTRIG" LOC = P7;
+#NET "mclk" LOC = P89;
+#NET "tx" LOC = P85;
 NET "ACQUIRE1p" LOC = P30;
 NET "ACQUIRE1n" LOC = P31;
 NET "ACQUIRE2p" LOC = P36;
@@ -102,7 +110,8 @@ NET "FIN1" LOC = P93;
 NET "FIN2" LOC = P49;
 NET "FOUT1" LOC = P21;
 NET "FOUT2" LOC = P68;
-#NET "ITRIG" LOC = P78;
+NET "MCLKp" LOC = P88;
+NET "MCLKn" LOC = P89;
 NET "RST" LOC = P98;
 NET "SCLK1" LOC = P33;
 NET "SCLK2" LOC = P73;
@@ -118,9 +127,9 @@ NET "TIN1" LOC = P94;
 NET "TIN2" LOC = P46;
 NET "TOUT1" LOC = P27;
 NET "TOUT2" LOC = P70;
-#NET "UTRIG" LOC = P7;
+NET "TXp" LOC = P85;
+NET "TXn" LOC = P86;
 NET "debugOutMain" LOC = P99;
-#NET "mclk" LOC = P89;
 NET "nCS1" LOC = P32;
 NET "nCS2" LOC = P71;
 NET "nTF1p" LOC = P19;
@@ -132,4 +141,3 @@ NET "nTS1n" LOC = P4;
 NET "nTS2p" LOC = P43;
 NET "nTS2n" LOC = P44;
 NET "rx" LOC = P77;
-#NET "tx" LOC = P85;

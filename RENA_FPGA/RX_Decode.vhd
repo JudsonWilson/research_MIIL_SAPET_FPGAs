@@ -222,7 +222,8 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 			rena_settings_chip, FPGA_ADDRESS, int_or_mode_trigger1, int_or_mode_trigger2,
 			int_force_triggers1, int_force_triggers2, int_fpga_address_reg,
 			int_enable_readout1,	int_enable_readout2,
-			int_follower_mode1, int_follower_mode2, int_follower_mode_chan, int_follower_mode_tclk)
+			int_follower_mode1, int_follower_mode2, int_follower_mode_chan, int_follower_mode_tclk,
+			int_diagnostic_rena1_settings, int_diagnostic_rena2_settings)
   begin
       next_rx_counter <= rx_counter;
 	   next_rx_buffer <= rx_buffer;

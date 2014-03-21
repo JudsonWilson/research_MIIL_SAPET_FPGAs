@@ -250,7 +250,7 @@ Port (
 		);
 end component;
 
-constant num_rena_settings_bits: INTEGER := 129;
+constant num_rena_settings_bits: INTEGER := 54;
 
 component diagnostic_messenger is
 	Generic (
@@ -327,23 +327,10 @@ signal follower_mode2     : std_logic;
 signal follower_mode_chan : std_logic_vector(5 downto 0);
 signal follower_mode_tclk : std_logic_vector(1 downto 0);
 
-signal anTrig_1To2 : std_logic;
-signal anTrig_2To1 : std_logic;
-signal caTrig_1To2 : std_logic;
-signal caTrig_2To1 : std_logic;
-
-signal i_read1    : std_logic;
-signal i_read2    : std_logic;
-signal int_ITRIG  : std_logic;
-signal next_ITRIG : std_logic;
-
-signal decoderDebug : std_logic_vector(2 downto 0);
-signal txDebug : std_logic_vector(2 downto 0);
-
 signal diagnostic_rena1_settings : std_logic_vector(41 downto 0);
 signal diagnostic_rena2_settings : std_logic_vector(41 downto 0);
-signal diagnostic_full_rena1_settings : std_logic_vector(129-1 downto 0);
-signal diagnostic_full_rena2_settings : std_logic_vector(129-1 downto 0);
+signal diagnostic_full_rena1_settings : std_logic_vector(54-1 downto 0);
+signal diagnostic_full_rena2_settings : std_logic_vector(54-1 downto 0);
 signal diagnostic_bug_notifications : std_logic_vector(29 downto 0);
 signal diagnostic_packet_data    : std_logic_vector(7 downto 0);
 signal diagnostic_packet_data_wr : std_logic;
@@ -522,7 +509,7 @@ UART : Serial_rx port map(
 -- Decode received configuration data
 --========================================================================
 RX_Decoder:  RX_Decode port map(
-			  debugOut => decoderDebug,
+			  debugOut => open,
 			  mclk => systemClk,
 			  RX_DATA => rx_data,
            NEW_RX_DATA => new_rx_data,
@@ -553,7 +540,7 @@ RX_Decoder:  RX_Decode port map(
 -- Data transmit interface module
 --========================================================================
 TX_2buffers: RS232_tx_buffered PORT MAP(
-		debugOut => txDebug,
+		debugOut => open,
 		mclk => systemClk,
 		data_diag => diagnostic_packet_data,
 		new_data_diag => diagnostic_packet_data_wr,
@@ -648,15 +635,12 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 );
 
 -- Assemble bits into vectors
-diagnostic_bug_notifications <= diagnostic_full_rena1_settings(100 downto 71); ---- HACK!!!!!!!!!!!
-diagnostic_full_rena1_settings
-   <= "000000000000000000000000000000000000" & "000000000000000000000000000000000000" & diagnostic_rena1_settings
-     & or_mode_trigger1 & force_trigger1 & '0' & enable_readout1 & '0'
-     & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk;
-diagnostic_full_rena2_settings
-   <= "000000000000000000000000000000000000" & "000000000000000000000000000000000000" & diagnostic_rena2_settings
-     & or_mode_trigger1 & force_trigger1 & '0' & enable_readout1 & '0'            -- redundant, but oh well
-     & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk; -- redundant, but oh well
+-- Error flags for debugging
+diagnostic_bug_notifications <= "000000000000000000000000000000";
+-- RENA 1 configuration
+diagnostic_full_rena1_settings <= diagnostic_rena1_settings & or_mode_trigger1 & force_trigger1 & enable_readout1 & follower_mode1 & follower_mode_chan & follower_mode_tclk;
+-- RENA 2 configuration
+diagnostic_full_rena2_settings <= diagnostic_rena2_settings & or_mode_trigger2 & force_trigger2 & enable_readout2 & follower_mode2 & follower_mode_chan & follower_mode_tclk;
 
 DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 	GENERIC MAP(

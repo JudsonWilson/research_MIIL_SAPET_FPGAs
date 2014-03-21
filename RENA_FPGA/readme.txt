@@ -1,0 +1,1 @@
+20140304: In revision 17 I did a cleanup of unused signals, and also removed all redundant fields in the diagnostic packets.

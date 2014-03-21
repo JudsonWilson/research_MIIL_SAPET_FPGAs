@@ -524,7 +524,7 @@ begin
 			when others =>
 				next_TX_DATA <= "00000000";
 				next_SEND_TX_DATA <= '0';
-			end case;
+		end case;
 			
 	-- Last byte.
 	-- state_out == "1101" for TX_STOP
@@ -804,6 +804,7 @@ begin
 	 next_state_out <= "0000";
 	 next_counter <= "00000000000";
 	 next_read_counter <= "00000000";
+	 next_dont_trig_out <= '0';
   else
     case state is
 	 

@@ -497,6 +497,7 @@ begin
 				next_crc_new_byte <= crc_new_byte;
 				next_current_fifo <= current_fifo;
 				next_state <= SEND_START_BIT;
+				--next_state <= CHECK_IF_MORE_DATA;
 				next_state_out <= "010";
 				next_baudrate_counter <= max_counter - 1;
 				next_bit_counter <= 7;
