@@ -186,6 +186,8 @@ type follower_state_type is (
 	-- Keeps track of which channel is in follower mode
 	signal follower_mode_chan_reg      : std_logic_vector(5 downto 0);
 	signal next_follower_mode_chan_reg : std_logic_vector(5 downto 0);
+	signal int_follower_mode           : std_logic;
+	signal next_int_follower_mode      : std_logic;
 
 	-- Shaper reset
 	signal next_CLF      : std_logic;
@@ -305,6 +307,7 @@ begin
 		follower_counter   <= next_follower_counter;
 		follower_state_out <= next_follower_state_out;
 		follower_mode_chan_reg <= next_follower_mode_chan_reg;
+		int_follower_mode  <= next_int_follower_mode;
 
 		-- Shaper reset
 		CLF <= next_CLF;
@@ -553,7 +556,7 @@ end process;
 process(next_state, state, next_counter, SDO, adc_data, state,  counter,
 		  read_counter, next_read_counter, FORCE_TRIGGER, int_FIN, int_SIN,
 		  fast_triggered, slow_triggered, FOUT, SOUT, int_TCLK, OR_MODE_TRIGGER, 
-		  next_follower_state, FOLLOWER_MODE, FOLLOWER_MODE_CHAN,
+		  next_follower_state, int_follower_mode, FOLLOWER_MODE_CHAN,
 		  FOLLOWER_MODE_TCLK, follower_counter)
 begin
 
@@ -562,7 +565,7 @@ begin
 	-- FPGA Design Document).
 	-- 
 	-- Follower mode
-	if (FOLLOWER_MODE = '1') then
+	if (int_follower_mode = '1') then
 		if (next_follower_state = WRITE_HIT_REGISTER_CLK_HI) or (next_follower_state = FLUSH_HIT_REGISTER_CLK_HI) then
 			next_SHR_FHR_CLK <= '1';
 		else
@@ -619,7 +622,7 @@ begin
 	-- RENA-3 IC User Specifications).
 	-- 
 	-- Follower mode
-	if (FOLLOWER_MODE = '1') then
+	if (int_follower_mode = '1') then
 		next_int_FIN <= '0';
 		if ((next_follower_state = WRITE_HIT_REGISTER_CLK_LO) or (next_follower_state = WRITE_HIT_REGISTER_CLK_HI)) and
 		   (follower_counter = FOLLOWER_MODE_CHAN + 1) then
@@ -650,7 +653,7 @@ begin
 	--=====================================================================	
 	-- ACQUIRE arms the RENA
 	-- Follower mode
-	if (FOLLOWER_MODE = '1') then
+	if (int_follower_mode = '1') then
 		if (next_follower_state = CLS_CLF) or (next_follower_state = WRITE_HIT_REGISTER_CLK_HI) or
 		   (next_follower_state = WRITE_HIT_REGISTER_CLK_LO) or (next_follower_state = RAISE_TIN) or
 		   (next_follower_state = TOGGLE_TCLK1_HI) or (next_follower_state = TOGGLE_TCLK1_LO) or
@@ -676,7 +679,7 @@ begin
 	--=====================================================================
 	-- CLS and CLF signals clear the peak detect circuitry
 	-- Follower mode
-	if (FOLLOWER_MODE = '1') then
+	if (int_follower_mode = '1') then
 		if (next_follower_state = CLS_CLF) then
 			next_CLS <= '1';
 			next_CLF <= '1';
@@ -716,7 +719,7 @@ begin
 	-- make TOUT go high, so a total of n TCLK cycles are still needed.
 	--
 	-- Follower mode
-	if (FOLLOWER_MODE = '1') then
+	if (int_follower_mode = '1') then
 		if (next_follower_state = RAISE_TIN) or (next_follower_state = TOGGLE_TCLK1_HI) or
 		   (next_follower_state = TOGGLE_TCLK1_LO) or (next_follower_state = TOGGLE_TCLK2_HI) or
 		   (next_follower_state = TOGGLE_TCLK2_LO) or (next_follower_state = TOGGLE_TCLK3_HI) or
@@ -739,7 +742,7 @@ begin
 	-- should be latched on the rising edges.
 	--
 	-- Follower mode
-	if (FOLLOWER_MODE = '1') then
+	if (int_follower_mode = '1') then
 		if ((next_follower_state = TOGGLE_TCLK1_HI) and ((FOLLOWER_MODE_TCLK(0) = '1') or (FOLLOWER_MODE_TCLK(1) = '1'))) or
 		   ((next_follower_state = TOGGLE_TCLK2_HI) and (FOLLOWER_MODE_TCLK(1) = '1')) or
 			((next_follower_state = TOGGLE_TCLK3_HI) and (FOLLOWER_MODE_TCLK(1 downto 0) = "11")) then
@@ -799,27 +802,38 @@ process(reset, state, TOUT, nTF, nTS, counter, TX_BUSY, ENABLE,
 		  read_counter, FORCE_TRIGGER, FOLLOWER_MODE,
 		  next_follower_state, OR_MODE_TRIGGER, valid_AND_mode_trigger, DONT_TRIG_IN)
 begin
-  if (reset = '1') or (FOLLOWER_MODE = '1') then
+  if (reset = '1') then
     next_state <= IDLE;
 	 next_state_out <= "0000";
 	 next_counter <= "00000000000";
 	 next_read_counter <= "00000000";
 	 next_dont_trig_out <= '0';
+	 next_int_follower_mode <= '0';
   else
-    case state is
+  
+	 -- Default value for follower mode.
+	 next_int_follower_mode <= '0';
 	 
+    case state is
       -------------------------------------------------------------------
 		-- state_out = "0000"
       when IDLE =>
-         if (ENABLE = '1') and (next_follower_state = IDLE) then
-           next_state <= CLS_CLF;
-			  next_state_out <= "0001";
-			  next_counter <= "00000000000";
-		   else
-			  next_state <= IDLE;
-			  next_state_out <= "0000";
-			  next_counter <= "00000000000";
-         end if;
+			if (FOLLOWER_MODE = '1') then
+				next_int_follower_mode <= '1';
+				next_state <= IDLE;
+				next_state_out <= "0000";
+				next_counter <= "00000000000";
+			else
+				if (ENABLE = '1') and (next_follower_state = IDLE) then
+				  next_state <= CLS_CLF;
+				  next_state_out <= "0001";
+				  next_counter <= "00000000000";
+				else
+				  next_state <= IDLE;
+				  next_state_out <= "0000";
+				  next_counter <= "00000000000";
+				end if;
+			end if;
 			next_read_counter <= "00000000";
 			next_dont_trig_out <= '0';
 
@@ -1167,7 +1181,7 @@ end process;
 -- transitions and not the signal behavior associated with each state,
 -- the latter is done is the block above.
 --========================================================================
-process(reset, follower_state, follower_counter, FOLLOWER_MODE, FOLLOWER_MODE_CHAN, follower_mode_chan_reg)
+process(reset, follower_state, follower_counter, int_follower_mode, FOLLOWER_MODE_CHAN, follower_mode_chan_reg)
 begin
    if reset = '1' then
       next_follower_state_out <= "0000";
@@ -1180,7 +1194,7 @@ begin
       -- follower_state_out = "0000"
       when IDLE =>
          next_follower_state_out <= "0000";
-         if  (FOLLOWER_MODE = '1') then
+         if  (int_follower_mode = '1') then
             next_follower_state <= CLS_CLF;
 				next_follower_counter <= "001111";
 				next_follower_mode_chan_reg <= FOLLOWER_MODE_CHAN;
@@ -1279,14 +1293,14 @@ begin
       -- follower_state_out = "1010"
 		when HOLD =>
 			next_follower_state_out <= "1010";
-			if (FOLLOWER_MODE = '1') and (follower_mode_chan_reg = FOLLOWER_MODE_CHAN) then
+			if (int_follower_mode = '1') and (follower_mode_chan_reg = FOLLOWER_MODE_CHAN) then
 				next_follower_state <= HOLD;
 				next_follower_counter <= "000000";
 				next_follower_mode_chan_reg <= follower_mode_chan_reg;
 			else
 				next_follower_state <= FLUSH_HIT_REGISTER_CLK_HI;
 				next_follower_counter <= "100011";
-				if (FOLLOWER_MODE = '1') then
+				if (int_follower_mode = '1') then
 					next_follower_mode_chan_reg <= FOLLOWER_MODE_CHAN;
 				else
 					next_follower_mode_chan_reg <= "000000";

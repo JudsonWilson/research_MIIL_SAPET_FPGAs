@@ -130,7 +130,8 @@ end component;
 component LED
 port (
 	mclk   : in  STD_LOGIC;
-   ledOut : out  STD_LOGIC
+	rst    : in  STD_LOGIC;
+   ledOut : out STD_LOGIC
 	);
 end component;
 
@@ -481,7 +482,8 @@ end process;
 -- This module blinks the LEDs
 --========================================================================
 LEDDriver : LED port map(
-		  mclk => systemClk, 
+		  mclk => systemClk,
+		  rst  => RST,
 		  ledOut => ledOut
 		  );
 
@@ -567,7 +569,7 @@ RENA_MODULE_1: OperationalStateController PORT MAP(
 	FOLLOWER_MODE_TCLK => follower_mode_tclk,
 	
 	mclk => systemClk,
-	reset => '0',
+	reset => RST,
 	ENABLE => enable_readout1,
 	TX_BUSY => tx_busy,
 	TX_DATA => data1,
@@ -606,7 +608,7 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	FOLLOWER_MODE_TCLK => follower_mode_tclk,
 	
 	mclk => systemClk,
-	reset => '0',
+	reset => RST,
 	ENABLE => enable_readout2,
 	TX_BUSY => tx_busy,
 	TX_DATA => data2,
@@ -648,7 +650,7 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 	)
 	PORT MAP (
 		clk   => systemClk,
-		reset => rst,
+		reset => RST,
 		fpga_addr => fpga_address,
 		send  => diagnostic_send,
 		packet_data    => diagnostic_packet_data,

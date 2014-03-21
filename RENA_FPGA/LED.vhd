@@ -32,8 +32,9 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use UNISIM.VComponents.all;
 
 entity LED is
-    Port ( mclk : in  STD_LOGIC;
-           ledOut : out  STD_LOGIC);
+    Port ( mclk   : in  STD_LOGIC;
+			  rst    : in  STD_LOGIC;
+           ledOut : out STD_LOGIC);
 end LED;
 
 --================================================================================
@@ -55,11 +56,16 @@ begin
 	 end if;
 end process;
 
-process(counter)
+process(rst, counter)
 begin
-	-- This makes LEDs blink at 2.861 Hz
-	nextLedOut <= counter(23);
-	nextCounter <= counter + 1;
+	if (rst = '1') then
+		nextLedOut  <= '0';
+		nextCounter <= "000000000000000000000000";
+	else
+		-- This makes LEDs blink at 2.861 Hz
+		nextLedOut  <= counter(23);
+		nextCounter <= counter + 1;
+	end if;
 end process;
 
 end Behavioral;
