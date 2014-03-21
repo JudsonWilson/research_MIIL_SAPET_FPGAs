@@ -40,7 +40,7 @@ entity acquisition_module is
 		dout_wr_en  : out std_logic;
 		dout        : out std_logic_vector(15 downto 0);
 		-- Input from IOBs
-		Rx          : in std_logic_vector(N_sources-1 downto 0)
+		frontend_rx_array : in std_logic_vector(N_sources-1 downto 0)
 	);
 end acquisition_module;
 
@@ -143,7 +143,7 @@ begin
 			clk_50MHz     => clk_50Mhz,
 			boardid       => boardid,
 			-- Interface, serial input, parallel output
-			s_in          => Rx(i),
+			s_in          => frontend_rx_array(i),
 			p_out_wr      => fifos_din_wr(i),
 			p_out_data    => fifos_din(i)
 		);
@@ -176,16 +176,16 @@ begin
 	--====================================================================
 
 	input_chooser: input_chooser_N_sources
-	generic map ( N => N_sources)
+	generic map ( N => 48)
 	port map (
 		reset                 => reset,
 		clk                   => clk_50MHz,
 		-- Input, Source Port 0
-		din_rd_en             => fifos_rd_en,
-		din_packet_available  => fifos_packet_available,
-		din_empty_notready    => fifos_empty_notready,
-		din                   => fifos_dout,
-		din_end_of_packet     => fifos_end_of_packet,
+		din_rd_en             => fifos_rd_en           (47 downto 0),
+		din_packet_available  => fifos_packet_available(47 downto 0),
+		din_empty_notready    => fifos_empty_notready  (47 downto 0),
+		din                   => fifos_dout            (47 downto 0),
+		din_end_of_packet     => fifos_end_of_packet   (47 downto 0),
 		-- Output Port
 		dout_rd_en            => chooser_dout_rd_en,
 		dout_packet_available => open,

@@ -56,19 +56,11 @@ entity datatransmission is
 		     -- GTP clock
 		     gtp_clkp_pin					: in std_logic;
 		     gtp_clkn_pin					: in std_logic;	
-		     -- RENA Board connections
-		     rena0_clk_50MHz          : out std_logic;
-		     rena0_tx                 : out std_logic;
-		     rena0_rx                 : in  std_logic;
-		     rena1_clk_50MHz          : out std_logic;
-		     rena1_tx                 : out std_logic;
-		     rena1_rx                 : in  std_logic;
+		     -- Frontend Board connections
+		     frontend_tx          : out std_logic;
+		     frontend_rx_array    : in  std_logic_vector(47 downto 0);
 		     -- Other
-		     boardid						: in std_logic_vector(2 downto 0);
-		     -- My custom spartan board
-		     Reset_out						: out std_logic;
-		     Spartan_signal_input				: in std_logic;
-		     Spartan_signal_output				: out std_logic
+		     boardid						: in std_logic_vector(2 downto 0)
 	     );
 
 end datatransmission;
@@ -128,9 +120,9 @@ architecture Behavioral of datatransmission is
 	signal serializing_raw_input_data_wr  : std_logic;
 	signal serializing_raw_input_data     : std_logic_vector(15 downto 0);
 
-	-- RENA Board related
-	signal rena_tx_i				: std_logic; -- Shared tx amongst all RENA Boards.
-	signal rena_rx_array  : std_logic_vector(1 downto 0);
+	-- Frontend Board related
+	signal frontend_tx_i        : std_logic; -- Shared tx amongst all Frontend Boards.
+	signal frontend_rx_array_i  : std_logic_vector(47 downto 0);
 
 	component UDP_module
 		port (
@@ -228,7 +220,7 @@ architecture Behavioral of datatransmission is
 			dout_wr_en  : out std_logic;
 			dout        : out std_logic_vector(15 downto 0);
 			-- Input from IOBs
-			Rx          : in std_logic_vector(N_sources-1 downto 0)
+			frontend_rx_array  : in std_logic_vector(N_sources-1 downto 0)
 		);
 	end component;
 
@@ -260,16 +252,10 @@ begin
 	clk_125MHz_i      <= clk_125MHz;
 	clk_50MHz_i       <= clk_50MHz;
 	compare_result 		<= compare_result_i;
-	Spartan_signal_input_i  <= Spartan_signal_input;
-	Spartan_signal_output   <= Spartan_signal_input_i;
-	Reset_out		<= reset_i;
 	error_check_output <= fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin;
-	-- RENA Board port connections
-	rena_rx_array    <= rena0_rx & rena1_rx;
-	rena0_clk_50MHz  <= clk_50MHz_i;
-	rena0_tx         <= rena_tx_i;
-	rena1_clk_50MHz  <= clk_50MHz_i;
-	rena1_tx         <= rena_tx_i;
+	-- Frontend Board port connections
+	frontend_tx          <= frontend_tx_i;
+	frontend_rx_array_i  <= frontend_rx_array;
 
 	fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin <= not reset_i;	
 	-------------------------------------------------------------------------------------------
@@ -347,7 +333,7 @@ begin
 			 dout_to_serializing    => current_board_configure_data
 		 );
 	Inst_acquisition_module: acquisition_module
-	generic map (N_sources => 2)
+	generic map (N_sources => 48)
 	port map (
 		reset       => reset_i,
 		boardid     => boardid,
@@ -356,7 +342,7 @@ begin
 		dout_wr_en  => acquisition_data_from_local_to_GTP_wr,
 		dout        => acquisition_data_from_local_to_GTP,
 		-- Input from IOBs
-		Rx          => rena_rx_array
+		frontend_rx_array    => frontend_rx_array_i
 	);
 
 	-- This component proprocesses the data before it goes to the serializer.
@@ -379,7 +365,7 @@ begin
 			din_from_Daisychain_to_serialzing_wr => serializing_raw_input_data_wr,
 			din_from_Daisychain_to_serialzing => serializing_raw_input_data,
 		-- Serialing pin
-			Tx			=> rena_tx_i
+			Tx			=> frontend_tx_i
 		);
 
 end Behavioral;

@@ -1,49 +1,94 @@
+#
+#
+# Important note:
+# Voltages are set to 2.5 Volts, even though the system runs at 3.3V. This could cause problems
+# with drive strengths and such, but I am not exactly sure what.
+#
+# The reason this was done as follows:
+# 1) The LVDS input clock spec needs to use a 2.5V LVDS source to work optimally. In our case
+#    it is actually 3.3V. The problem that arises from this is the built in termination
+#    will have the wrong value. We are just going to live with this for now.
+# 2) We need to specify voltages to specify input types if we don't want any single ended
+#    inputs to be treated as differential inputs.
+# 3) All these pins are in the same banks, banks are all the same voltage. So we have to make
+#    it think 2.5V for the LVDS clock to work, per #1.
+#
 
 #NET "." TNM_NET = "clk_50MHz";
 #TIMEGRP Grpclk_50MHz =  "clk_50MHz";
 #TIMESPEC TS_clk_50 = PERIOD "Grpclk_50MHz" 12 ns HIGH 50 %
 
 # Reset
-#NET "reset" LOC = AN33 | CLOCK_DEDICATED_ROUTE = "FALSE"; # HDR J6 - Pin 64
-NET "reset" LOC = AN32 | CLOCK_DEDICATED_ROUTE = "FALSE"; # HDR J4 - Pin 64
+#NET "reset" LOC = AN33 | IOSTANDARD = LVCMOS25 | CLOCK_DEDICATED_ROUTE = "FALSE"; /* HDR J6 - Pin 64 */
+NET "reset" LOC = AN32 | IOSTANDARD = LVCMOS25 | CLOCK_DEDICATED_ROUTE = "FALSE"; /* HDR J4 - Pin 64 */
 
 # Clocks
-NET "clk_50MHz_p" LOC = H14 | IOSTANDARD = LVDS_25 | TNM_NET = "clk_50MHz"; # J10 SMA Connector
-NET "clk_50MHz_n" LOC = H15 | IOSTANDARD = LVDS_25;                         # J11 SMA Connector
-TIMESPEC "TS_clk_50" = PERIOD "clk_50MHz" 20 ns HIGH 50%;
-
-# for my Spartan board
-#NET "Tx" LOC = L33;
-#NET "Rx[0]" LOC = M32;
-#NET "Rx[1]" LOC = AK33;
-#NET "Rx0" LOC = M32;
-#NET "Rx1" LOC = AK33;
-#NET "clk_12MHz" LOC = J32;
-#NET "Reset_out" LOC = J34;
-#NET "Spartan_signal_input" LOC = AK7;
-#NET "Spartan_signal_output" LOC = H32;
+NET "clk_50MHz_p" LOC = H14 | IOSTANDARD = LVDS_25 | TNM_NET = "clk_50MHz"; /* J10 SMA Connector */
+NET "clk_50MHz_n" LOC = H15 | IOSTANDARD = LVDS_25;                         /* J11 SMA Connector */
+TIMESPEC "TS_clk_50" = PERIOD "clk_50MHz" 16 ns HIGH 50%;
 
 #Debug pin
-NET "compare_result" LOC = L34;
-
-## for Yi's Spartan board
-#NET "rena0_clk_50MHz" LOC = G32;  # HDR J6 - Pin 10
-#NET "rena0_rx" LOC = M32;         # HDR J6 - Pin 20
-#NET "rena0_tx" LOC = Y34;         # HDR J6 - Pin 30
-#
-#NET "rena1_clk_50MHz" LOC = AK32; # HDR J6 - Pin 50
-#NET "rena1_rx" LOC = AL34;        # HDR J6 - Pin 52
-#NET "rena1_tx" LOC = AL33;        # HDR J6 - Pin 54
+NET "compare_result" LOC = L34 | IOSTANDARD = LVCMOS25;
 
 #Clock pin for probing
-NET "debug_clk_50MHz" LOC = H33;  # HDR J6 - Pin 2
+NET "debug_clk_50MHz" LOC = H33 | IOSTANDARD = LVCMOS25;  /* HDR J6 - Pin 2 */
+
 #RENA/Frontend Board Connections
-NET "rena_tx" LOC = AN33;         # HDR J6 - Pin 64
-NET "rena0_rx" LOC = P34;         # HDR J6 - Pin 22
-NET "rena2_rx" LOC = T34;         # HDR J4 - Pin 22
+NET "frontend_tx" LOC = AN33 | IOSTANDARD = LVCMOS25;         /* HDR J6 - Pin 64 */
+# The following were generated from the BackplanePinoutToFanning.xls spreadsheet, sheet B test
+# Note we set them to LVCMOS25 to make them single ended, but trick the software to allow
+# the clock_50MHz_p/n ports to use the built in termination resistor.
+NET "frontend_rx_array[0]"  LOC = 	P34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	22 */
+NET "frontend_rx_array[1]"  LOC = 	L33 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	18 */
+NET "frontend_rx_array[2]"  LOC = 	T34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	22 */
+NET "frontend_rx_array[3]"  LOC = 	R32 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	18 */
+NET "frontend_rx_array[4]"  LOC = 	M32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	20 */
+NET "frontend_rx_array[5]"  LOC = 	J34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	16 */
+NET "frontend_rx_array[6]"  LOC = 	R33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	20 */
+NET "frontend_rx_array[7]"  LOC = 	T33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	16 */
+NET "frontend_rx_array[8]"  LOC = 	AN34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	62 */
+NET "frontend_rx_array[9]"  LOC = 	AJ34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	58 */
+NET "frontend_rx_array[10]" LOC = 	AP32 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	62 */
+NET "frontend_rx_array[11]" LOC = 	AB33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	58 */
+NET "frontend_rx_array[12]" LOC = 	AM32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	60 */
+NET "frontend_rx_array[13]" LOC = 	AM33 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	56 */
+NET "frontend_rx_array[14]" LOC = 	AC33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	60 */
+NET "frontend_rx_array[15]" LOC = 	AC32 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	56 */
+NET "frontend_rx_array[16]" LOC = 	Y34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	30 */
+NET "frontend_rx_array[17]" LOC = 	AA34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	26 */
+NET "frontend_rx_array[18]" LOC = 	V33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	30 */
+NET "frontend_rx_array[19]" LOC = 	U31 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	26 */
+NET "frontend_rx_array[20]" LOC = 	AD32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	28 */
+NET "frontend_rx_array[21]" LOC = 	N34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	24 */
+NET "frontend_rx_array[22]" LOC = 	U32 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	28 */
+NET "frontend_rx_array[23]" LOC = 	U33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	24 */
+NET "frontend_rx_array[24]" LOC = 	AL33 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	54 */
+NET "frontend_rx_array[25]" LOC = 	AK32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	50 */
+NET "frontend_rx_array[26]" LOC = 	AB32 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	54 */
+NET "frontend_rx_array[27]" LOC = 	AD34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	50 */
+NET "frontend_rx_array[28]" LOC = 	AL34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	52 */
+NET "frontend_rx_array[29]" LOC = 	AJ32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	48 */
+NET "frontend_rx_array[30]" LOC = 	AC34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	52 */
+NET "frontend_rx_array[31]" LOC = 	AF33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	48 */
+NET "frontend_rx_array[32]" LOC = 	AE32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	38 */
+NET "frontend_rx_array[33]" LOC = 	W32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	34 */
+NET "frontend_rx_array[34]" LOC = 	AA33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	38 */
+NET "frontend_rx_array[35]" LOC = 	V34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	34 */
+NET "frontend_rx_array[36]" LOC = 	AH34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	36 */
+NET "frontend_rx_array[37]" LOC = 	Y32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	32 */
+NET "frontend_rx_array[38]" LOC = 	W34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	36 */
+NET "frontend_rx_array[39]" LOC = 	V32 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	32 */
+NET "frontend_rx_array[40]" LOC = 	AK33 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	46 */
+NET "frontend_rx_array[41]" LOC = 	AH32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	42 */
+NET "frontend_rx_array[42]" LOC = 	AE33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	46 */
+NET "frontend_rx_array[43]" LOC = 	AE34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	42 */
+NET "frontend_rx_array[44]" LOC = 	AK34 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	44 */
+NET "frontend_rx_array[45]" LOC = 	AG32 | IOSTANDARD = LVCMOS25; /* HDR J6 - Pin 	40 */
+NET "frontend_rx_array[46]" LOC = 	AF34 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	44 */
+NET "frontend_rx_array[47]" LOC = 	Y33 | IOSTANDARD = LVCMOS25; /* HDR J4 - Pin 	40 */
 
 
-# GTP
+# GTP - SATA Cables
 INST "Inst_datatransmission/Inst_GTP_module/inst_diff" LOC = BUFDS_X0Y3;
 NET "gtp_clkp_pin" LOC = Y4;
 NET "gtp_clkn_pin" LOC = Y3;
