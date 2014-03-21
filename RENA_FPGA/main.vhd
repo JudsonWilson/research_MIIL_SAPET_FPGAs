@@ -157,6 +157,7 @@ component RX_Decode
 		OR_MODE_TRIGGER2 : out  STD_LOGIC;
 		FORCE_TRIGGERS1  : out STD_LOGIC;
 		FORCE_TRIGGERS2  : out STD_LOGIC;
+		SELECTIVE_READ   : out  STD_LOGIC;
 		RESET_TIMESTAMP  : out STD_LOGIC;
 		FOLLOWER_MODE1   : out  STD_LOGIC;
 		FOLLOWER_MODE2      : out  STD_LOGIC;
@@ -189,6 +190,25 @@ component RS232_tx_buffered
 		tx             : OUT std_logic);
 end component;
 
+component SelectiveRead is
+Port (
+	mclk 	     : in std_logic;
+	reset      : in std_logic;
+	selective_read : in std_logic;
+	
+	an_trig1   : in std_logic;
+	ca_trig1   : in std_logic;
+	readingHR1 : in std_logic_vector(1 downto 0);
+	
+	an_trig2   : in std_logic;
+	ca_trig2   : in std_logic;
+	readingHR2 : in std_logic_vector(1 downto 0);
+	
+	selective_decision1 : out std_logic_vector(1 downto 0);
+	selective_decision2 : out std_logic_vector(1 downto 0)
+	);
+end component;
+
 component OperationalStateController is
 Port (
 	-- Basic signals
@@ -205,9 +225,16 @@ Port (
 	ENABLE             : in std_logic; -- Arms the FPGA to wait for RENA-3 triggers
 	OR_MODE_TRIGGER    : in std_logic;
 	FORCE_TRIGGER      : in std_logic;
+	SELECTIVE_READ     : in std_logic;
 	FOLLOWER_MODE      : in std_logic;
 	FOLLOWER_MODE_CHAN : in std_logic_vector(5 downto 0);
 	FOLLOWER_MODE_TCLK : in std_logic_vector(1 downto 0);
+	IM_READING_HR      : out std_logic_vector(1 downto 0);
+	ANODE_MASK         : in std_logic_vector(35 downto 0);
+	CATHODE_MASK       : in std_logic_vector(35 downto 0);
+	MY_AN_TRIG         : out std_logic;
+	MY_CA_TRIG         : out std_logic;
+	SELECTIVE_DECISION : in std_logic_vector(1 downto 0);
 	
 	-- Data transmit
 	TX_BUSY            : in std_logic;
@@ -323,10 +350,32 @@ signal or_mode_trigger1   : std_logic;
 signal or_mode_trigger2   : std_logic;
 signal force_trigger1     : std_logic;
 signal force_trigger2     : std_logic;
+signal selective_read     : std_logic;
 signal follower_mode1     : std_logic;
 signal follower_mode2     : std_logic;
 signal follower_mode_chan : std_logic_vector(5 downto 0);
 signal follower_mode_tclk : std_logic_vector(1 downto 0);
+signal readingRenaHR1     : std_logic_vector(1 downto 0);
+signal readingRenaHR2     : std_logic_vector(1 downto 0);
+
+-- Actual hardware
+signal anode_mask1        : std_logic_vector(35 downto 0) := "000000000001111111111111111111110000";
+signal cathode_mask1      : std_logic_vector(35 downto 0) := "000000011110000000000000000000000000";
+signal anode_mask2        : std_logic_vector(35 downto 0) := "000000000001111111111111111110000000";
+signal cathode_mask2      : std_logic_vector(35 downto 0) := "000000011110000000000000000000000000";
+
+---- Pulser debugging
+--signal anode_mask1        : std_logic_vector(35 downto 0) := "000000011111111111111111111100110000";
+--signal cathode_mask1      : std_logic_vector(35 downto 0) := "000000000000000000000000000011000000";
+--signal anode_mask2        : std_logic_vector(35 downto 0) := "000000011111111111111111100110000000";
+--signal cathode_mask2      : std_logic_vector(35 downto 0) := "000000000000000000000000011000000000";
+
+signal an_trig_1          : std_logic;
+signal an_trig_2          : std_logic;
+signal ca_trig_1          : std_logic;
+signal ca_trig_2          : std_logic;
+signal selective_decision_1 : std_logic_vector(1 downto 0);
+signal selective_decision_2 : std_logic_vector(1 downto 0);
 
 signal diagnostic_rena1_settings : std_logic_vector(41 downto 0);
 signal diagnostic_rena2_settings : std_logic_vector(41 downto 0);
@@ -522,6 +571,7 @@ RX_Decoder:  RX_Decode port map(
 			  OR_MODE_TRIGGER2 => or_mode_trigger2,
 			  FORCE_TRIGGERS1  => force_trigger1,
 			  FORCE_TRIGGERS2  => force_trigger2,
+			  SELECTIVE_READ => selective_read,
 			  RESET_TIMESTAMP => reset_timestamp, 
 			  FOLLOWER_MODE1 => follower_mode1,
 			  FOLLOWER_MODE2 => follower_mode2,
@@ -542,31 +592,55 @@ RX_Decoder:  RX_Decode port map(
 -- Data transmit interface module
 --========================================================================
 TX_2buffers: RS232_tx_buffered PORT MAP(
-		debugOut => open,
-		mclk => systemClk,
-		data_diag => diagnostic_packet_data,
-		new_data_diag => diagnostic_packet_data_wr,
-		data_diag_full => diagnostic_packet_fifo_full,
-		data1 => data1,
-		new_data1 => new_data1,
-		data2 => data2,
-		new_data2 => new_data2,
-		tx_busy => tx_busy,
-		tx => tx
+	debugOut => open,
+	mclk => systemClk,
+	data_diag => diagnostic_packet_data,
+	new_data_diag => diagnostic_packet_data_wr,
+	data_diag_full => diagnostic_packet_fifo_full,
+	data1 => data1,
+	new_data1 => new_data1,
+	data2 => data2,
+	new_data2 => new_data2,
+	tx_busy => tx_busy,
+	tx => tx
 	);
 	
 --========================================================================
 -- Readout logic modules
 --========================================================================
+SELECTIVE_READ_1: SelectiveRead port map(
+	mclk => systemClk,
+	reset => RST,
+	selective_read => selective_read,
+	
+	an_trig1 => an_trig_1,
+	ca_trig1 => ca_trig_1,
+	readingHR1 => readingRenaHR1,
+	
+	an_trig2 => an_trig_2,
+	ca_trig2 => ca_trig_2,
+	readingHR2 => readingRenaHR2,
+	
+	selective_decision1 => selective_decision_1,
+	selective_decision2 => selective_decision_2
+	);
+
 RENA_MODULE_1: OperationalStateController PORT MAP(
 	-- Debug
 	debugOut => open,
 	
 	OR_MODE_TRIGGER => or_mode_trigger1,
 	FORCE_TRIGGER => force_trigger1,
+	SELECTIVE_READ => selective_read,
 	FOLLOWER_MODE => follower_mode1,
 	FOLLOWER_MODE_CHAN => follower_mode_chan,
 	FOLLOWER_MODE_TCLK => follower_mode_tclk,
+	IM_READING_HR => readingRenaHR1,
+	ANODE_MASK => anode_mask1,
+	CATHODE_MASK => cathode_mask1,
+	MY_AN_TRIG => an_trig_1,
+	MY_CA_TRIG => ca_trig_1,
+	SELECTIVE_DECISION => selective_decision_1,
 	
 	mclk => systemClk,
 	reset => RST,
@@ -603,9 +677,16 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	
 	OR_MODE_TRIGGER => or_mode_trigger2,
 	FORCE_TRIGGER => force_trigger2,
+	SELECTIVE_READ => selective_read,
 	FOLLOWER_MODE => follower_mode2,
 	FOLLOWER_MODE_CHAN => follower_mode_chan,
 	FOLLOWER_MODE_TCLK => follower_mode_tclk,
+	IM_READING_HR => readingRenaHR2,
+	ANODE_MASK => anode_mask2,
+	CATHODE_MASK => cathode_mask2,
+	MY_AN_TRIG => an_trig_2,
+	MY_CA_TRIG => ca_trig_2,
+	SELECTIVE_DECISION => selective_decision_2,
 	
 	mclk => systemClk,
 	reset => RST,

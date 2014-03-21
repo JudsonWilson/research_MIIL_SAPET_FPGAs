@@ -45,9 +45,16 @@ Port (
 	ENABLE             : in std_logic; -- Arms the FPGA to wait for RENA-3 triggers
 	OR_MODE_TRIGGER    : in std_logic;
 	FORCE_TRIGGER      : in std_logic;
+	SELECTIVE_READ     : in std_logic;
 	FOLLOWER_MODE      : in std_logic;
 	FOLLOWER_MODE_CHAN : in std_logic_vector(5 downto 0);
 	FOLLOWER_MODE_TCLK : in std_logic_vector(1 downto 0);
+	IM_READING_HR      : out std_logic_vector(1 downto 0);
+	ANODE_MASK         : in std_logic_vector(35 downto 0);
+	CATHODE_MASK       : in std_logic_vector(35 downto 0);
+	MY_AN_TRIG         : out std_logic;
+	MY_CA_TRIG         : out std_logic;
+	SELECTIVE_DECISION : in std_logic_vector(1 downto 0);
 	
 	-- Data transmit
 	TX_BUSY            : in std_logic;
@@ -188,6 +195,18 @@ type follower_state_type is (
 	signal next_follower_mode_chan_reg : std_logic_vector(5 downto 0);
 	signal int_follower_mode           : std_logic;
 	signal next_int_follower_mode      : std_logic;
+	
+	-- Selective read
+	signal int_selective_read  : std_logic;
+	signal next_int_selective_read : std_logic;
+	signal readingHR           : std_logic_vector(1 downto 0);
+	signal next_readingHR      : std_logic_vector(1 downto 0);
+	signal anded_anode_trig    : std_logic_vector(35 downto 0);
+	signal anode_trig          : std_logic;
+	signal next_anode_trig     : std_logic;
+	signal anded_cathode_trig  : std_logic_vector(35 downto 0);
+	signal cathode_trig        : std_logic;
+	signal next_cathode_trig   : std_logic;
 
 	-- Shaper reset
 	signal next_CLF      : std_logic;
@@ -253,6 +272,14 @@ debugOut <= state_out;
 FHRCLK_SHRCLK <= SHR_FHR_CLK; --POTENTIAL GLITCH--PDO
 next_valid_AND_mode_trigger <= '0' when (fast_triggered = (fast_triggered'range => '0')) else '1';
 
+IM_READING_HR <= readingHR;
+MY_AN_TRIG <= anode_trig;
+MY_CA_TRIG <= cathode_trig;
+anded_anode_trig <= fast_triggered and ANODE_MASK;
+anded_cathode_trig <= fast_triggered and CATHODE_MASK;
+next_anode_trig <= '0' when (anded_anode_trig = (anded_anode_trig'range => '0')) else '1';
+next_cathode_trig <= '0' when (anded_cathode_trig = (anded_cathode_trig'range => '0')) else '1';
+
 --========================================================================
 -- This portion of code sets up a one-shot reg for the send data signal
 -- into the FIFO buffer.
@@ -309,6 +336,12 @@ begin
 		follower_mode_chan_reg <= next_follower_mode_chan_reg;
 		int_follower_mode  <= next_int_follower_mode;
 
+		-- Selective read
+		int_selective_read <= next_int_selective_read;
+		readingHR <= next_readingHR;
+		anode_trig <= next_anode_trig;
+		cathode_trig <= next_cathode_trig;
+		
 		-- Shaper reset
 		CLF <= next_CLF;
 		CLS <= next_CLS;
@@ -426,27 +459,51 @@ begin
 			-- Decimal 27
 			when "00011011" =>
 				-- 6 bytes of one-hot trigger data that covers all 36 channels
-				next_TX_DATA <= "00" & fast_triggered(35 downto 30);
+				if (FORCE_TRIGGER = '0') then
+					next_TX_DATA <= "00" & fast_triggered(35 downto 30);
+				else
+					next_TX_DATA <= "00111111";
+				end if;
 				next_SEND_TX_DATA <= '1';
 			-- Decimal 26
 			when "00011010" =>
-				next_TX_DATA <= "00" & fast_triggered(29 downto 24);
+				if (FORCE_TRIGGER = '0') then
+					next_TX_DATA <= "00" & fast_triggered(29 downto 24);
+				else
+					next_TX_DATA <= "00111111";
+				end if;
 				next_SEND_TX_DATA <= '1';
 			-- Decimal 25
 			when "00011001" =>
-				next_TX_DATA <= "00" & fast_triggered(23 downto 18);
+				if (FORCE_TRIGGER = '0') then
+					next_TX_DATA <= "00" & fast_triggered(23 downto 18);
+				else
+					next_TX_DATA <= "00111111";
+				end if;
 				next_SEND_TX_DATA <= '1';
 			-- Decimal 24
 			when "00011000" =>
-				next_TX_DATA <= "00" & fast_triggered(17 downto 12);
+				if (FORCE_TRIGGER = '0') then
+					next_TX_DATA <= "00" & fast_triggered(17 downto 12);
+				else
+					next_TX_DATA <= "00111111";
+				end if;
 				next_SEND_TX_DATA <= '1';
 			-- Decimal 23
 			when "00010111" =>
-				next_TX_DATA <= "00" & fast_triggered(11 downto 6);
+				if (FORCE_TRIGGER = '0') then
+					next_TX_DATA <= "00" & fast_triggered(11 downto 6);
+				else
+					next_TX_DATA <= "00111111";
+				end if;
 				next_SEND_TX_DATA <= '1';
 			-- Decimal 22
 			when "00010110" =>
-				next_TX_DATA <= "00" & fast_triggered(5 downto 0);
+				if (FORCE_TRIGGER = '0') then
+					next_TX_DATA <= "00" & fast_triggered(5 downto 0);
+				else
+					next_TX_DATA <= "00111111";
+				end if;
 				next_SEND_TX_DATA <= '1';
 				
 			-- Bytes 16-21: slow trigger list in OR mode.
@@ -587,7 +644,7 @@ begin
 	-- 
 	-- Along with toggling between READ_HIT_REGISTER_CLK_HI and
 	-- READ_HIT_REGISTER_CLK_LO in the state machine, this reads/shifts
-	-- the 36-bit channel tirgger list from the RENA.
+	-- the 36-bit channel trigger list from the RENA.
 	--
 	-- Note: in terms of bit order, data for channel 35 is shifted in
 	-- first and that for channel 0 is shifted out last.
@@ -800,7 +857,8 @@ end process;
 --========================================================================
 process(reset, state, TOUT, nTF, nTS, counter, TX_BUSY, ENABLE,
 		  read_counter, FORCE_TRIGGER, FOLLOWER_MODE,
-		  next_follower_state, OR_MODE_TRIGGER, valid_AND_mode_trigger, DONT_TRIG_IN)
+		  next_follower_state, OR_MODE_TRIGGER, valid_AND_mode_trigger,
+		  DONT_TRIG_IN, int_selective_read, SELECTIVE_READ, SELECTIVE_DECISION)
 begin
   if (reset = '1') then
     next_state <= IDLE;
@@ -809,6 +867,8 @@ begin
 	 next_read_counter <= "00000000";
 	 next_dont_trig_out <= '0';
 	 next_int_follower_mode <= '0';
+	 next_readingHR <= "00";
+	 next_int_selective_read <= '0';
   else
   
 	 -- Default value for follower mode.
@@ -836,6 +896,8 @@ begin
 			end if;
 			next_read_counter <= "00000000";
 			next_dont_trig_out <= '0';
+			next_readingHR <= "00";
+			next_int_selective_read <= SELECTIVE_READ;
 
       -------------------------------------------------------------------
 		-- state_out = "0001"
@@ -851,6 +913,8 @@ begin
          end if;
 		   next_read_counter <= "00000000";
 		   next_dont_trig_out <= '0';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 			
       -------------------------------------------------------------------
 		-- state_out = "0010"
@@ -887,6 +951,8 @@ begin
 		  end if;
 		  next_read_counter <= "00000000";			
 		  next_dont_trig_out <= '0';
+		  next_readingHR <= "00";
+		  next_int_selective_read <= int_selective_read;
 		  
       -------------------------------------------------------------------
 		-- state_out = "0011"
@@ -924,6 +990,8 @@ begin
 		  end if;
 		  next_read_counter <= "00000000";		  
 		  next_dont_trig_out <= '0';
+		  next_readingHR <= "00";
+		  next_int_selective_read <= int_selective_read;
 		  
 		--------------------------------------------------------------------
 		-- Why is this state necessary?
@@ -933,6 +1001,8 @@ begin
 			next_state_out <= "0100";
 		   next_read_counter <= "00000000";
 			next_dont_trig_out <= '0';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 			
       --------------------------------------------------------------------
 		-- state_out = "0100"
@@ -968,6 +1038,8 @@ begin
 				next_dont_trig_out <= '1';
 			end if;
 			next_read_counter <= "00000000";
+			next_readingHR <= "01";
+			next_int_selective_read <= int_selective_read;
 		
 	   --------------------------------------------------------------------
       -- The next 2 states toggle the hit-read clocking pin, which toggles
@@ -980,6 +1052,7 @@ begin
 				next_state <= READ_HIT_REGISTER_CLK_HI;
 				next_state_out <= "0110";
 				next_counter <= "00000000000";
+				next_readingHR <= "01";
 			else
 				if (FORCE_TRIGGER = '1') then
 					-- Set how many times to toggle read write register clock
@@ -988,6 +1061,7 @@ begin
 					next_state <= WRITE_HIT_REGISTER_CLK_HI;
 					next_state_out <= "0111";
 					next_counter <= "00000000000";
+					next_readingHR <= "00";
 				else
 					-- OR mode on
 					if (OR_MODE_TRIGGER = '1') then
@@ -997,16 +1071,44 @@ begin
 						next_state <= WRITE_HIT_REGISTER_CLK_HI;
 						next_state_out <= "0111";
 						next_counter <= "00000000000";
+						next_readingHR <= "00";
 					-- OR mode off
 					else
 						-- Proceed to readout
 						if (valid_AND_mode_trigger = '1') then
-							-- Set how many times to toggle read write register clock
-							-- 35 because we also toggle on 0, so 36 times in total.
-							next_read_counter <= "00100011";
-							next_state <= WRITE_HIT_REGISTER_CLK_HI;
-							next_state_out <= "0111";
-							next_counter <= "00000000000";
+							if (int_selective_read = '0') then
+								next_read_counter <= "00100011";
+								next_state <= WRITE_HIT_REGISTER_CLK_HI;
+								next_state_out <= "0111";
+								next_counter <= "00000000000";
+								next_readingHR <= "00";
+							else
+								case SELECTIVE_DECISION is
+									-- Wait
+									when "00" =>
+										-- It is important not to reset the read_counter just yet, so
+										-- that we can come back to this state machine.
+										next_read_counter <= read_counter;
+										next_state <= READ_HIT_REGISTER_CLK_LO;
+										next_state_out <= "0101";
+										next_counter <= "00000000000";
+										next_readingHR <= "10";
+									-- Proceed to readout
+									when "01" =>
+										next_read_counter <= "00100011";
+										next_state <= WRITE_HIT_REGISTER_CLK_HI;
+										next_state_out <= "0111";
+										next_counter <= "00000000000";
+										next_readingHR <= "00";
+									-- Go back to IDLE
+									when others =>
+										next_read_counter <= "00000000";
+										next_state <= IDLE;
+										next_state_out <= "0000";
+										next_counter <= "00000000000";
+										next_readingHR <= "00";
+								end case;
+							end if;
 						-- No channels to be read. We can end up here if only either
 						-- the fast or slow channel of a channel triggered in AND mode.
 						else
@@ -1014,20 +1116,24 @@ begin
 							next_state <= IDLE;
 							next_state_out <= "0000";
 							next_counter <= "00000000000";
+							next_readingHR <= "00";
 						end if;
 					end if; -- If OR mode
 				end if; -- If force trigger
 			end if; --If still reading
 			next_dont_trig_out <= '1';
+			next_int_selective_read <= int_selective_read;
 		
 		--------------------------------------------------------------------
 		-- state_out = "0110"		
 		when READ_HIT_REGISTER_CLK_HI =>
-				next_counter <= counter;
-				next_state <= READ_HIT_REGISTER_CLK_LO;
-				next_state_out <= "0101";
-				next_read_counter <= read_counter + 1;
-				next_dont_trig_out <= '1';
+			next_counter <= counter;
+			next_state <= READ_HIT_REGISTER_CLK_LO;
+			next_state_out <= "0101";
+			next_read_counter <= read_counter + 1;
+			next_dont_trig_out <= '1';
+			next_readingHR <= "01";
+			next_int_selective_read <= int_selective_read;
       
 		--------------------------------------------------------------------
 		-- The next 2 states continue to toggle the hit-read clocking pin,
@@ -1040,6 +1146,8 @@ begin
       when WRITE_HIT_REGISTER_CLK_HI =>
 		  next_counter <= "00000000000";
 		  next_dont_trig_out <= '1';
+		  next_readingHR <= "00";
+		  next_int_selective_read <= int_selective_read;
 		  if read_counter /= 255 then
 				next_read_counter <= read_counter;
 				next_state <= WRITE_HIT_REGISTER_CLK_LO;
@@ -1058,6 +1166,8 @@ begin
 			next_state_out <= "0111";
 			next_read_counter <= read_counter - 1;
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 		
 		--------------------------------------------------------------------
 		-- state_out = "1001"
@@ -1080,6 +1190,8 @@ begin
 				next_read_counter <= "00000000";
 			end if;
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 
 		--------------------------------------------------------------------	
 		-- state_out = "1010"		
@@ -1095,6 +1207,8 @@ begin
 			end if;
 			next_read_counter <= read_counter;
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 		
 		---------------------------------------------------------------------	
 		-- This and the next state are traversed for EVERY 12-bit AOUT VALUE
@@ -1109,6 +1223,8 @@ begin
 			next_counter <= counter;
 			next_read_counter <= read_counter;
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 		
 		---------------------------------------------------------------------
 		-- This state activates the send data logic as ADC data comes in.
@@ -1137,6 +1253,8 @@ begin
 				end if;
 			end if;
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 		
 		-------------------------------------------------------------------
 		-- state_out = "1101"
@@ -1146,6 +1264,8 @@ begin
 			next_counter <= "00000000000";
 			next_read_counter <= "00000000";
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 			
 		--------------------------------------------------------------------
 		-- state_out = "1110"
@@ -1160,15 +1280,19 @@ begin
 			next_counter <= "00000000000";
 			next_read_counter <= "00000000";
 			next_dont_trig_out <= '1';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 		
 		--------------------------------------------------------------------
 		-- state_out = "1111"
       when others =>
 			next_state <= IDLE;
-			next_state_out <= "1111";
+			next_state_out <= "0000";
 			next_counter <= "00000000000";
 			next_read_counter <= "00000000";
 			next_dont_trig_out <= '0';
+			next_readingHR <= "00";
+			next_int_selective_read <= int_selective_read;
 		--------------------------------------------------------------------
     end case;
   end if;

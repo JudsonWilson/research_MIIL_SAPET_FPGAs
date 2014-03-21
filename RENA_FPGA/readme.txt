@@ -1,2 +1,3 @@
 20140304: In revision 17 I did a cleanup of unused signals, and also removed all redundant fields in the diagnostic packets.
 20140304: In revision 18 I fixed the diagnostic packet hang-out caused by follower mode (by allowing int_follower_mode to change only in the IDLE state of the RENA readout FSM), and connected reset signals to both the LED module and the operational state controllers.
+20140319: In revision 19, I fixed the fast trigger list in focre trigger mode so that they are always 1 in force trigger mode. Also, I implemented selective read.

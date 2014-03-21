@@ -42,6 +42,7 @@ entity RX_Decode is
 			  OR_MODE_TRIGGER2    : out  STD_LOGIC;
 			  FORCE_TRIGGERS1     : out  STD_LOGIC;
 			  FORCE_TRIGGERS2     : out  STD_LOGIC;
+			  SELECTIVE_READ      : out  STD_LOGIC;
 			  RESET_TIMESTAMP     : out  STD_LOGIC;
 			  FOLLOWER_MODE1      : out  STD_LOGIC;
 			  FOLLOWER_MODE2      : out  STD_LOGIC;
@@ -91,6 +92,9 @@ architecture Behavioral of RX_Decode is
   
   signal int_force_triggers2  : std_logic;
   signal next_force_triggers2 : std_logic; 
+  
+  signal int_selective_read   : std_logic;
+  signal next_selective_read  : std_logic;
   
   signal int_follower_mode1   : std_logic;
   signal next_follower_mode1  : std_logic;
@@ -167,6 +171,7 @@ FORCE_TRIGGERS1  <= int_force_triggers1;
 FORCE_TRIGGERS2  <= int_force_triggers2;
 ENABLE_READOUT1  <= int_enable_readout1;
 ENABLE_READOUT2  <= int_enable_readout2;
+SELECTIVE_READ   <= int_selective_read;
 FOLLOWER_MODE1   <= int_follower_mode1;
 FOLLOWER_MODE2   <= int_follower_mode2;
 FOLLOWER_MODE_CHAN <= int_follower_mode_chan;
@@ -202,6 +207,7 @@ process(mclk)
 		int_force_triggers2    <= next_force_triggers2;
 		int_enable_readout1    <= next_enable_readout1;
 		int_enable_readout2    <= next_enable_readout2;
+		int_selective_read     <= next_selective_read;
 		int_follower_mode1     <= next_follower_mode1;
 		int_follower_mode2     <= next_follower_mode2;
 		int_follower_mode_chan <= next_follower_mode_chan;
@@ -221,7 +227,7 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 			rx_counter, rx_buffer, rena_settings_data,
 			rena_settings_chip, FPGA_ADDRESS, int_or_mode_trigger1, int_or_mode_trigger2,
 			int_force_triggers1, int_force_triggers2, int_fpga_address_reg,
-			int_enable_readout1,	int_enable_readout2,
+			int_enable_readout1,	int_enable_readout2, int_selective_read,
 			int_follower_mode1, int_follower_mode2, int_follower_mode_chan, int_follower_mode_tclk,
 			int_diagnostic_rena1_settings, int_diagnostic_rena2_settings)
   begin
@@ -239,6 +245,7 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 		next_force_triggers2 <= int_force_triggers2;
 		next_enable_readout1  <= int_enable_readout1;
 		next_enable_readout2  <= int_enable_readout2;
+		next_selective_read <= int_selective_read;
 		next_follower_mode1  <= int_follower_mode1;
 		next_follower_mode2  <= int_follower_mode2;
 		next_follower_mode_chan <= int_follower_mode_chan;
@@ -290,6 +297,10 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 								next_force_triggers1 <= rx_buffer(0)(0);
 								next_force_triggers2 <= rx_buffer(0)(1);
 							
+							-- Selective read
+							when "1000" =>
+								next_selective_read <= rx_buffer(0)(0);
+								
 							-- Read enable
 							when "1001" =>
 								next_enable_readout1 <= rx_buffer(0)(0);

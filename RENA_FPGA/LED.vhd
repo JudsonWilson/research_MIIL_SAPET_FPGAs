@@ -50,22 +50,22 @@ begin
 
 process(mclk)
 begin
-    if rising_edge(mclk) then
-		counter <= nextCounter;
-		ledOut <= nextLedOut;
-	 end if;
+   if rising_edge(mclk) then
+		if (rst = '1') then
+			counter <= "000000000000000000000000";
+			ledOut  <= '0';
+		else
+			counter <= nextCounter;
+			ledOut <= nextLedOut;
+		end if;
+	end if;
 end process;
 
 process(rst, counter)
 begin
-	if (rst = '1') then
-		nextLedOut  <= '0';
-		nextCounter <= "000000000000000000000000";
-	else
-		-- This makes LEDs blink at 2.861 Hz
-		nextLedOut  <= counter(23);
-		nextCounter <= counter + 1;
-	end if;
+	-- This makes LEDs blink at 2.861 Hz
+	nextLedOut  <= counter(23);
+	nextCounter <= counter + 1;
 end process;
 
 end Behavioral;
