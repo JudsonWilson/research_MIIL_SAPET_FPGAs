@@ -4,23 +4,26 @@
 # Timing constraints
 #=========================================================================
 # Input clock
-NET "mclk" TNM_NET = "mclk";
-TIMESPEC TS_mclk = PERIOD "mclk" 20 ns HIGH 50 %;
+#NET "mclk" LOC = P88;
+#NET "mclk" TNM_NET = "mclk";
+#TIMESPEC TS_mclk = PERIOD "mclk" 20 ns HIGH 50 %;
+
+# Not using built-in 100 ohm termination resistor
+NET "MCLKp" LOC = "P88" | IOSTANDARD = LVDS_25 | DIFF_TERM = FALSE; # positive
+NET "MCLKn" LOC = "P89" | IOSTANDARD = LVDS_25 | DIFF_TERM = FALSE; # negative
+# Need to apply period constraint only to the P side of the signal
+NET "MCLKp" TNM_NET = "MCLKp";
+TIMESPEC TS_MCLKp = PERIOD "MCLKp" 20 ns HIGH 50 %;
 
 #=========================================================================
 # Electrical constraints
 #=========================================================================
 #communication pins from the modules
-NET "mclk" LOC = P88;
-#NET "MCLKp" LOC = "P88" | IOSTANDARD = LVDS_25; # positive
-#NET "MCLKn" LOC = "P89" | IOSTANDARD = LVDS_25; # negative
 
-# NET "debugClkOut" LOC = P78;
-#NET "ledOut1" LOC = P98;
-#NET "ledOut2" LOC = P99;
-
-#NET "TXp" LOC = "P85" | IOSTANDARD = LVDS_25; # positive
-#NET "TXn" LOC = "P86" | IOSTANDARD = LVDS_25; # negative
+# positive
+NET "TXp" LOC = "P85" | IOSTANDARD = LVDS_25;
+# negative
+NET "TXn" LOC = "P86" | IOSTANDARD = LVDS_25;
 
 #chip 1 pins
 
@@ -99,7 +102,7 @@ NET "FIN1" LOC = P93;
 NET "FIN2" LOC = P49;
 NET "FOUT1" LOC = P21;
 NET "FOUT2" LOC = P68;
-NET "ITRIG" LOC = P78;
+#NET "ITRIG" LOC = P78;
 NET "RST" LOC = P98;
 NET "SCLK1" LOC = P33;
 NET "SCLK2" LOC = P73;
@@ -115,8 +118,8 @@ NET "TIN1" LOC = P94;
 NET "TIN2" LOC = P46;
 NET "TOUT1" LOC = P27;
 NET "TOUT2" LOC = P70;
-NET "UTRIG" LOC = P7;
-NET "debugOutMain[0]" LOC = P99;
+#NET "UTRIG" LOC = P7;
+NET "debugOutMain" LOC = P99;
 #NET "mclk" LOC = P89;
 NET "nCS1" LOC = P32;
 NET "nCS2" LOC = P71;
@@ -129,4 +132,4 @@ NET "nTS1n" LOC = P4;
 NET "nTS2p" LOC = P43;
 NET "nTS2n" LOC = P44;
 NET "rx" LOC = P77;
-NET "tx" LOC = P85;
+#NET "tx" LOC = P85;

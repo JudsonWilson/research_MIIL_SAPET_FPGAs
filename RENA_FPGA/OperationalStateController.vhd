@@ -40,8 +40,6 @@ Port (
 	-- Configuration
 	CHIP_ID            : in std_logic;
 	FPGA_ADDR          : in std_logic_vector(5 downto 0);
-	ANODE_MASK         : in std_logic_vector(35 downto 0);
-	CATHODE_MASK       : in std_logic_vector(35 downto 0);
 	
 	-- Readout settings
 	ENABLE             : in std_logic; -- Arms the FPGA to wait for RENA-3 triggers
@@ -50,14 +48,6 @@ Port (
 	FOLLOWER_MODE      : in std_logic;
 	FOLLOWER_MODE_CHAN : in std_logic_vector(5 downto 0);
 	FOLLOWER_MODE_TCLK : in std_logic_vector(1 downto 0);
-	SELECTIVE_READ     : in std_logic;
-	COINCIDENCE_READ   : in std_logic;
-	ANODE_TRIG_IN      : in std_logic;
-	ANODE_TRIG_OUT     : out std_logic;
-	CATHODE_TRIG_IN    : in std_logic;
-	CATHODE_TRIG_OUT   : out std_logic;
-	I_READ             : out std_logic;
-	U_TRIG             : in std_logic;
 	
 	-- Data transmit
 	TX_BUSY            : in std_logic;
@@ -66,6 +56,10 @@ Port (
 	
 	SLOW_TIMESTAMP     : in std_logic_vector(41 downto 0);
 
+	-- Crosstalk blocking
+	DONT_TRIG_IN       : in std_logic;
+	DONT_TRIG_OUT      : out std_logic;
+	
 	-- Shaper reset
 	CLF                : out std_logic;
 	CLS                : out std_logic;
@@ -76,7 +70,6 @@ Port (
 	
 	-- Start acquire
 	ACQUIRE            : out std_logic;
-	-- READ_SIG : out std_logic;
 	
 	-- Readout token
 	TOUT               : in  std_logic; -- Signals end of AOUT data shift when high
@@ -94,9 +87,6 @@ Port (
 	nCS                : out std_logic; -- ADC chip select ("select" in the sense that data is read from it when nCS = 0)
 	SDO                : in  std_logic; -- ADC Serial data
 	SCLK               : out std_logic  -- ADC clock
-
-	-- Unused
-	-- OVERFLOW           : in std_logic
 	);
 end OperationalStateController;
 
@@ -183,7 +173,6 @@ type follower_state_type is (
 	-- Generic FSM timing counter.
 	signal counter               : std_logic_vector(10 downto 0) := "00000000000";
 	signal next_counter          : std_logic_vector(10 downto 0) := "00000000000";
-	
 	-- RENA follower mode FSM
 	signal state_out                   : std_logic_vector(3 downto 0);
 	signal next_state_out              : std_logic_vector(3 downto 0);
@@ -206,6 +195,9 @@ type follower_state_type is (
 	signal next_TIN      : std_logic;
 	signal int_TCLK      : std_logic;
 	signal next_int_TCLK : std_logic;
+	
+	-- Corsstalk blocking
+	signal next_dont_trig_out : std_logic;
 	
 	-- ADC
 	-- AD7276 has 12-bit resolution
@@ -244,21 +236,6 @@ type follower_state_type is (
 	signal slow_triggered      : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
 	signal next_slow_triggered : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
 	
-	-- Selective read signals
-	signal int_ANODE_TRIG_OUT       : std_logic;
-	signal int_CATHODE_TRIG_OUT     : std_logic;
-	signal next_ANODE_TRIG_OUT      : std_logic;
-	signal next_CATHODE_TRIG_OUT    : std_logic;
-	signal int_anode_trig_out_raw   : std_logic;
-	signal int_cathode_trig_out_raw : std_logic;
-	signal anodes_triggered         : std_logic_vector(35 downto 0);
-	signal fast_anodes_triggered    : std_logic_vector(35 downto 0);
-	signal slow_anodes_triggered    : std_logic_vector(35 downto 0);
-	signal cathodes_triggered       : std_logic_vector(35 downto 0);
-	signal fast_cathodes_triggered  : std_logic_vector(35 downto 0);
-	signal slow_cathodes_triggered  : std_logic_vector(35 downto 0);
-	signal int_IREAD                : std_logic;
-	
 --========================================================================
 -- Module body
 --========================================================================
@@ -273,57 +250,6 @@ debugOut <= state_out;
 --========================================================================
 FHRCLK_SHRCLK <= SHR_FHR_CLK; --POTENTIAL GLITCH--PDO
 next_valid_AND_mode_trigger <= '0' when (fast_triggered = (fast_triggered'range => '0')) else '1';
-
---========================================================================
--- Selective read signals
---========================================================================
-ANODE_TRIG_OUT   <= int_ANODE_TRIG_OUT;
-CATHODE_TRIG_OUT <= int_CATHODE_TRIG_OUT;
-I_READ <= int_IREAD;
-
-process (fast_triggered, slow_triggered, FORCE_TRIGGER, OR_MODE_TRIGGER, ANODE_MASK, CATHODE_MASK)
-begin
-	fast_anodes_triggered <= ANODE_MASK and fast_triggered;
-	slow_anodes_triggered <= ANODE_MASK and slow_triggered;
-
-	fast_cathodes_triggered <= CATHODE_MASK and fast_triggered;
-	slow_cathodes_triggered <= CATHODE_MASK and slow_triggered;
-
-	if ((FORCE_TRIGGER = '0') and (OR_MODE_TRIGGER = '1')) then
-		anodes_triggered   <= fast_anodes_triggered or slow_anodes_triggered;
-		cathodes_triggered <= fast_cathodes_triggered or slow_cathodes_triggered;
-	else
-		anodes_triggered   <= fast_anodes_triggered and slow_anodes_triggered;
-		cathodes_triggered <= fast_cathodes_triggered and slow_cathodes_triggered;
-	end if;
-end process;
-
-int_anode_trig_out_raw   <= '0' when (anodes_triggered = (anodes_triggered'range => '0')) else '1';
-int_cathode_trig_out_raw <= '0' when (cathodes_triggered = (cathodes_triggered'range => '0')) else '1';
-
-process (int_anode_trig_out_raw, int_cathode_trig_out_raw, next_state, next_read_counter)
-begin
-	if ((int_anode_trig_out_raw = '1') and (next_state = READ_HIT_REGISTER_CLK_LO) and (next_read_counter > 35)) then
-		next_ANODE_TRIG_OUT <= '1';
-	else
-		next_ANODE_TRIG_OUT <= '0';
-	end if;
-	
-	if ((int_cathode_trig_out_raw = '1') and (next_state = READ_HIT_REGISTER_CLK_LO) and (next_read_counter > 35)) then
-		next_CATHODE_TRIG_OUT <= '1';
-	else
-		next_CATHODE_TRIG_OUT <= '0';
-	end if;
-end process;
-
-process (int_ANODE_TRIG_OUT, ANODE_TRIG_IN, int_CATHODE_TRIG_OUT, CATHODE_TRIG_IN, COINCIDENCE_READ, U_TRIG)
-begin
-	if (COINCIDENCE_READ = '0') then
-		int_IREAD <= (int_ANODE_TRIG_OUT or ANODE_TRIG_IN) and (int_CATHODE_TRIG_OUT or CATHODE_TRIG_IN);
-	else
-		int_IREAD <= (int_ANODE_TRIG_OUT or ANODE_TRIG_IN) and (int_CATHODE_TRIG_OUT or CATHODE_TRIG_IN) and U_TRIG;
-	end if;
-end process;
 
 --========================================================================
 -- This portion of code sets up a one-shot reg for the send data signal
@@ -386,10 +312,12 @@ begin
 		
 		-- Trigger
 		previous_nTF <= nTF;
+		
+		-- Crosstalk blocking
+		DONT_TRIG_OUT <= next_dont_trig_out;
 
 		-- Data acquire
 		ACQUIRE  <= next_ACQUIRE;
-		-- READ_SIG <= next_READ_SIG;
 
 		-- Read/write hit list
 		int_FIN <= next_int_FIN;
@@ -407,10 +335,6 @@ begin
 		-- Token
 		TIN  <= next_TIN;
 		int_TCLK <= next_int_TCLK;
-		
-		-- Selective readout mode
-		int_ANODE_TRIG_OUT   <= next_ANODE_TRIG_OUT;
-		int_CATHODE_TRIG_OUT <= next_CATHODE_TRIG_OUT;
 	end if;
 end process;
 
@@ -809,28 +733,6 @@ begin
 			next_TIN <= '0';
 		end if;
 	end if;
-	
---	--=====================================================================
---	-- Turns out AOUT needs to be enabled earlier than the signaling
---	-- specification indicates to allow sufficient time for the AOUT bus
---	-- inside the RENA-3 to charge up. So assert it during trigger list
---	-- read.
---	--
---	-- Follower mode
---	if (FOLLOWER_MODE = '1') then
---		if (next_follower_state = WRITE_HIT_REGISTER_CLK_HI) or (next_follower_state = WRITE_HIT_REGISTER_CLK_LO) or
---		   (next_follower_state = RAISE_TIN) or (next_follower_state = TOGGLE_TCLK1_HI) or
---			(next_follower_state = TOGGLE_TCLK1_LO) or (next_follower_state = TOGGLE_TCLK2_HI) or
---			(next_follower_state = TOGGLE_TCLK2_LO) or (next_follower_state = TOGGLE_TCLK3_HI) or
---			(next_follower_state = HOLD) then
---			next_READ_SIG <= '1';
---		else
---			next_READ_SIG <= '0';
---		end if;
---	-- Peak-detect mode
---	else
---		next_READ_SIG <= '1';
---	end if;
 
 	--=====================================================================
 	-- Token clock, data is shifted out via AOUT on every clock edge and
@@ -895,8 +797,7 @@ end process;
 --========================================================================
 process(reset, state, TOUT, nTF, nTS, counter, TX_BUSY, ENABLE,
 		  read_counter, FORCE_TRIGGER, FOLLOWER_MODE,
-		  next_follower_state, OR_MODE_TRIGGER, SELECTIVE_READ, int_IREAD,
-		  valid_AND_mode_trigger)
+		  next_follower_state, OR_MODE_TRIGGER, valid_AND_mode_trigger, DONT_TRIG_IN)
 begin
   if (reset = '1') or (FOLLOWER_MODE = '1') then
     next_state <= IDLE;
@@ -909,18 +810,18 @@ begin
       -------------------------------------------------------------------
 		-- state_out = "0000"
       when IDLE =>
-        if  (ENABLE = '1') and (next_follower_state = IDLE) then
-          next_state <= CLS_CLF;
-			 next_state_out <= "0001";
-			 next_counter <= "00000000000";
-			 next_read_counter <= "00000000";
-		  else
-			 next_state <= IDLE;
-			 next_state_out <= "0000";
-			 next_counter <= "00000000000";
-			 next_read_counter <= "00000000";
-        end if;
-		  
+         if (ENABLE = '1') and (next_follower_state = IDLE) then
+           next_state <= CLS_CLF;
+			  next_state_out <= "0001";
+			  next_counter <= "00000000000";
+		   else
+			  next_state <= IDLE;
+			  next_state_out <= "0000";
+			  next_counter <= "00000000000";
+         end if;
+			next_read_counter <= "00000000";
+			next_dont_trig_out <= '0';
+
       -------------------------------------------------------------------
 		-- state_out = "0001"
       when CLS_CLF =>
@@ -934,12 +835,13 @@ begin
 				next_state_out <= "0010";
          end if;
 		   next_read_counter <= "00000000";
-		  
+		   next_dont_trig_out <= '0';
+			
       -------------------------------------------------------------------
 		-- state_out = "0010"
       when TRAP =>
         if counter <= 48 then   --1 microsecond at 48 MHz
-			  -- n Trigger Fast = 0 means trigger occurred within the trap
+			  -- nTrigger Fast = 0 means trigger occurred within the trap
 			  -- time, it might have occurred before CLS and CLF were
 			  -- de-asserted, in which case go back to idle state.
 			  if (FORCE_TRIGGER = '1') then
@@ -969,7 +871,8 @@ begin
 				next_state_out <= "0011";
 		  end if;
 		  next_read_counter <= "00000000";			
-			
+		  next_dont_trig_out <= '0';
+		  
       -------------------------------------------------------------------
 		-- state_out = "0011"
       when WAIT_TRIGGER =>
@@ -982,15 +885,20 @@ begin
 		  else
 		     -- Continue to wait for trigger
 			  if (FORCE_TRIGGER = '0') then
-					if (((OR_MODE_TRIGGER = '0') and (nTF = '1')) or ((OR_MODE_TRIGGER = '1') and (nTS = '1') and (nTF = '1'))) then
-					--if ((nTS = '1') and (nTF = '1')) then
-							next_counter <= counter + 1;
-							next_state <= WAIT_TRIGGER;
-							next_state_out <= "0011";
+					if (DONT_TRIG_IN /= '1') then
+						if (((OR_MODE_TRIGGER = '0') and (nTF = '1')) or ((OR_MODE_TRIGGER = '1') and (nTS = '1') and (nTF = '1'))) then
+								next_counter <= counter + 1;
+								next_state <= WAIT_TRIGGER;
+								next_state_out <= "0011";
+						else
+								next_counter <= "00000000000";
+								next_state <= ACQ_TEMP; --ACQUISITION_DELAY;
+								next_state_out <= "0100";
+						end if;
 					else
-							next_counter <= "00000000000";
-							next_state <= ACQ_TEMP; --ACQUISITION_DELAY;
-							next_state_out <= "0100";
+						next_counter <= "00000000000";
+						next_state <= IDLE;
+						next_state_out <= "0000";
 					end if;
 			  -- Always proceed to readout in force trigger mode
 			  else
@@ -1000,6 +908,7 @@ begin
 			  end if;
 		  end if;
 		  next_read_counter <= "00000000";		  
+		  next_dont_trig_out <= '0';
 		  
 		--------------------------------------------------------------------
 		-- Why is this state necessary?
@@ -1008,6 +917,7 @@ begin
 		   next_state <= ACQUISITION_DELAY;
 			next_state_out <= "0100";
 		   next_read_counter <= "00000000";
+			next_dont_trig_out <= '0';
 			
       --------------------------------------------------------------------
 		-- state_out = "0100"
@@ -1030,10 +940,17 @@ begin
 				next_counter <= counter + 1;
 				next_state <= ACQUISITION_DELAY;
 				next_state_out <= "0100";
+				
+				if (counter = 230) then
+					next_dont_trig_out <= '1';
+				else
+					next_dont_trig_out <= '0';
+				end if;
 		   else
 				next_counter <= "00000000000";
 				next_state <= READ_HIT_REGISTER_CLK_LO;
 				next_state_out <= "0101";
+				next_dont_trig_out <= '1';
 			end if;
 			next_read_counter <= "00000000";
 		
@@ -1057,65 +974,36 @@ begin
 					next_state_out <= "0111";
 					next_counter <= "00000000000";
 				else
-					-- Selective read on
-					if (SELECTIVE_READ = '1') then
-						-- Wait 500 ns max for int_IREAD = '1'
-						-- TO DO: reduce the wait to 3 cycles for propagation
-						-- delay of the U_Trig signal. We don't need to wait the
-						-- full 500 ns electron drift time because we already
-						-- accounted for it during the acqusition delay.
-						if (counter < 25) then
-							-- Keep on waiting
-							if (int_IREAD = '0') then
-								next_read_counter <= read_counter;
-								next_state <= READ_HIT_REGISTER_CLK_LO;
-								next_state_out <= "0101";
-								next_counter <= counter + 1;
-							-- Proceed with readout
-							else
-								next_read_counter <= "00100011";
-								next_state <= WRITE_HIT_REGISTER_CLK_HI;
-								next_state_out <= "0111";
-								next_counter <= "00000000000";
-							end if;
-						else
-							next_read_counter <= "00000000";
-							next_state <= IDLE;
-							next_state_out <= "0000";
-							next_counter <= "00000000000";
-						end if;
-					-- Selective read off
+					-- OR mode on
+					if (OR_MODE_TRIGGER = '1') then
+						-- Set how many times to toggle read write register clock
+						-- 35 because we also toggle on 0, so 36 times in total.
+						next_read_counter <= "00100011";
+						next_state <= WRITE_HIT_REGISTER_CLK_HI;
+						next_state_out <= "0111";
+						next_counter <= "00000000000";
+					-- OR mode off
 					else
-						-- OR mode on
-						if (OR_MODE_TRIGGER = '1') then
+						-- Proceed to readout
+						if (valid_AND_mode_trigger = '1') then
 							-- Set how many times to toggle read write register clock
 							-- 35 because we also toggle on 0, so 36 times in total.
 							next_read_counter <= "00100011";
 							next_state <= WRITE_HIT_REGISTER_CLK_HI;
 							next_state_out <= "0111";
 							next_counter <= "00000000000";
-						-- OR mode off
+						-- No channels to be read. We can end up here if only either
+						-- the fast or slow channel of a channel triggered in AND mode.
 						else
-							-- Proceed to readout
-							if (valid_AND_mode_trigger = '1') then
-								-- Set how many times to toggle read write register clock
-								-- 35 because we also toggle on 0, so 36 times in total.
-								next_read_counter <= "00100011";
-								next_state <= WRITE_HIT_REGISTER_CLK_HI;
-								next_state_out <= "0111";
-								next_counter <= "00000000000";
-							-- No channels to be read. We can end up here if only either
-							-- the fast or slow channel of a channel triggered in AND mode.
-							else
-								next_read_counter <= "00000000";
-								next_state <= IDLE;
-								next_state_out <= "0000";
-								next_counter <= "00000000000";
-							end if;
-						end if; -- If OR mode
-					end if; -- If selective read
+							next_read_counter <= "00000000";
+							next_state <= IDLE;
+							next_state_out <= "0000";
+							next_counter <= "00000000000";
+						end if;
+					end if; -- If OR mode
 				end if; -- If force trigger
 			end if; --If still reading
+			next_dont_trig_out <= '1';
 		
 		--------------------------------------------------------------------
 		-- state_out = "0110"		
@@ -1124,6 +1012,7 @@ begin
 				next_state <= READ_HIT_REGISTER_CLK_LO;
 				next_state_out <= "0101";
 				next_read_counter <= read_counter + 1;
+				next_dont_trig_out <= '1';
       
 		--------------------------------------------------------------------
 		-- The next 2 states continue to toggle the hit-read clocking pin,
@@ -1135,6 +1024,7 @@ begin
 		-- state_out = "0111"
       when WRITE_HIT_REGISTER_CLK_HI =>
 		  next_counter <= "00000000000";
+		  next_dont_trig_out <= '1';
 		  if read_counter /= 255 then
 				next_read_counter <= read_counter;
 				next_state <= WRITE_HIT_REGISTER_CLK_LO;
@@ -1152,6 +1042,7 @@ begin
 			next_state <= WRITE_HIT_REGISTER_CLK_HI;
 			next_state_out <= "0111";
 			next_read_counter <= read_counter - 1;
+			next_dont_trig_out <= '1';
 		
 		--------------------------------------------------------------------
 		-- state_out = "1001"
@@ -1173,6 +1064,7 @@ begin
 				next_counter <= "00000000000";
 				next_read_counter <= "00000000";
 			end if;
+			next_dont_trig_out <= '1';
 
 		--------------------------------------------------------------------	
 		-- state_out = "1010"		
@@ -1187,6 +1079,7 @@ begin
 				next_state_out <= "1011";
 			end if;
 			next_read_counter <= read_counter;
+			next_dont_trig_out <= '1';
 		
 		---------------------------------------------------------------------	
 		-- This and the next state are traversed for EVERY 12-bit AOUT VALUE
@@ -1200,6 +1093,7 @@ begin
 			next_state_out <= "1100";
 			next_counter <= counter;
 			next_read_counter <= read_counter;
+			next_dont_trig_out <= '1';
 		
 		---------------------------------------------------------------------
 		-- This state activates the send data logic as ADC data comes in.
@@ -1227,6 +1121,7 @@ begin
 					next_read_counter <= read_counter + 1;
 				end if;
 			end if;
+			next_dont_trig_out <= '1';
 		
 		-------------------------------------------------------------------
 		-- state_out = "1101"
@@ -1235,7 +1130,8 @@ begin
 			next_state_out <= "1110";
 			next_counter <= "00000000000";
 			next_read_counter <= "00000000";
-				
+			next_dont_trig_out <= '1';
+			
 		--------------------------------------------------------------------
 		-- state_out = "1110"
 		when WAIT_TX_BUSY => 
@@ -1248,6 +1144,7 @@ begin
 			end if;
 			next_counter <= "00000000000";
 			next_read_counter <= "00000000";
+			next_dont_trig_out <= '1';
 		
 		--------------------------------------------------------------------
 		-- state_out = "1111"
@@ -1256,6 +1153,7 @@ begin
 			next_state_out <= "1111";
 			next_counter <= "00000000000";
 			next_read_counter <= "00000000";
+			next_dont_trig_out <= '0';
 		--------------------------------------------------------------------
     end case;
   end if;

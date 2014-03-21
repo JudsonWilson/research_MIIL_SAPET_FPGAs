@@ -42,8 +42,6 @@ entity RX_Decode is
 			  OR_MODE_TRIGGER2    : out  STD_LOGIC;
 			  FORCE_TRIGGERS1     : out  STD_LOGIC;
 			  FORCE_TRIGGERS2     : out  STD_LOGIC;
-			  SELECTIVE_READ      : out  STD_LOGIC;
-			  COINCIDENCE_READ    : out  STD_LOGIC;
 			  RESET_TIMESTAMP     : out  STD_LOGIC;
 			  FOLLOWER_MODE1      : out  STD_LOGIC;
 			  FOLLOWER_MODE2      : out  STD_LOGIC;
@@ -55,10 +53,6 @@ entity RX_Decode is
            CS2                 : out  STD_LOGIC;  -- RENA-3 2 chip select
            CSHIFT2             : out  STD_LOGIC;  -- RENA-3 2 configuration clock
            CIN2                : out  STD_LOGIC;  -- RENA-3 2 configuration data
-			  ANODE_MASK1         : out  STD_LOGIC_VECTOR(35 downto 0);
-			  ANODE_MASK2         : out  STD_LOGIC_VECTOR(35 downto 0);
-			  CATHODE_MASK1       : out  STD_LOGIC_VECTOR(35 downto 0);
-			  CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0);
 			  DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 			  DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 			  DIAGNOSTIC_SEND     : out  STD_LOGIC
@@ -85,12 +79,6 @@ architecture Behavioral of RX_Decode is
   
   signal rena_settings_chip      : std_logic;
   signal next_rena_settings_chip : std_logic;
-  
-  signal int_selective_read    : std_logic;
-  signal next_selective_read   : std_logic;
-  
-  signal int_coincidence_read  : std_logic;
-  signal next_coincidence_read : std_logic;
   
   signal int_or_mode_trigger1  : std_logic;
   signal next_or_mode_trigger1 : std_logic; 
@@ -138,18 +126,6 @@ architecture Behavioral of RX_Decode is
   signal next_cin2    : std_logic;
   signal next_cshift2 : std_logic;
   
-  signal int_anode_mask1  : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  signal next_anode_mask1 : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-
-  signal int_anode_mask2  : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  signal next_anode_mask2 : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  
-  signal int_cathode_mask1  : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  signal next_cathode_mask1 : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  
-  signal int_cathode_mask2  : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  signal next_cathode_mask2 : std_logic_vector(35 downto 0) := "000000000000000000000000000000000000";
-  
   signal int_diagnostic_rena1_settings  : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
   signal next_diagnostic_rena1_settings : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
   signal int_diagnostic_rena2_settings  : std_logic_vector(41 downto 0) := "000000000000000000000000000000000000000000";
@@ -191,16 +167,10 @@ FORCE_TRIGGERS1  <= int_force_triggers1;
 FORCE_TRIGGERS2  <= int_force_triggers2;
 ENABLE_READOUT1  <= int_enable_readout1;
 ENABLE_READOUT2  <= int_enable_readout2;
-SELECTIVE_READ   <= int_selective_read;
-COINCIDENCE_READ <= int_coincidence_read;
 FOLLOWER_MODE1   <= int_follower_mode1;
 FOLLOWER_MODE2   <= int_follower_mode2;
 FOLLOWER_MODE_CHAN <= int_follower_mode_chan;
 FOLLOWER_MODE_TCLK <= int_follower_mode_tclk;
-ANODE_MASK1   <= int_anode_mask1;
-ANODE_MASK2   <= int_anode_mask2;
-CATHODE_MASK1 <= int_cathode_mask1;
-CATHODE_MASK2 <= int_cathode_mask2;
 DIAGNOSTIC_RENA1_SETTINGS <= int_diagnostic_rena1_settings;
 DIAGNOSTIC_RENA2_SETTINGS <= int_diagnostic_rena2_settings;
 DIAGNOSTIC_SEND <= int_diagnostic_send;
@@ -236,13 +206,6 @@ process(mclk)
 		int_follower_mode2     <= next_follower_mode2;
 		int_follower_mode_chan <= next_follower_mode_chan;
 		int_follower_mode_tclk <= next_follower_mode_tclk;
-		int_selective_read     <= next_selective_read;
-		int_coincidence_read   <= next_coincidence_read;
-		
-		int_anode_mask1 <= next_anode_mask1;
-		int_anode_mask2 <= next_anode_mask2;
-		int_cathode_mask1 <= next_cathode_mask1;
-		int_cathode_mask2 <= next_cathode_mask2;
 
 		int_diagnostic_rena1_settings <= next_diagnostic_rena1_settings;
 		int_diagnostic_rena2_settings <= next_diagnostic_rena2_settings;
@@ -259,10 +222,7 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 			rena_settings_chip, FPGA_ADDRESS, int_or_mode_trigger1, int_or_mode_trigger2,
 			int_force_triggers1, int_force_triggers2, int_fpga_address_reg,
 			int_enable_readout1,	int_enable_readout2,
-			int_follower_mode1, int_follower_mode2, int_follower_mode_chan, int_follower_mode_tclk,
-			int_selective_read, int_coincidence_read,
-			int_anode_mask1, int_anode_mask2,
-			int_cathode_mask1, int_cathode_mask2)
+			int_follower_mode1, int_follower_mode2, int_follower_mode_chan, int_follower_mode_tclk)
   begin
       next_rx_counter <= rx_counter;
 	   next_rx_buffer <= rx_buffer;
@@ -282,13 +242,6 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 		next_follower_mode2  <= int_follower_mode2;
 		next_follower_mode_chan <= int_follower_mode_chan;
 		next_follower_mode_tclk <= int_follower_mode_tclk;
-		next_selective_read     <= int_selective_read;
-		next_coincidence_read   <= int_coincidence_read;
-		
-		next_anode_mask1 <= int_anode_mask1;
-		next_anode_mask2 <= int_anode_mask2;
-		next_cathode_mask1 <= int_cathode_mask1;
-		next_cathode_mask2 <= int_cathode_mask2;
 		
 		next_diagnostic_rena1_settings <= int_diagnostic_rena1_settings;
 		next_diagnostic_rena2_settings <= int_diagnostic_rena2_settings;
@@ -309,33 +262,9 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 				-- Check the 2 MSB
 				-- This should happen after data buffering
 				when "01" =>
-					if (int_fpga_address_reg = FPGA_ADDRESS) then
+					if ((int_fpga_address_reg = FPGA_ADDRESS) or (int_fpga_address_reg = "111111")) then
 
 						case (sync_rena_instr_bits) is
-							-- Anode masks
-							when "0000" =>
-								if (rx_buffer(6)(0) = '0') then
-									-- Apply RENA 1 anode mask
-									-- Bit 5 of rx_buffer(5) corresponds to channel 35, bit 0 of rx_buffer(0) corresponds to channel 0
-									next_anode_mask1 <= rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
-								else
-									-- Apply RENA 2 anode mask
-									-- Bit 5 of rx_buffer(5) corresponds to channel 35, bit 0 of rx_buffer(0) corresponds to channel 0
-									next_anode_mask2 <= rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
-								end if;
-							
-							-- Cathode masks
-							when "0001" =>
-								if (rx_buffer(6)(0) = '0') then
-									-- Apply RENA 1 cathode mask
-									-- Bit 5 of rx_buffer(5) corresponds to channel 35, bit 0 of rx_buffer(0) corresponds to channel 0
-									next_cathode_mask1 <= rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
-								else
-									-- Apply RENA 2 cathode mask
-									-- Bit 5 of rx_buffer(5) corresponds to channel 35, bit 0 of rx_buffer(0) corresponds to channel 0
-									next_cathode_mask2 <= rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
-								end if;
-								
 							-- Configure RENAs
 							when "0101" =>
 								next_rena_settings_data <= rx_buffer(6)(4 downto 0) & rx_buffer(5) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1) & rx_buffer(0);
@@ -359,25 +288,17 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 							when "0111" =>
 								next_force_triggers1 <= rx_buffer(0)(0);
 								next_force_triggers2 <= rx_buffer(0)(1);
-								
-							-- Selective read
-							when "1000" =>
-								next_selective_read <= rx_buffer(0)(0);
 							
 							-- Read enable
 							when "1001" =>
 								next_enable_readout1 <= rx_buffer(0)(0);
 								next_enable_readout2 <= rx_buffer(0)(1);
 								
-							-- Coincidence read
-							when "1010" =>
-								next_coincidence_read <= rx_buffer(0)(0);
-								
 							-- Follower mode
 							when "1101" =>
 								case (rx_buffer(0)(5 downto 0)) is
 									-- Turn follower_mode on
-									when "000000" =>
+									when "000000" | "000001" | "000010" | "000011" =>
 										-- RENA follower mode line
 										next_follower_mode1 <= rx_buffer(0)(0);
 										next_follower_mode2 <= rx_buffer(0)(1);
@@ -385,37 +306,7 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 										next_follower_mode_chan <= rx_buffer(1);
 										-- How many times to toggle tclk
 										next_follower_mode_tclk <= rx_buffer(2)(1 downto 0);
-									
-									-- Turn follower_mode on
-									when "000001" =>
-										-- RENA follower mode line
-										next_follower_mode1 <= rx_buffer(0)(0);
-										next_follower_mode2 <= rx_buffer(0)(1);
-										-- Which channel in follower mode
-										next_follower_mode_chan <= rx_buffer(1);
-										-- How many times to toggle tclk
-										next_follower_mode_tclk <= rx_buffer(2)(1 downto 0);
-										
-									-- Turn follower_mode on
-									when "000010" =>
-										-- RENA follower mode line
-										next_follower_mode1 <= rx_buffer(0)(0);
-										next_follower_mode2 <= rx_buffer(0)(1);
-										-- Which channel in follower mode
-										next_follower_mode_chan <= rx_buffer(1);
-										-- How many times to toggle tclk
-										next_follower_mode_tclk <= rx_buffer(2)(1 downto 0);
-
-									-- Turn follower_mode on
-									when "000011" =>
-										-- RENA follower mode line
-										next_follower_mode1 <= rx_buffer(0)(0);
-										next_follower_mode2 <= rx_buffer(0)(1);
-										-- Which channel in follower mode
-										next_follower_mode_chan <= rx_buffer(1);
-										-- How many times to toggle tclk
-										next_follower_mode_tclk <= rx_buffer(2)(1 downto 0);
-										
+																			
 									-- Turn follower_mode off
 									when "111111" =>
 										next_follower_mode1 <= '0';

@@ -1,0 +1,4 @@
+# Output products list for <systemClkX2DiffIn>
+systemClkX2DiffIn_flist.txt
+systemClkX2DiffIn_readme.txt
+systemClkX2DiffIn_xmdf.tcl

@@ -31,29 +31,15 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 entity main is
     Port (
 				-- Debug
-				debugOutMain     : out STD_LOGIC_VECTOR(3 DOWNTO 0);
-	 			debugClkOut      :  out STD_LOGIC;
-				debugSamplingClk :  out STD_LOGIC;
+				debugOutMain     : out STD_LOGIC;
 				
-				--MCLKp 	: 	in STD_LOGIC;
-				--MCLKn 	: 	in STD_LOGIC;
-				mclk		:	in STD_LOGIC;
+				MCLKp 	: 	in STD_LOGIC;
+				MCLKn 	: 	in STD_LOGIC;
 				RST      :  in STD_LOGIC;
-				ledOut1	:  out STD_LOGIC;
-				ledOut2	:	out STD_LOGIC;
-				
-				ITRIG : out STD_LOGIC;
-				UTRIG : in STD_LOGIC;
 	 
-				-- TXp : out  STD_LOGIC;
-				-- TXn : out  STD_LOGIC;
-				-- RXp : in  STD_LOGIC;
-				-- RXn : in  STD_LOGIC;
-				tx : out STD_LOGIC;
-				rx : in  STD_LOGIC;
-				
-				-- TRIGGER_INp : in STD_LOGIC;
-				-- TRIGGER_INn : in STD_LOGIC;
+				TXp : out  STD_LOGIC;
+				TXn : out  STD_LOGIC;
+				rx  : in  STD_LOGIC;
 
 				ADDR : in STD_LOGIC_VECTOR(5 downto 0);  -- Identifies which FPGA the data is associated with
 				
@@ -65,7 +51,6 @@ entity main is
 				TOUT1     : in STD_LOGIC;
 				FOUT1     : in STD_LOGIC;
 				SOUT1     : in STD_LOGIC;
-				-- OVERFLOW1 : in STD_LOGIC;
 				
 				CS1     : out STD_LOGIC;
 				CSHIFT1 : out STD_LOGIC;
@@ -74,7 +59,6 @@ entity main is
 				CLF1    : out STD_LOGIC;
 				
 				TCLK1 : out STD_LOGIC;
-				-- READ1 : out STD_LOGIC;
 				FHRCLK_SHRCLK1 : out STD_LOGIC;
 			   SIN1 : out STD_LOGIC;
 				FIN1 : out STD_LOGIC;
@@ -99,7 +83,6 @@ entity main is
 				TOUT2     : in STD_LOGIC;
 				FOUT2     : in STD_LOGIC;
 				SOUT2     : in STD_LOGIC;
-				-- OVERFLOW2 : in STD_LOGIC;
 				
 				CS2     : out STD_LOGIC;
 				CSHIFT2 : out STD_LOGIC;
@@ -108,7 +91,6 @@ entity main is
 				CLF2 : out STD_LOGIC;
 				
 				TCLK2 : out STD_LOGIC;
-				-- READ2 : out STD_LOGIC;
 				FHRCLK_SHRCLK2 : out STD_LOGIC;
 			   SIN2 : out STD_LOGIC;
 				FIN2 : out STD_LOGIC;
@@ -133,27 +115,16 @@ architecture Behavioral of main is
 -- DCM 4x debug clock
 -- Remember to regenerate DCM using differential inputs if we are using
 -- differential inputs.
---component DebugClock
---   port ( --CLKIN_N_IN      : in    std_logic; 
---	       --CLKIN_P_IN      : in    std_logic; 
---			 CLKIN_IN      : in    std_logic; 
---          RST_IN          : in    std_logic; 
---          CLKFX_OUT       : out   std_logic; 
---          CLKIN_IBUFG_OUT : out   std_logic; 
---			 --CLKIN_IBUFGDS_OUT : out   std_logic; 
---          CLK0_OUT        : out   std_logic; 
---          LOCKED_OUT      : out   std_logic);
---end component;
-
 -- DCM 2x debug clock
-component systemClkX2
-   port ( CLKIN_IN        : in    std_logic; 
-          RST_IN          : in    std_logic; 
-          CLKFX_OUT       : out   std_logic; 
-          CLKIN_IBUFG_OUT : out   std_logic; 
-          CLK0_OUT        : out   std_logic; 
-          CLK2X_OUT       : out   std_logic; 
-          LOCKED_OUT      : out   std_logic);
+component systemClkX2DiffIn
+   port ( CLKIN_N_IN        : in    std_logic; 
+          CLKIN_P_IN        : in    std_logic; 
+          RST_IN            : in    std_logic; 
+          CLKFX_OUT         : out   std_logic; 
+          CLKIN_IBUFGDS_OUT : out   std_logic; 
+          CLK0_OUT          : out   std_logic; 
+          CLK2X_OUT         : out   std_logic; 
+          LOCKED_OUT        : out   std_logic);
 end component;
 
 component LED
@@ -163,30 +134,6 @@ port (
 	);
 end component;
 
-----========================================================================
----- Debug modules
----- These two modules perform loopback test.
-----========================================================================
---component testRx
---port (
---	mclk   : in  std_logic;
---	testRx : in  std_logic;
---	dataRx : out std_logic_vector(7 downto 0);
---	rxFlag : out std_logic;
---	debugOut : out std_logic_vector(1 downto 0)
---	);
---end component;
---
---component testTx
---port (
---	mclk   : in  std_logic;
---	txFlag : in  std_logic;
---	dataTx : in  std_logic_vector(7 downto 0);
---	testTx : out std_logic
---	);
---end component;
-----========================================================================
-
 component Serial_rx
 	port(
 		mclkx2   : in std_logic;
@@ -195,15 +142,6 @@ component Serial_rx
 		new_data : out std_logic
 		);
 	end component;
-
-component RS232_tx 
-    port (
-		mclk 			: 	in STD_LOGIC;
-		data 			: 	in STD_LOGIC_VECTOR (7 downto 0);
-		send_data 	: 	in STD_LOGIC;
-		busy 			: 	out STD_LOGIC;
-		tx 			: 	out STD_LOGIC);
-end component;
 
 component RX_Decode
 	port( 
@@ -218,8 +156,6 @@ component RX_Decode
 		OR_MODE_TRIGGER2 : out  STD_LOGIC;
 		FORCE_TRIGGERS1  : out STD_LOGIC;
 		FORCE_TRIGGERS2  : out STD_LOGIC;
-		SELECTIVE_READ   : out  STD_LOGIC;
-		COINCIDENCE_READ : out  STD_LOGIC;
 		RESET_TIMESTAMP  : out STD_LOGIC;
 		FOLLOWER_MODE1   : out  STD_LOGIC;
 		FOLLOWER_MODE2      : out  STD_LOGIC;
@@ -231,10 +167,6 @@ component RX_Decode
 		CS2                 : out  STD_LOGIC;
 		CSHIFT2             : out  STD_LOGIC;
 		CIN2                : out  STD_LOGIC;
-		ANODE_MASK1         : out  STD_LOGIC_VECTOR(35 downto 0);
-		ANODE_MASK2         : out  STD_LOGIC_VECTOR(35 downto 0);
-		CATHODE_MASK1       : out  STD_LOGIC_VECTOR(35 downto 0);
-		CATHODE_MASK2       : out  STD_LOGIC_VECTOR(35 downto 0);
 		DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 		DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 		DIAGNOSTIC_SEND     : out  STD_LOGIC
@@ -267,8 +199,6 @@ Port (
 	-- Configuration
 	CHIP_ID            : in std_logic;
 	FPGA_ADDR          : in std_logic_vector(5 downto 0);
-	ANODE_MASK         : in std_logic_vector(35 downto 0);
-	CATHODE_MASK       : in std_logic_vector(35 downto 0);
 	
 	-- Readout settings
 	ENABLE             : in std_logic; -- Arms the FPGA to wait for RENA-3 triggers
@@ -277,14 +207,6 @@ Port (
 	FOLLOWER_MODE      : in std_logic;
 	FOLLOWER_MODE_CHAN : in std_logic_vector(5 downto 0);
 	FOLLOWER_MODE_TCLK : in std_logic_vector(1 downto 0);
-	SELECTIVE_READ     : in std_logic;
-	COINCIDENCE_READ   : in std_logic;
-	ANODE_TRIG_IN      : in std_logic;
-	ANODE_TRIG_OUT     : out std_logic;
-	CATHODE_TRIG_IN    : in std_logic;
-	CATHODE_TRIG_OUT   : out std_logic;
-	I_READ             : out std_logic;
-	U_TRIG             : in std_logic;
 	
 	-- Data transmit
 	TX_BUSY            : in std_logic;
@@ -292,6 +214,10 @@ Port (
 	SEND_TX_DATA       : out std_logic; -- One shot signal indicating there's data to send
 	
 	SLOW_TIMESTAMP     : in std_logic_vector(41 downto 0);
+	
+	-- Crosstalk blocking
+	DONT_TRIG_IN       : in std_logic;
+	DONT_TRIG_OUT      : out std_logic;
 
 	-- Shaper reset
 	CLF                : out std_logic;
@@ -321,9 +247,6 @@ Port (
 	nCS                : out std_logic; -- ADC chip select ("select" in the sense that data is read from it when nCS = 0)
 	SDO                : in  std_logic; -- ADC Serial data
 	SCLK               : out std_logic  -- ADC clock
-
-	-- Unused
-	-- OVERFLOW           : in std_logic
 		);
 end component;
 
@@ -351,18 +274,12 @@ component diagnostic_messenger is
 	);
 end component;
 
--- Debug
-signal debugOutOSC1 : std_logic_vector(3 downto 0);
-signal debugOutOSC2 : std_logic_vector(3 downto 0);
-
---signal mclk : std_logic;
 signal ledOut : std_logic;
 
 signal systemClk   : std_logic;
 signal systemClkX2Wire : std_logic;
 
---signal rx : std_logic;
---signal tx : std_logic;
+signal tx : std_logic;
 
 signal fpga_address : std_logic_vector(5 downto 0);
 
@@ -376,6 +293,9 @@ signal reset_timestamp : std_logic;
 
 signal slow_timestamp : std_logic_vector(41 downto 0);
 signal next_slow_timestamp : std_logic_vector(41 downto 0);
+
+signal dont_trig_from_rena1 : std_logic;
+signal dont_trig_from_rena2 : std_logic;
 
 signal nTF1 : std_logic;
 signal nTF1clked : std_logic;
@@ -402,8 +322,6 @@ signal or_mode_trigger1   : std_logic;
 signal or_mode_trigger2   : std_logic;
 signal force_trigger1     : std_logic;
 signal force_trigger2     : std_logic;
-signal selective_read     : std_logic;
-signal coincidence_read   : std_logic;
 signal follower_mode1     : std_logic;
 signal follower_mode2     : std_logic;
 signal follower_mode_chan : std_logic_vector(5 downto 0);
@@ -413,11 +331,6 @@ signal anTrig_1To2 : std_logic;
 signal anTrig_2To1 : std_logic;
 signal caTrig_1To2 : std_logic;
 signal caTrig_2To1 : std_logic;
-
-signal anode_mask1   : std_logic_vector (35 downto 0);
-signal cathode_mask1 : std_logic_vector (35 downto 0);
-signal anode_mask2   : std_logic_vector (35 downto 0);
-signal cathode_mask2 : std_logic_vector (35 downto 0);
 
 signal i_read1    : std_logic;
 signal i_read2    : std_logic;
@@ -533,46 +446,23 @@ port map (
 
 --=========================================================================
 -- Digital Clock Manager:
--- Buffers input clock
--- Generates a debug clock at 4x the frequency of the input clock so we
--- can chipscope on the input clock too
--- Remember to regenerate DCM using differential inputs if we are using
--- differential inputs.
---=========================================================================
---DebugClock1 : DebugClock port map(
---          --CLKIN_N_IN => MCLKn,
---			 --CLKIN_P_IN => MCLKp,
---          CLKIN_IN => mclk,
---          RST_IN => RST,
---			 CLKFX_OUT => systemClkX4,
---          CLKIN_IBUFG_OUT => systemClk,
---			 --CLKIN_IBUFGDS_OUT => systemClk,
---          CLK0_OUT => open,
---          LOCKED_OUT => open
---			 );
-			 
-clockSource : systemClkX2 port map(
-          CLKIN_IN => mclk, 
+--=========================================================================			 
+clockSource : systemClkX2DiffIn port map(
+          CLKIN_N_IN => MCLKn,
+			 CLKIN_P_IN => MCLKp,
           RST_IN => RST,
           CLKFX_OUT => open, 
-          CLKIN_IBUFG_OUT => systemClk,
-          CLK0_OUT => open, 
+          CLKIN_IBUFGDS_OUT => open,
+          CLK0_OUT => systemClk, 
           CLK2X_OUT => systemClkX2Wire, 
           LOCKED_OUT => open);
 
 --========================================================================
 -- Miscellaneous connections
 --========================================================================
-debugClkOut <= '0';
--- debugClkOut <= systemClk;
-debugSamplingClk <= '0';
--- debugOutMain <= ('0' & txDebug);
--- debugOutMain <= ('0' & decoderDebug);
--- debugOutMain <= debugOutOSC2 or debugOutOSC1;
-debugOutMain <= "000" & ledOut;
+--debugOutMain <= force_trigger1;
+debugOutMain <= ledOut;
 fpga_address <= ADDR;
-next_ITRIG <= i_read1 or i_read2;
-ITRIG <= int_ITRIG;
 
 --========================================================================
 -- D flip flops
@@ -599,13 +489,6 @@ begin
 		nTS2clked <= nTS2;
 	end if;
 end process;
-
-process(systemClk)
-begin
-	if rising_edge(systemClk) then
-		int_ITRIG <= next_ITRIG;
-	end if;
-end process;
 	
 --========================================================================
 -- This module blinks the LEDs
@@ -615,55 +498,15 @@ LEDDriver : LED port map(
 		  ledOut => ledOut
 		  );
 
-process(ledOut)
-begin
-	ledOut1 <= ledOut;
-	ledOut2 <= '1';
-end process;
-
-----=========================================================================
----- This section is for checking RX and TX functionality
----- Comment out for operation
-----=========================================================================
---MyTestRx : testRx port map (
---			mclk => systemClk,
---			testRx => rx,
---			dataRx => dataWire,
---			rxFlag => flagWire,
---			debugOut => debugWire
---			);
---
---MyTestTx : testTx port map(
---			mclk => systemClk,
---			txFlag => flagWire,
---			dataTx => dataWire,
---			testTx => tx
---			);
-----=========================================================================
-
---   -- IBUFDS: Differential Input Buffer
---   instRX2 : IBUFDS
---   generic map (
---      CAPACITANCE      => "DONT_CARE",  -- "LOW", "NORMAL", "DONT_CARE" (Virtex-4 only)
---      DIFF_TERM        => FALSE,        -- Differential Termination (Virtex-4/5, Spartan-3E/3A)
---      IBUF_DELAY_VALUE => "0",          -- Specify the amount of added input delay for buffer, "0"-"16" (Spartan-3E/3A only)
---      IFD_DELAY_VALUE  => "AUTO",       -- Specify the amount of added delay for input register, "AUTO", "0"-"8" (Spartan-3E/3A only)
---      IOSTANDARD       => "LVDS_25")
---   port map (
---      O  => rx,   -- Clock buffer output
---      I  => RXp,  -- Diff_p clock buffer input (connect directly to top-level port)
---      IB => RXn   -- Diff_n clock buffer input (connect directly to top-level port)
---   );
---
---   -- OBUFDS: Differential Output Buffer
---   instTXpn : OBUFDS
---   generic map (
---      IOSTANDARD => "DEFAULT")
---   port map (
---      O  => TXp,  -- Diff_p output (connect directly to top-level port)
---      OB => TXn,  -- Diff_n output (connect directly to top-level port)
---      I  => tx    -- Buffer input 
---   );
+-- OBUFDS: Differential Output Buffer
+instTXpn : OBUFDS
+generic map (
+	IOSTANDARD => "DEFAULT")
+port map (
+	O  => TXp,  -- Diff_p output (connect directly to top-level port)
+	OB => TXn,  -- Diff_n output (connect directly to top-level port)
+	I  => tx    -- Buffer input 
+);
 
 --========================================================================
 -- Data receive interface module
@@ -674,14 +517,6 @@ UART : Serial_rx port map(
 		  data     => rx_data,
 		  new_data => new_rx_data
 	 );
-	 
---UART1 : RS232_tx port map(
---		  mclk => systemClk, 
---		  data => rx_data,
---		  send_data => new_rx_data,
---		  busy => open,
---		  tx => tx
---		  );
 
 --========================================================================
 -- Decode received configuration data
@@ -703,18 +538,12 @@ RX_Decoder:  RX_Decode port map(
 			  FOLLOWER_MODE2 => follower_mode2,
 			  FOLLOWER_MODE_CHAN => follower_mode_chan,
 			  FOLLOWER_MODE_TCLK => follower_mode_tclk,
-			  SELECTIVE_READ => selective_read,
-			  COINCIDENCE_READ => coincidence_read,
            CS1  => CS1,
            CSHIFT1  => CSHIFT1,
            CIN1  => CIN1,
            CS2  => CS2,
            CSHIFT2  => CSHIFT2,
            CIN2  => CIN2,
-			  ANODE_MASK1 => anode_mask1,
-			  ANODE_MASK2 => anode_mask2,
-			  CATHODE_MASK1 => cathode_mask1,
-			  CATHODE_MASK2 => cathode_mask2,
 			  diagnostic_rena1_settings => diagnostic_rena1_settings,
 			  diagnostic_rena2_settings => diagnostic_rena2_settings,
 			  DIAGNOSTIC_SEND => diagnostic_send
@@ -742,24 +571,13 @@ TX_2buffers: RS232_tx_buffered PORT MAP(
 --========================================================================
 RENA_MODULE_1: OperationalStateController PORT MAP(
 	-- Debug
-	debugOut => debugOutOSC1,
-	
-	ANODE_MASK => anode_mask1,
-	CATHODE_MASK => cathode_mask1,
+	debugOut => open,
 	
 	OR_MODE_TRIGGER => or_mode_trigger1,
 	FORCE_TRIGGER => force_trigger1,
 	FOLLOWER_MODE => follower_mode1,
 	FOLLOWER_MODE_CHAN => follower_mode_chan,
 	FOLLOWER_MODE_TCLK => follower_mode_tclk,
-	SELECTIVE_READ => selective_read,
-	COINCIDENCE_READ => coincidence_read,
-	ANODE_TRIG_IN => anTrig_2To1,
-	ANODE_TRIG_OUT => anTrig_1To2,
-	CATHODE_TRIG_IN => caTrig_2To1, 
-	CATHODE_TRIG_OUT => caTrig_1To2,
-	I_READ => i_read1,
-	U_TRIG => UTRIG,
 	
 	mclk => systemClk,
 	reset => '0',
@@ -770,6 +588,8 @@ RENA_MODULE_1: OperationalStateController PORT MAP(
 	CHIP_ID => '0',
 	FPGA_ADDR => fpga_address,
 	SLOW_TIMESTAMP => slow_timestamp,
+	DONT_TRIG_IN => dont_trig_from_rena2,
+	DONT_TRIG_OUT => dont_trig_from_rena1,
 	nCS => nCS1,
 	SDO => SDO1,
 	SCLK => SCLK1,
@@ -781,8 +601,6 @@ RENA_MODULE_1: OperationalStateController PORT MAP(
 	SOUT => SOUT1,
 	SIN => SIN1,
 	FHRCLK_SHRCLK => FHRCLK_SHRCLK1,
-	-- OVERFLOW => '0', -- OVERFLOW1,
-	-- READ_SIG => READ1,
 	ACQUIRE => ACQUIRE1,
 	nTF => nTF1clked,
 	nTS => nTS1clked,
@@ -792,24 +610,13 @@ RENA_MODULE_1: OperationalStateController PORT MAP(
 
 RENA_MODULE_2: OperationalStateController PORT MAP(
 	-- Debug
-	debugOut => debugOutOSC2,
-	
-	ANODE_MASK => anode_mask2,
-	CATHODE_MASK => cathode_mask2,
+	debugOut => open,
 	
 	OR_MODE_TRIGGER => or_mode_trigger2,
 	FORCE_TRIGGER => force_trigger2,
 	FOLLOWER_MODE => follower_mode2,
 	FOLLOWER_MODE_CHAN => follower_mode_chan,
 	FOLLOWER_MODE_TCLK => follower_mode_tclk,
-	SELECTIVE_READ => selective_read,
-	COINCIDENCE_READ => coincidence_read,
-	ANODE_TRIG_IN => anTrig_1To2,
-	ANODE_TRIG_OUT => anTrig_2To1,
-	CATHODE_TRIG_IN => caTrig_1To2,
-	CATHODE_TRIG_OUT => caTrig_2To1,
-	I_READ => i_read2,
-	U_TRIG => UTRIG,
 	
 	mclk => systemClk,
 	reset => '0',
@@ -820,6 +627,8 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	CHIP_ID => '1',
 	FPGA_ADDR => fpga_address,
 	SLOW_TIMESTAMP => slow_timestamp,
+	DONT_TRIG_IN => dont_trig_from_rena1,
+	DONT_TRIG_OUT => dont_trig_from_rena2,
 	nCS => nCS2,
 	SDO => SDO2,
 	SCLK => SCLK2,
@@ -831,8 +640,6 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	SOUT => SOUT2,
 	SIN => SIN2,
 	FHRCLK_SHRCLK => FHRCLK_SHRCLK2,
-	-- OVERFLOW => '0', -- OVERFLOW2,
-	-- READ_SIG => READ2,
 	ACQUIRE => ACQUIRE2,
 	nTF => nTF2clked,
 	nTS => nTS2clked,
@@ -843,13 +650,13 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 -- Assemble bits into vectors
 diagnostic_bug_notifications <= diagnostic_full_rena1_settings(100 downto 71); ---- HACK!!!!!!!!!!!
 diagnostic_full_rena1_settings
-   <= anode_mask1 & cathode_mask1 & diagnostic_rena1_settings
-     & or_mode_trigger1 & force_trigger1 & selective_read & enable_readout1 & coincidence_read
+   <= "000000000000000000000000000000000000" & "000000000000000000000000000000000000" & diagnostic_rena1_settings
+     & or_mode_trigger1 & force_trigger1 & '0' & enable_readout1 & '0'
      & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk;
 diagnostic_full_rena2_settings
-   <= anode_mask2 & cathode_mask2 & diagnostic_rena2_settings
-     & or_mode_trigger1 & force_trigger1 & selective_read & enable_readout1 & coincidence_read -- redundant, but oh well
-     & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk;              -- redundant, but oh well
+   <= "000000000000000000000000000000000000" & "000000000000000000000000000000000000" & diagnostic_rena2_settings
+     & or_mode_trigger1 & force_trigger1 & '0' & enable_readout1 & '0'            -- redundant, but oh well
+     & follower_mode1 & follower_mode2 & follower_mode_chan & follower_mode_tclk; -- redundant, but oh well
 
 DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 	GENERIC MAP(
@@ -867,6 +674,5 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 		rena2_settings    => diagnostic_full_rena2_settings,
 		bug_notifications => diagnostic_bug_notifications
 	);
-
 
 end Behavioral;
