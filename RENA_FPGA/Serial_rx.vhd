@@ -56,6 +56,13 @@ type new_data_bit_state_type is (
 	HI);
 
 -- Signal declarations
+
+-- Double-register the rx input to prevent any phase/timing issues from
+-- propogating in. Use a 2 bit shift register. The usable output is
+-- rx_buffered.
+signal rx_shiftreg : std_logic_vector(1 downto 0);
+signal rx_buffered : std_logic;
+
 signal state      : state_type := IDLE;
 signal next_state : state_type := IDLE;
 
@@ -84,10 +91,14 @@ begin
 
 data <= data_temp;
 
+rx_buffered <= rx_shiftreg(1);
+
+
 -- DFFs
 process(mclkx2)
  begin
 	if rising_edge(mclkx2) then
+		rx_shiftreg <= rx_shiftreg(0) & rx; -- 2-bit shift register
 		state <= next_state;
 		new_data_bit_state <= next_new_data_bit_state;
 		bit_counter <= next_bit_counter;
@@ -105,10 +116,10 @@ end process;
 -- RX FSM
 -- The FMS assumes 1 start bit, 8 data bits (LB first), 1 stop bit, and
 -- active low signals.
-process(shift_register, state, rx, baudrate_counter, bit_counter, data_temp)
+process(shift_register, state, rx_buffered, baudrate_counter, bit_counter, data_temp)
 	begin
 		case state is
-		-- Wait until the rx line asserts valid data
+		-- Wait until the rx_buffered line asserts valid data
 		when IDLE =>
 			next_shift_register <= shift_register;
 			next_data_temp <= data_temp;
@@ -120,7 +131,7 @@ process(shift_register, state, rx, baudrate_counter, bit_counter, data_temp)
 			-- middle of the bits every max_counter_rx clock cycles.
 			next_baudrate_counter <= (max_counter_rx/2)-1;
 
-			if rx = '0' then
+			if rx_buffered= '0' then
 				next_state <= RECEIVE_START_BIT;
 			else
 				next_state <= state;
@@ -144,7 +155,7 @@ process(shift_register, state, rx, baudrate_counter, bit_counter, data_temp)
 
 			if baudrate_counter = 0 then
 				next_baudrate_counter <= max_counter_rx - 1;
-				next_shift_register <= rx & shift_register(7 downto 1);
+				next_shift_register <= rx_buffered & shift_register(7 downto 1);
 
 				if bit_counter = 0 then
 					next_state <= RECEIVE_STOP_BIT;
