@@ -225,7 +225,7 @@ begin
 
 			when SENDSTATE_LASTBYTE =>
 				-- Fill the packet with the top 6 bits of send_copy_rena1_settings
-				packet_data_next <= x"FF";
+				packet_data_next <= packet_end_token;
 				packet_data_wr_next <= '1';
 				send_state_next <= SENDSTATE_IDLE;
 
