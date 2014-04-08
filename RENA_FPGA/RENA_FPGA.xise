@@ -83,7 +83,7 @@
       <association xil_pn:name="PostRouteSimulation"/>
       <association xil_pn:name="PostTranslateSimulation"/>
     </file>
-    <file xil_pn:name="sapet_packets.vhd" xil_pn:type="FILE_VHDL">
+    <file xil_pn:name="../FPGA_Shared/sapet_packets.vhd" xil_pn:type="FILE_VHDL">
       <association xil_pn:name="BehavioralSimulation"/>
       <association xil_pn:name="Implementation"/>
     </file>
