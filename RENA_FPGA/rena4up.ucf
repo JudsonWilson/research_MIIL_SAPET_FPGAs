@@ -17,7 +17,7 @@ NET "MCLKn" DIFF_TERM = "FALSE";
 NET "MCLKn" IOSTANDARD = LVDS_25;
 # Need to apply period constraint only to the P side of the signal
 NET "MCLKp" TNM_NET = "MCLKp";
-TIMESPEC TS_MCLKp = PERIOD "MCLKp" 20 ns HIGH 50 %;
+TIMESPEC TS_MCLKp = PERIOD "MCLKp" 16 ns HIGH 50 %;
 
 #=========================================================================
 # Electrical constraints
