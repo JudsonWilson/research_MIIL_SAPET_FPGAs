@@ -33,6 +33,7 @@ entity RX_Decode is
     Port (
 			  debugOut            : out  STD_LOGIC_VECTOR(2 downto 0);
 			  mclk 			       : in   STD_LOGIC;                     -- Clock signal
+			  RESET               : in   STD_LOGIC;
 			  RX_DATA             : in   STD_LOGIC_VECTOR(7 downto 0);  -- Received data byte
            NEW_RX_DATA         : in   STD_LOGIC;                     -- Flag indicating presence of new data
 			  FPGA_ADDRESS        : in   STD_LOGIC_VECTOR(5 downto 0);  -- Specifies which FPGA is the intended recipient
@@ -61,6 +62,8 @@ entity RX_Decode is
 end RX_Decode;
 
 architecture Behavioral of RX_Decode is
+  signal int_reset : std_logic;
+
   type buff is array(6 downto 0) of std_logic_vector(5 downto 0);
   
   signal int_fpga_address_reg  : std_logic_vector (5 downto 0);
@@ -164,6 +167,8 @@ begin
 
 debugOut <= cstate_out;
 
+int_reset <= RESET;
+
 RESET_TIMESTAMP <= int_reset_timestamp;
 OR_MODE_TRIGGER1 <= int_or_mode_trigger1;
 OR_MODE_TRIGGER2 <= int_or_mode_trigger2;
@@ -183,10 +188,41 @@ DIAGNOSTIC_SEND <= int_diagnostic_send;
 --========================================================================
 -- Sequential logic
 --========================================================================
-process(mclk)
+process(mclk, int_reset, FPGA_ADDRESS)
  begin
    -- D flip-flop to keep everything synchronized
-	if rising_edge(mclk) then
+	if int_reset = '1' then
+		sync_new_data <= '0';
+		sync_ms_bits <= "00";
+		sync_fpga_instr_bits <= "000000";
+		sync_rena_instr_bits <= "0000";
+		sync_data_bits <= "000000";
+
+		rx_counter <= 0;
+		rx_buffer <= ("000000","000000","000000","000000","000000","000000","000000");
+		int_fpga_address_reg <= FPGA_ADDRESS xor "101010"; -- Flip some bits to make sure it's not set to THIS fpga address.
+		int_reset_timestamp <= '1';
+
+		rena_settings_data <= "00000000000000000000000000000000000000000";
+		rena_settings_chip <= '0';
+
+		int_or_mode_trigger1   <= '0';
+		int_or_mode_trigger2   <= '0';
+		int_force_triggers1    <= '0';
+		int_force_triggers2    <= '0';
+		int_enable_readout1    <= '0';
+		int_enable_readout2    <= '0';
+		int_selective_read     <= '0';
+		int_follower_mode1     <= '0';
+		int_follower_mode2     <= '0';
+		int_follower_mode_chan <= "000000";
+		int_follower_mode_tclk <= "00";
+
+		int_diagnostic_rena1_settings <= "000000000000000000000000000000000000000000";
+		int_diagnostic_rena2_settings <= "000000000000000000000000000000000000000000";
+
+		int_diagnostic_send <= '0';
+	elsif rising_edge(mclk) then
 		sync_new_data <= NEW_RX_DATA;
 		sync_ms_bits <= RX_DATA(7 downto 6);
   		sync_fpga_instr_bits <= RX_DATA(5 downto 0);

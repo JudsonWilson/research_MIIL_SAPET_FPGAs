@@ -148,6 +148,7 @@ component RX_Decode
 	port( 
 		debugOut: out STD_LOGIC_VECTOR(2 downto 0);
 		mclk    : in std_logic;
+		RESET   : in  STD_LOGIC;
 		RX_DATA : in  STD_LOGIC_VECTOR (7 downto 0);
 		NEW_RX_DATA      : in  STD_LOGIC;
 		FPGA_ADDRESS     : in STD_LOGIC_VECTOR(5 downto 0);
@@ -561,6 +562,7 @@ UART : Serial_rx port map(
 --========================================================================
 RX_Decoder:  RX_Decode port map(
 			  debugOut => open,
+			  RESET => RST,
 			  mclk => systemClk,
 			  RX_DATA => rx_data,
            NEW_RX_DATA => new_rx_data,
