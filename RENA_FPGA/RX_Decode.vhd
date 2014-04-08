@@ -19,10 +19,7 @@
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx primitives in this code.
@@ -57,7 +54,10 @@ entity RX_Decode is
            CIN2                : out  STD_LOGIC;  -- RENA-3 2 configuration data
 			  DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 			  DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
-			  DIAGNOSTIC_SEND     : out  STD_LOGIC
+			  DIAGNOSTIC_SEND     : out  STD_LOGIC;
+			  THROUGHPUT_TESTER_NUM_PACKET_BYTES_FILLER : out STD_LOGIC_VECTOR(7 downto 0);
+			  THROUGHPUT_TESTER_PACKET_PERIOD           : out STD_LOGIC_VECTOR(28-1 downto 0);
+			  THROUGHPUT_TESTER_ENABLE                  : out STD_LOGIC
 			 );
 end RX_Decode;
 
@@ -141,6 +141,14 @@ architecture Behavioral of RX_Decode is
   signal int_diagnostic_send : std_logic := '0';
   signal diagnostic_send_next : std_logic := '0';
 
+  signal int_throughput_tester_num_packet_bytes_filler : std_logic_vector (7 downto 0) := x"00";
+  signal int_throughput_tester_packet_period           : std_logic_vector (28-1 downto 0) := "0000000000000000000000000000";
+  signal int_throughput_tester_enable                  : std_logic := '0';
+
+  signal next_throughput_tester_num_packet_bytes_filler : std_logic_vector (7 downto 0) := x"00";
+  signal next_throughput_tester_packet_period           : std_logic_vector (28-1 downto 0) := "0000000000000000000000000000";
+  signal next_throughput_tester_enable                  : std_logic := '0';
+
   signal sync_new_data  : std_logic;
   signal sync_ms_bits   : std_logic_vector(1 downto 0);
   signal sync_fpga_instr_bits : std_logic_vector(5 downto 0);
@@ -184,7 +192,10 @@ FOLLOWER_MODE_TCLK <= int_follower_mode_tclk;
 DIAGNOSTIC_RENA1_SETTINGS <= int_diagnostic_rena1_settings;
 DIAGNOSTIC_RENA2_SETTINGS <= int_diagnostic_rena2_settings;
 DIAGNOSTIC_SEND <= int_diagnostic_send;
-		
+THROUGHPUT_TESTER_NUM_PACKET_BYTES_FILLER <= int_throughput_tester_num_packet_bytes_filler;
+THROUGHPUT_TESTER_PACKET_PERIOD           <= int_throughput_tester_packet_period;
+THROUGHPUT_TESTER_ENABLE                  <= int_throughput_tester_enable;
+
 --========================================================================
 -- Sequential logic
 --========================================================================
@@ -222,6 +233,10 @@ process(mclk, int_reset, FPGA_ADDRESS)
 		int_diagnostic_rena2_settings <= "000000000000000000000000000000000000000000";
 
 		int_diagnostic_send <= '0';
+
+		int_throughput_tester_num_packet_bytes_filler <= x"00";
+		int_throughput_tester_packet_period <= std_logic_vector(to_unsigned(50000000, int_throughput_tester_packet_period'length)); -- Default period is 1 second (assuming 50MHz clock)
+		int_throughput_tester_enable <= '0';
 	elsif rising_edge(mclk) then
 		sync_new_data <= NEW_RX_DATA;
 		sync_ms_bits <= RX_DATA(7 downto 6);
@@ -253,6 +268,10 @@ process(mclk, int_reset, FPGA_ADDRESS)
 		int_diagnostic_rena2_settings <= next_diagnostic_rena2_settings;
 
 		int_diagnostic_send <= diagnostic_send_next;
+
+		int_throughput_tester_num_packet_bytes_filler <= next_throughput_tester_num_packet_bytes_filler;
+		int_throughput_tester_packet_period <= next_throughput_tester_packet_period;
+		int_throughput_tester_enable <= next_throughput_tester_enable;
 	end if;
 end process;
 
@@ -265,7 +284,10 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 			int_force_triggers1, int_force_triggers2, int_fpga_address_reg,
 			int_enable_readout1,	int_enable_readout2, int_selective_read,
 			int_follower_mode1, int_follower_mode2, int_follower_mode_chan, int_follower_mode_tclk,
-			int_diagnostic_rena1_settings, int_diagnostic_rena2_settings)
+			int_diagnostic_rena1_settings, int_diagnostic_rena2_settings,
+			int_throughput_tester_enable, int_throughput_tester_num_packet_bytes_filler,
+			int_throughput_tester_packet_period		
+       )
   begin
       next_rx_counter <= rx_counter;
 	   next_rx_buffer <= rx_buffer;
@@ -291,7 +313,11 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 		next_diagnostic_rena2_settings <= int_diagnostic_rena2_settings;
 
 		diagnostic_send_next <= '0'; -- A state will pulse this for 1 cycle.
-		
+
+		next_throughput_tester_enable <= int_throughput_tester_enable;
+		next_throughput_tester_num_packet_bytes_filler <= int_throughput_tester_num_packet_bytes_filler;
+		next_throughput_tester_packet_period <= int_throughput_tester_packet_period;
+
 		if (sync_new_data = '1') then
 		
 			case (sync_ms_bits) is
@@ -372,6 +398,21 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 							-- Send diagnostic message back to PC.
 							when "1110" =>
 								diagnostic_send_next <= '1';
+
+							-- Set throughput tester settings (including enable, etc).
+							when "1111" =>
+								next_throughput_tester_enable <= rx_buffer(0)(0);
+								-- The top bit if the first byte (6 bit) indicates whether higher buffer bits were filled
+								-- or not. The intention is that you could individually set settings for different boards,
+								-- and leave enable off. Once that is done, broadcast the enable without effecting the
+								-- previously set settings.
+								if rx_buffer(0)(5) = '1' then
+									next_throughput_tester_num_packet_bytes_filler <= rx_buffer(6) & rx_buffer(5)(5 downto 4); -- top 8 bits
+									next_throughput_tester_packet_period <= rx_buffer(5)(3 downto 0) & rx_buffer(4) & rx_buffer(3) & rx_buffer(2) & rx_buffer(1); -- next 28 bits
+								else
+									next_throughput_tester_num_packet_bytes_filler <= int_throughput_tester_num_packet_bytes_filler;
+									next_throughput_tester_packet_period <= int_throughput_tester_packet_period;
+								end if;
 
 							when others =>
 								null;

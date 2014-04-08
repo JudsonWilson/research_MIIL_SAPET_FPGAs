@@ -172,7 +172,10 @@ component RX_Decode
 		CIN2                : out  STD_LOGIC;
 		DIAGNOSTIC_RENA1_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
 		DIAGNOSTIC_RENA2_SETTINGS : out  STD_LOGIC_VECTOR(41 downto 0);
-		DIAGNOSTIC_SEND     : out  STD_LOGIC
+		DIAGNOSTIC_SEND     : out  STD_LOGIC;
+		THROUGHPUT_TESTER_NUM_PACKET_BYTES_FILLER : out STD_LOGIC_VECTOR (7 downto 0);
+		THROUGHPUT_TESTER_PACKET_PERIOD           : out STD_LOGIC_VECTOR (28-1 downto 0);
+		THROUGHPUT_TESTER_ENABLE                  : out STD_LOGIC
 	);
 end component;
 
@@ -303,6 +306,29 @@ component diagnostic_messenger is
 	);
 end component;
 
+constant throughput_packet_period_bits : INTEGER := 28;
+
+component throughput_tester is
+	Port (
+		clk    : in STD_LOGIC;
+		reset  : in STD_LOGIC;
+
+		fpga_addr      : in std_logic_vector(5 downto 0);
+
+		-- Configuration (Dynamic)
+		num_packet_bytes_filler  : in STD_LOGIC_VECTOR (7 downto 0); -- Number of extra bytes to put in the end of the packet, to adjust the length
+		throughput_packet_period : in STD_LOGIC_VECTOR (throughput_packet_period_bits-1 downto 0);
+
+		enable : in STD_LOGIC; -- Enable/Disable the counter and packet sending trigger. Existing trigger events will run through completion.
+
+		-- Packet Output
+		take_tx_port     : out STD_LOGIC;   -- Set this high when we might be sending data (i.e. when enable='1', and possibly for a short time thereafter while finishing).
+		packet_data      : out STD_LOGIC_VECTOR (7 downto 0); -- Output packet data to the TX
+		packet_data_wr   : out STD_LOGIC;                     -- Tells the TX that data is valid. Pulse once per byte.
+		packet_fifo_busy : in STD_LOGIC                       -- Notification that the receiving FIFO has not finished writing packet, and should not send right now.
+	);
+end component;
+
 signal ledOut : std_logic;
 
 signal systemClk   : std_logic;
@@ -312,10 +338,20 @@ signal tx : std_logic;
 
 signal fpga_address : std_logic_vector(5 downto 0);
 
-signal data1 : std_logic_vector(7 downto 0);
-signal new_data1 : std_logic;
-signal data2 : std_logic_vector(7 downto 0);
-signal new_data2 : std_logic;
+-- TX input sources (may or may not be connected to the TX_2buffers)
+signal tx_data_renamod1             : std_logic_vector(7 downto 0);
+signal tx_new_data_renamod1         : std_logic;
+signal tx_data_renamod2             : std_logic_vector(7 downto 0);
+signal tx_new_data_renamod2         : std_logic;
+signal tx_data_throughput_test      : std_logic_vector(7 downto 0);
+signal tx_new_data_throughput_test  : std_logic;
+-- TX active input source (connected to TX_buffers, may be assigned to the
+--                         signals above, or not)
+signal tx_data1                     : std_logic_vector(7 downto 0);
+signal tx_new_data1                 : std_logic;
+signal tx_data2                     : std_logic_vector(7 downto 0);
+signal tx_new_data2                 : std_logic;
+-- TX busy signal. Note the behavior of this important.
 signal tx_busy : std_logic;
 
 signal reset_timestamp : std_logic;
@@ -387,6 +423,11 @@ signal diagnostic_packet_data    : std_logic_vector(7 downto 0);
 signal diagnostic_packet_data_wr : std_logic;
 signal diagnostic_packet_fifo_full    : std_logic;
 signal diagnostic_send : std_logic;
+
+signal throughput_tester_num_packet_bytes_filler : std_logic_vector (7 downto 0);
+signal throughput_tester_packet_period    : std_logic_vector (28-1 downto 0);
+signal throughput_tester_enable           : std_logic;
+signal throughput_tester_take_TX_channels : std_logic;
 
 begin
 
@@ -587,8 +628,35 @@ RX_Decoder:  RX_Decode port map(
            CIN2  => CIN2,
 			  diagnostic_rena1_settings => diagnostic_rena1_settings,
 			  diagnostic_rena2_settings => diagnostic_rena2_settings,
-			  DIAGNOSTIC_SEND => diagnostic_send
+			  DIAGNOSTIC_SEND => diagnostic_send,
+			  THROUGHPUT_TESTER_NUM_PACKET_BYTES_FILLER => throughput_tester_num_packet_bytes_filler,
+			  THROUGHPUT_TESTER_PACKET_PERIOD           => throughput_tester_packet_period,
+			  THROUGHPUT_TESTER_ENABLE                  => throughput_tester_enable
 			  );
+
+--========================================================================
+-- Data Source Switch
+-- - In throughput testing mode, the throughput_tester output hijacks
+--   the inputs to the TX module from the rena controllers.
+--========================================================================
+output_selector_process : process (throughput_tester_take_TX_channels,
+                                   tx_data_renamod1,        tx_new_data_renamod1,
+                                   tx_data_renamod2,        tx_new_data_renamod2,
+                                   tx_data_throughput_test, tx_new_data_throughput_test
+											 )
+begin
+	if throughput_tester_take_TX_channels = '0' then
+		tx_data1     <= tx_data_renamod1;
+		tx_new_data1 <= tx_new_data_renamod1;
+		tx_data2     <= tx_data_renamod2;
+		tx_new_data2 <= tx_new_data_renamod2;
+	else
+		tx_data1     <= tx_data_throughput_test;
+		tx_new_data1 <= tx_new_data_throughput_test;
+		tx_data2     <= (others => '0');
+		tx_new_data2 <= '0';
+	end if;
+end process;
 
 --========================================================================
 -- Data transmit interface module
@@ -599,10 +667,10 @@ TX_2buffers: RS232_tx_buffered PORT MAP(
 	data_diag => diagnostic_packet_data,
 	new_data_diag => diagnostic_packet_data_wr,
 	data_diag_full => diagnostic_packet_fifo_full,
-	data1 => data1,
-	new_data1 => new_data1,
-	data2 => data2,
-	new_data2 => new_data2,
+	data1 => tx_data1,
+	new_data1 => tx_new_data1,
+	data2 => tx_data2,
+	new_data2 => tx_new_data2,
 	tx_busy => tx_busy,
 	tx => tx
 	);
@@ -648,8 +716,8 @@ RENA_MODULE_1: OperationalStateController PORT MAP(
 	reset => RST,
 	ENABLE => enable_readout1,
 	TX_BUSY => tx_busy,
-	TX_DATA => data1,
-	SEND_TX_DATA => new_data1,
+	TX_DATA => tx_data_renamod1,
+	SEND_TX_DATA => tx_new_data_renamod1,
 	CHIP_ID => '0',
 	FPGA_ADDR => fpga_address,
 	SLOW_TIMESTAMP => slow_timestamp,
@@ -694,8 +762,8 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	reset => RST,
 	ENABLE => enable_readout2,
 	TX_BUSY => tx_busy,
-	TX_DATA => data2,
-	SEND_TX_DATA => new_data2,
+	TX_DATA => tx_data_renamod2,
+	SEND_TX_DATA => tx_new_data_renamod2,
 	CHIP_ID => '1',
 	FPGA_ADDR => fpga_address,
 	SLOW_TIMESTAMP => slow_timestamp,
@@ -742,6 +810,21 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 		rena1_settings    => diagnostic_full_rena1_settings,
 		rena2_settings    => diagnostic_full_rena2_settings,
 		bug_notifications => diagnostic_bug_notifications
+	);
+
+
+THROUGHPUT_TESTER_MODULE: throughput_tester
+	PORT MAP(
+		clk   => systemClk,
+		reset => RST,
+		fpga_addr => fpga_address,
+		num_packet_bytes_filler  => throughput_tester_num_packet_bytes_filler,
+		throughput_packet_period => throughput_tester_packet_period,
+		enable => throughput_tester_enable,
+		take_tx_port => throughput_tester_take_TX_channels,
+		packet_data    => tx_data_throughput_test,
+		packet_data_wr => tx_new_data_throughput_test,
+		packet_fifo_busy => tx_busy
 	);
 
 end Behavioral;

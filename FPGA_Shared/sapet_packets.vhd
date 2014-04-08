@@ -30,9 +30,10 @@ package sapet_packets is
 
 	constant packet_start_token_frontend_config	    : std_logic_vector(7 downto 0) := x"C0"; -- Originates in PC, goes to Frontend
 	constant packet_start_token_frontend_config_echo : std_logic_vector(7 downto 0) := x"C1"; -- Originates in the Daisychain, goes to PC
-	constant packet_start_token_frontend_diagnostic  : std_logic_vector(7 downto 0) := x"C4"; -- Originates in Fronted, goes to PC
-	constant packet_start_token_data_AND_mode        : std_logic_vector(7 downto 0) := x"C8"; -- Originates in Fronted, goes to PC
-	constant packet_start_token_data_OR_mode         : std_logic_vector(7 downto 0) := x"C9"; -- Originates in Fronted, goes to PC
+	constant packet_start_token_frontend_diagnostic  : std_logic_vector(7 downto 0) := x"C4"; -- Originates in Frontend, goes to PC
+	constant packet_start_token_data_AND_mode        : std_logic_vector(7 downto 0) := x"C8"; -- Originates in Frontend, goes to PC
+	constant packet_start_token_data_OR_mode         : std_logic_vector(7 downto 0) := x"C9"; -- Originates in Frontend, goes to PC
+	constant packet_start_token_throughput_test      : std_logic_vector(7 downto 0) := x"CC"; -- Originates in Frontend, goes to PC
 	constant packet_end_token  : std_logic_vector(7 downto 0) := x"FF";
 
 	-- Function is_packet_start_byte returns true if the byte is a valid header byte
@@ -65,7 +66,8 @@ package body sapet_packets is
 		     or B = packet_start_token_frontend_config_echo
 		     or B = packet_start_token_frontend_diagnostic
 		     or B = packet_start_token_data_AND_mode
-		     or B = packet_start_token_data_OR_mode;
+		     or B = packet_start_token_data_OR_mode
+		     or B = packet_start_token_throughput_test;
 	end is_packet_start_token;
 	
 
