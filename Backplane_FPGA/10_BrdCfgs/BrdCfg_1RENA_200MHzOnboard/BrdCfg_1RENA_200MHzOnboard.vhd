@@ -1,4 +1,4 @@
-	----------------------------------------------------------------------------------
+----------------------------------------------------------------------------------
 -- Company: 
 -- Engineer: 
 -- 
@@ -24,19 +24,15 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
+library UNISIM;
+use UNISIM.VComponents.all;
 
 entity BrdCfg_1RENA_200MHzOnBoard is
 	port (
 		reset                    : in std_logic;
 		clk_200MHz               : in std_logic;
+		-- debug clock - a signal for probing
+		debug_clk_50MHz          : out std_logic;
 		-- UDP relative interface
 		compare_result           : out std_logic;
 		-- Ethernet physical chip device interface
@@ -59,19 +55,12 @@ entity BrdCfg_1RENA_200MHzOnBoard is
 		-- GTP clock
 		gtp_clkp_pin             : in std_logic;
 		gtp_clkn_pin             : in std_logic;	
-		-- RENA Board connections
-		rena0_clk_50MHz          : out std_logic;
-		rena0_tx                 : out std_logic;
-		rena0_rx                 : in  std_logic;
-		rena1_clk_50MHz          : out std_logic;
-		rena1_tx                 : out std_logic;
-		rena1_rx                 : in  std_logic;
+		-- Frontend Board connections
+		frontend_clk_50MHz       : out std_logic;
+		frontend_tx              : out std_logic;
+		frontend_rx              : in  std_logic;
 		-- Other
-		boardid                  : in std_logic_vector(2 downto 0);
-		-- My custom spartan board
-		Reset_out                : out std_logic;
-		Spartan_signal_input     : in std_logic;
-		Spartan_signal_output    : out std_logic
+		boardid                  : in std_logic_vector(2 downto 0)
 	);
 end BrdCfg_1RENA_200MHzOnBoard;
 
@@ -80,7 +69,8 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 	signal reset_i                  : std_logic;
 	signal clk_200MHz_i             : std_logic;
 	signal clk_125MHz_i             : std_logic;
-	signal clk_50MHz_i              : std_logic;
+	signal clk_50MHz_in             : std_logic;
+	signal clk_50MHz_sys            : std_logic;
 	-- UDP relative interface
 	signal compare_result_i         : std_logic;
 	-- Ethernet physical chip device interface
@@ -103,19 +93,11 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 	-- GTP clock
 	signal gtp_clkp_pin_i           : std_logic;
 	signal gtp_clkn_pin_i           : std_logic;	
-	-- RENA Board connections
-	signal rena0_clk_50MHz_i        : std_logic;
-	signal rena0_tx_i               : std_logic;
-	signal rena0_rx_i               : std_logic;
-	signal rena1_clk_50MHz_i        : std_logic;
-	signal rena1_tx_i               : std_logic;
-	signal rena1_rx_i               : std_logic;
+	-- Frontend Board connections
+	signal frontend_tx_i            : std_logic;
+	signal frontend_rx_array_i      : std_logic_vector(47 downto 0); -- Mostly dummy signals
 	-- Other
 	signal boardid_i                : std_logic_vector(2 downto 0);
-	-- My custom spartan board
-	signal Reset_out_i              : std_logic;
-	signal Spartan_signal_input_i   : std_logic;
-	signal Spartan_signal_output_i  : std_logic;
 
 	component Clock_module_200MHzIn_SingEnd
 		port (
@@ -160,19 +142,11 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 			-- GTP clock
 			gtp_clkp_pin             : in std_logic;
 			gtp_clkn_pin             : in std_logic;	
-			-- RENA Board connections
-			rena0_clk_50MHz          : out std_logic;
-			rena0_tx                 : out std_logic;
-			rena0_rx                 : in  std_logic;
-			rena1_clk_50MHz          : out std_logic;
-			rena1_tx                 : out std_logic;
-			rena1_rx                 : in  std_logic;
+			-- Frontend Board connections
+			frontend_tx              : out std_logic;
+			frontend_rx_array        : in  std_logic_vector(47 downto 0);
 			-- Other
-			boardid                  : in std_logic_vector(2 downto 0);
-			-- My custom spartan board
-			Reset_out                : out std_logic;
-			Spartan_signal_input     : in std_logic;
-			Spartan_signal_output    : out std_logic
+			boardid                  : in std_logic_vector(2 downto 0)
 		);	
 	end component;
 
@@ -182,6 +156,9 @@ begin
 	--
 	reset_i         <= reset;
 	clk_200MHz_i    <= clk_200MHz;
+	debug_clk_50MHz <= clk_50MHz_sys;
+	-- Other
+	boardid_i          <= boardid;
 	-- UDP relative interface
 	compare_result  <= compare_result_i;
 	-- Ethernet physical chip device interface
@@ -204,19 +181,59 @@ begin
 	-- GTP clock
 	gtp_clkp_pin_i     <= gtp_clkp_pin;
 	gtp_clkn_pin_i     <= gtp_clkn_pin;
-	-- RENA Board connections
-	rena0_clk_50MHz    <= rena0_clk_50MHz_i;
-	rena0_tx           <= rena0_tx_i;
-	rena0_rx_i         <= rena0_rx;
-	rena1_clk_50MHz    <= rena1_clk_50MHz_i;
-	rena1_tx           <= rena1_tx_i;
-	rena1_rx_i         <= rena1_rx;
-	-- Other
-	boardid_i          <= boardid;
-	-- My custom spartan board
-	Reset_out                <= Reset_out_i;
-	Spartan_signal_input_i   <= Spartan_signal_input;
-	Spartan_signal_output    <= Spartan_signal_output_i;
+	-- Frontend Board connections
+	frontend_clk_50MHz   <= clk_50MHz_sys;
+	frontend_tx          <= frontend_tx_i;
+	frontend_rx_array_i  <= 
+		-- The commented signals below copied from the 48RENA project.
+		'1' & --frontend_rx_array(47) &
+		'1' & --frontend_rx_array(46) &
+		'1' & --frontend_rx_array(45) &
+		'1' & --frontend_rx_array(44) &
+		'1' & --frontend_rx_array(43) &
+		'1' & --frontend_rx_array(42) &
+		'1' & --frontend_rx_array(41) &
+		'1' & --frontend_rx_array(40) &
+		'1' & --frontend_rx_array(39) &
+		'1' & --frontend_rx_array(38) &
+		'1' & --frontend_rx_array(37) &
+		'1' & --frontend_rx_array(36) &
+		'1' & --frontend_rx_array(35) &
+		'1' & --frontend_rx_array(34) &
+		'1' & --frontend_rx_array(33) &
+		'1' & --frontend_rx_array(32) &
+		'1' & --frontend_rx_array(31) &
+		'1' & --frontend_rx_array(30) &
+		'1' & --frontend_rx_array(29) &
+		'1' & --frontend_rx_array(28) &
+		'1' & --frontend_rx_array(27) &
+		'1' & --frontend_rx_array(26) &
+		'1' & --frontend_rx_array(25) &
+		'1' & --frontend_rx_array(24) &
+		'1' & --frontend_rx_array(23) &
+		'1' & --frontend_rx_array(22) &
+		'1' & --frontend_rx_array(21) &
+		'1' & --frontend_rx_array(20) &
+		'1' & --frontend_rx_array(19) &
+		'1' & --frontend_rx_array(18) &
+		'1' & --frontend_rx_array(17) &
+		'1' & --frontend_rx_array(16) &
+		'1' & --frontend_rx_array(15) &
+		'1' & --frontend_rx_array(14) &
+		'1' & --frontend_rx_array(13) &
+		'1' & --frontend_rx_array(12) &
+		'1' & --frontend_rx_array(11) &
+		'1' & --frontend_rx_array(10) &
+		'1' & --frontend_rx_array( 9) &
+		'1' & --frontend_rx_array( 8) &
+		'1' & --frontend_rx_array( 7) &
+		'1' & --frontend_rx_array( 6) &
+		'1' & --frontend_rx_array( 5) &
+		'1' & --frontend_rx_array( 4) &
+		'1' & --frontend_rx_array( 3) &
+		'1' & --frontend_rx_array( 2) &
+		'1' & --frontend_rx_array( 1) &
+		frontend_rx; --frontend_rx_array( 0);
 
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation
@@ -225,19 +242,19 @@ begin
 		port map (
 			-- global input
 			reset 		=> reset_i,
-			clk_source	=> clk_200MHz_i,	
+			clk_source  => clk_200MHz_i,
 			-- global output
 			clk_sample	=> open, --250MHz clock
 			clk_125MHz	=> clk_125MHz_i,
-			clk_50MHz	=> clk_50MHz_i,
+			clk_50MHz	=> clk_50MHz_sys,
 			clk_12MHz	=> open
 		);
 
 	Inst_datatransmission: datatransmission
 		port map (
-			reset        => reset_i,
+			reset      => reset_i,
 			clk_125MHz => clk_125MHz_i,
-			clk_50MHz  => clk_50MHz_i,
+			clk_50MHz  => clk_50MHz_sys,
 			-- UDP relative interface
 			compare_result => compare_result_i,
 			-- Ethernet physical chip device interface
@@ -260,18 +277,10 @@ begin
 			-- GTP clock
 			gtp_clkp_pin => gtp_clkp_pin_i,
 			gtp_clkn_pin => gtp_clkn_pin_i,
-			-- RENA Board connections
-			rena0_clk_50MHz => rena0_clk_50MHz_i,
-			rena0_tx        => rena0_tx_i,
-			rena0_rx        => rena0_rx_i,
-			rena1_clk_50MHz => rena1_clk_50MHz_i,
-			rena1_tx        => rena1_tx_i,
-			rena1_rx        => rena1_rx_i,
+			-- Frontend Board connections
+			frontend_tx       => frontend_tx_i,
+			frontend_rx_array => frontend_rx_array_i,
 			-- Other
-			boardid         => boardid_i,
-			-- My custom spartan board
-			Reset_out             => Reset_out_i,
-			Spartan_signal_input  => Spartan_signal_input_i,
-			Spartan_signal_output => Spartan_signal_output_i
+			boardid         => boardid_i
 		);
 end Structural;
