@@ -187,54 +187,54 @@ begin
 	-- Frontend Board connections
 	frontend_tx          <= frontend_tx_i;
 	frontend_rx_array_i  <=
-		frontend_rx_array( 0) &
-		frontend_rx_array( 1) &
-		frontend_rx_array( 2) &
-		frontend_rx_array( 3) &
-		'1' & --frontend_rx_array( 4) &
-		'1' & --frontend_rx_array( 5) &
-		'1' & --frontend_rx_array( 6) &
-		'1' & --frontend_rx_array( 7) &
-		'1' & --frontend_rx_array( 8) &
-		'1' & --frontend_rx_array( 9) &
-		'1' & --frontend_rx_array(10) &
-		'1' & --frontend_rx_array(11) &
-		'1' & --frontend_rx_array(12) &
-		'1' & --frontend_rx_array(13) &
-		'1' & --frontend_rx_array(14) &
-		'1' & --frontend_rx_array(15) &
-		'1' & --frontend_rx_array(16) &
-		'1' & --frontend_rx_array(17) &
-		'1' & --frontend_rx_array(18) &
-		'1' & --frontend_rx_array(19) &
-		'1' & --frontend_rx_array(20) &
-		'1' & --frontend_rx_array(21) &
-		'1' & --frontend_rx_array(22) &
-		'1' & --frontend_rx_array(23) &
-		'1' & --frontend_rx_array(24) &
-		'1' & --frontend_rx_array(25) &
-		'1' & --frontend_rx_array(26) &
-		'1' & --frontend_rx_array(27) &
-		'1' & --frontend_rx_array(28) &
-		'1' & --frontend_rx_array(29) &
-		'1' & --frontend_rx_array(30) &
-		'1' & --frontend_rx_array(31) &
-		'1' & --frontend_rx_array(32) &
-		'1' & --frontend_rx_array(33) &
-		'1' & --frontend_rx_array(34) &
-		'1' & --frontend_rx_array(35) &
-		'1' & --frontend_rx_array(36) &
-		'1' & --frontend_rx_array(37) &
-		'1' & --frontend_rx_array(38) &
-		'1' & --frontend_rx_array(39) &
-		'1' & --frontend_rx_array(40) &
-		'1' & --frontend_rx_array(41) &
-		'1' & --frontend_rx_array(42) &
-		'1' & --frontend_rx_array(43) &
-		'1' & --frontend_rx_array(44) &
-		'1' & --frontend_rx_array(45) &
+		'1' & --frontend_rx_array(47) &
 		'1' & --frontend_rx_array(46) &
-		'1';  --frontend_rx_array(47);
+		'1' & --frontend_rx_array(45) &
+		'1' & --frontend_rx_array(44) &
+		'1' & --frontend_rx_array(43) &
+		'1' & --frontend_rx_array(42) &
+		'1' & --frontend_rx_array(41) &
+		'1' & --frontend_rx_array(40) &
+		'1' & --frontend_rx_array(39) &
+		'1' & --frontend_rx_array(38) &
+		'1' & --frontend_rx_array(37) &
+		'1' & --frontend_rx_array(36) &
+		'1' & --frontend_rx_array(35) &
+		'1' & --frontend_rx_array(34) &
+		'1' & --frontend_rx_array(33) &
+		'1' & --frontend_rx_array(32) &
+		'1' & --frontend_rx_array(31) &
+		'1' & --frontend_rx_array(30) &
+		'1' & --frontend_rx_array(29) &
+		'1' & --frontend_rx_array(28) &
+		'1' & --frontend_rx_array(27) &
+		'1' & --frontend_rx_array(26) &
+		'1' & --frontend_rx_array(25) &
+		'1' & --frontend_rx_array(24) &
+		'1' & --frontend_rx_array(23) &
+		'1' & --frontend_rx_array(22) &
+		'1' & --frontend_rx_array(21) &
+		'1' & --frontend_rx_array(20) &
+		'1' & --frontend_rx_array(19) &
+		'1' & --frontend_rx_array(18) &
+		'1' & --frontend_rx_array(17) &
+		'1' & --frontend_rx_array(16) &
+		'1' & --frontend_rx_array(15) &
+		'1' & --frontend_rx_array(14) &
+		'1' & --frontend_rx_array(13) &
+		'1' & --frontend_rx_array(12) &
+		'1' & --frontend_rx_array(11) &
+		'1' & --frontend_rx_array(10) &
+		'1' & --frontend_rx_array( 9) &
+		'1' & --frontend_rx_array( 8) &
+		'1' & --frontend_rx_array( 7) &
+		'1' & --frontend_rx_array( 6) &
+		'1' & --frontend_rx_array( 5) &
+		'1' & --frontend_rx_array( 4) &
+		frontend_rx_array( 3) &
+		frontend_rx_array( 2) &
+		frontend_rx_array( 1) &
+		frontend_rx_array( 0);
 
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation
