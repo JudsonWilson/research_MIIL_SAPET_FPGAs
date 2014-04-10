@@ -56,7 +56,7 @@ entity BrdCfg_48RENA_50MHzSMA is
 		-- GTP clock
 		gtp_clkp_pin             : in std_logic;
 		gtp_clkn_pin             : in std_logic;	
-		-- RENA Board connections
+		-- Frontend Board connections
 		frontend_tx              : out std_logic;
 		frontend_rx_array        : in  std_logic_vector(47 downto 0);
 		-- Other
@@ -98,10 +98,6 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 	signal frontend_rx_array_i      : std_logic_vector(47 downto 0);
 	-- Other
 	signal boardid_i                : std_logic_vector(2 downto 0);
-	-- My custom spartan board
-	signal Reset_out_i              : std_logic;
-	signal Spartan_signal_input_i   : std_logic;
-	signal Spartan_signal_output_i  : std_logic;
 
 	component Clock_module_50MHzIn_Differential
 		port (
@@ -146,7 +142,7 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 			-- GTP clock
 			gtp_clkp_pin             : in std_logic;
 			gtp_clkn_pin             : in std_logic;	
-			-- RENA Board connections
+			-- Frontend Board connections
 			frontend_tx              : out std_logic;
 			frontend_rx_array        : in  std_logic_vector(47 downto 0);
 			-- Other
