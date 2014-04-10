@@ -60,7 +60,8 @@ entity BrdCfg_1RENA_200MHzOnBoard is
 		frontend_tx              : out std_logic;
 		frontend_rx              : in  std_logic;
 		-- Other
-		boardid                  : in std_logic_vector(2 downto 0)
+		boardid                  : in std_logic_vector(2 downto 0);
+		dip_switch               : in std_logic_vector(5 downto 1)
 	);
 end BrdCfg_1RENA_200MHzOnBoard;
 
@@ -96,6 +97,7 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 	-- Frontend Board connections
 	signal frontend_tx_i            : std_logic;
 	signal frontend_rx_array_i      : std_logic_vector(47 downto 0); -- Mostly dummy signals
+	signal frontend_rx_switch_out   : std_logic;
 	-- Other
 	signal boardid_i                : std_logic_vector(2 downto 0);
 
@@ -233,7 +235,27 @@ begin
 		'1' & --frontend_rx_array( 3) &
 		'1' & --frontend_rx_array( 2) &
 		'1' & --frontend_rx_array( 1) &
-		frontend_rx; --frontend_rx_array( 0);
+		frontend_rx_switch_out; --frontend_rx_array( 0);
+
+
+	----------------------------------------------------------------------------
+	-- Input Switch flipflop
+	-- - Select either 1 input, or 0 inputs, depending on what we are using
+	--   this node for (either a dummy node, or a single input node).
+	-- - 1 = 1 input, 0 = 0 inputs.
+	----------------------------------------------------------------------------
+	state_flipflop_process: process( clk_50MHz_sys, reset_i)
+	begin
+		if ( reset_i = '1') then
+			frontend_rx_switch_out <= '1'; -- Inactive state for uart.
+		elsif ( clk_50MHz_sys'event and clk_50MHz_sys = '1') then
+			if dip_switch(1) = '1' then
+				frontend_rx_switch_out <= frontend_rx;
+			else
+				frontend_rx_switch_out <= '1';
+			end if;
+		end if;
+	end process;
 
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation

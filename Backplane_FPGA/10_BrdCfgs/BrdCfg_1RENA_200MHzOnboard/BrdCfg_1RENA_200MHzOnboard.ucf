@@ -102,3 +102,9 @@ NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin" LOC = H17;
 NET "boardid[0]" LOC = AE26;
 NET "boardid[1]" LOC = AC25;
 NET "boardid[2]" LOC = AC24;
+
+NET "dip_switch[1]" LOC = U25;
+NET "dip_switch[2]" LOC = AG27;
+NET "dip_switch[3]" LOC = AF25;
+NET "dip_switch[4]" LOC = AF26;
+NET "dip_switch[5]" LOC = AE27;
