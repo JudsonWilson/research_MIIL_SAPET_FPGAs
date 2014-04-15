@@ -56,6 +56,7 @@ entity BrdCfg_1RENA_200MHzOnBoard is
 		gtp_clkp_pin             : in std_logic;
 		gtp_clkn_pin             : in std_logic;	
 		-- Frontend Board connections
+		frontend_reset           : out std_logic;
 		frontend_clk_50MHz       : out std_logic;
 		frontend_tx              : out std_logic;
 		frontend_rx              : in  std_logic;
@@ -185,6 +186,7 @@ begin
 	gtp_clkp_pin_i     <= gtp_clkp_pin;
 	gtp_clkn_pin_i     <= gtp_clkn_pin;
 	-- Frontend Board connections
+	frontend_reset       <= reset_i;
 	frontend_clk_50MHz   <= clk_50MHz_sys;
 	frontend_tx          <= frontend_tx_i;
 	frontend_rx_array_i  <= 
