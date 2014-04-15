@@ -137,6 +137,7 @@ end component;
 
 component Serial_rx
 	port(
+		reset    : in std_logic;
 		mclkx2   : in std_logic;
 		rx       : in std_logic;          
 		data     : out std_logic_vector(7 downto 0);
@@ -183,6 +184,7 @@ component RS232_tx_buffered
 	port(
 		debugOut       : out STD_LOGIC_VECTOR(2 downto 0);
 		mclk           : IN std_logic;
+		reset          : IN STD_logic;
 		data_diag      : IN std_logic_vector(7 downto 0);
 		new_data_diag  : IN std_logic;	
 		data_diag_full : OUT std_logic;
@@ -334,6 +336,9 @@ signal ledOut : std_logic;
 signal systemClk   : std_logic;
 signal systemClkX2Wire : std_logic;
 
+signal reset_FFs : std_logic_vector(2 downto 0);
+signal reset     : std_logic;
+
 signal tx : std_logic;
 
 signal fpga_address : std_logic_vector(5 downto 0);
@@ -430,6 +435,23 @@ signal throughput_tester_enable           : std_logic;
 signal throughput_tester_take_TX_channels : std_logic;
 
 begin
+
+----------------------------------------------------------------------------
+-- Reset Synchronizer
+-- - Asynchronously triggered.
+-- - Tripple registered to have a great, clean, synchronous release of reset.
+----------------------------------------------------------------------------
+RESET_SYNCHRONIZER: process(systemClk, reset)
+begin
+	if (RST = '1') then
+		reset_FFs <= "111"; --Create 3 1s to flush out before reset release.
+	elsif ( systemClk'event and systemClk = '1') then
+		reset_FFs(0) <= '0'; -- Shift out the 1s untill all 0s.
+		reset_FFs(2 downto 1) <= reset_FFs(1 downto 0);
+	end if;
+end process;
+reset <= reset_FFs(2);
+
 
 --========================================================================
 -- Get signal from differential pairs
@@ -529,7 +551,7 @@ port map (
 clockSource : systemClkX2DiffIn port map(
           CLKIN_N_IN => MCLKn,
 			 CLKIN_P_IN => MCLKp,
-          RST_IN => RST,
+          RST_IN => '0',
           CLKFX_OUT => open, 
           CLKIN_IBUFGDS_OUT => open,
           CLK0_OUT => systemClk, 
@@ -574,7 +596,7 @@ end process;
 --========================================================================
 LEDDriver : LED port map(
 		  mclk => systemClk,
-		  rst  => RST,
+		  rst  => reset,
 		  ledOut => ledOut
 		  );
 
@@ -592,6 +614,7 @@ port map (
 -- Data receive interface module
 --========================================================================
 UART : Serial_rx port map(
+		  reset    => reset,
 		  mclkx2   => systemClkX2Wire,
 		  rx 	     => rx,
 		  data     => rx_data,
@@ -603,7 +626,7 @@ UART : Serial_rx port map(
 --========================================================================
 RX_Decoder:  RX_Decode port map(
 			  debugOut => open,
-			  RESET => RST,
+			  RESET => reset,
 			  mclk => systemClk,
 			  RX_DATA => rx_data,
            NEW_RX_DATA => new_rx_data,
@@ -664,6 +687,7 @@ end process;
 TX_2buffers: RS232_tx_buffered PORT MAP(
 	debugOut => open,
 	mclk => systemClk,
+	reset => reset,
 	data_diag => diagnostic_packet_data,
 	new_data_diag => diagnostic_packet_data_wr,
 	data_diag_full => diagnostic_packet_fifo_full,
@@ -680,7 +704,7 @@ TX_2buffers: RS232_tx_buffered PORT MAP(
 --========================================================================
 SELECTIVE_READ_1: SelectiveRead port map(
 	mclk => systemClk,
-	reset => RST,
+	reset => reset,
 	selective_read => selective_read,
 	
 	an_trig1 => an_trig_1,
@@ -713,7 +737,7 @@ RENA_MODULE_1: OperationalStateController PORT MAP(
 	SELECTIVE_DECISION => selective_decision_1,
 	
 	mclk => systemClk,
-	reset => RST,
+	reset => reset,
 	ENABLE => enable_readout1,
 	TX_BUSY => tx_busy,
 	TX_DATA => tx_data_renamod1,
@@ -759,7 +783,7 @@ RENA_MODULE_2: OperationalStateController PORT MAP(
 	SELECTIVE_DECISION => selective_decision_2,
 	
 	mclk => systemClk,
-	reset => RST,
+	reset => reset,
 	ENABLE => enable_readout2,
 	TX_BUSY => tx_busy,
 	TX_DATA => tx_data_renamod2,
@@ -801,7 +825,7 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 	)
 	PORT MAP (
 		clk   => systemClk,
-		reset => RST,
+		reset => reset,
 		fpga_addr => fpga_address,
 		send  => diagnostic_send,
 		packet_data    => diagnostic_packet_data,
@@ -816,7 +840,7 @@ DIAGNOSTIC_MESSENGER_MODULE: diagnostic_messenger
 THROUGHPUT_TESTER_MODULE: throughput_tester
 	PORT MAP(
 		clk   => systemClk,
-		reset => RST,
+		reset => reset,
 		fpga_addr => fpga_address,
 		num_packet_bytes_filler  => throughput_tester_num_packet_bytes_filler,
 		throughput_packet_period => throughput_tester_packet_period,

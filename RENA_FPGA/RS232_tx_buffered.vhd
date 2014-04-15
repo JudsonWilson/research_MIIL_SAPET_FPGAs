@@ -33,6 +33,7 @@ entity RS232_tx_buffered is
 Port ( 
 	debugOut       : out STD_LOGIC_VECTOR (2 downto 0);
 	mclk           :  in STD_LOGIC;
+	reset          :  in STD_logic;
 	data_diag      :  in STD_LOGIC_VECTOR (7 downto 0);
 	new_data_diag  :  in STD_LOGIC;
 	data_diag_full : out STD_LOGIC;
@@ -146,7 +147,7 @@ TX_FIFO_DIAG : TX_Fifo port map(
 	clk	=>   	mclk,
 	din	=> 	data_diag,
 	rd_en	=>		get_next_fifo_data_diag,
-	srst	=> 	'0',
+	srst	=> 	reset,
 	wr_en	=> 	new_data_diag,
 	dout	=>		fifo_data_diag_out,
 	empty	=> 	fifo_data_diag_empty,
@@ -157,7 +158,7 @@ TX_FIFO1 : TX_Fifo port map(
 	clk	=>   	mclk,
 	din	=> 	data1,
 	rd_en	=>		get_next_fifo_data1,
-	srst	=> 	'0',
+	srst	=> 	reset,
 	wr_en	=> 	new_data1,
 	dout	=>		fifo_data_out1,
 	empty	=> 	fifo_empty1,
@@ -168,7 +169,7 @@ TX_FIFO2 : TX_Fifo port map(
 	clk	=>   	mclk,
 	din	=> 	data2,
 	rd_en	=>		get_next_fifo_data2,
-	srst	=> 	'0',
+	srst	=> 	reset,
 	wr_en	=> 	new_data2,
 	dout	=>		fifo_data_out2,
 	empty	=> 	fifo_empty2,
@@ -185,8 +186,20 @@ CRC8_CALCULATOR: crc8byte
 debugOut <= state_out;
 
 process(mclk)
-begin 
-	if rising_edge(mclk) then
+begin
+	if reset = '1' then
+		state <= IDLE;
+		state_out <= "000";
+		data_source <= DATA_SOURCE_DONE;     -- Shouldn't matter
+		tx <= '1';  -- Don't send start bit (i.e. don't send 0!)
+		tx_busy <= '1';                      -- Shouldn't matter, will give a tick more delay.
+		baudrate_counter <= max_counter - 1; -- Shouldn't matter
+		shift_register <= "00000000";        -- Shouldn't matter
+		bit_counter <= 0;                    -- Shouldn't matter
+		current_fifo <= "00";                -- Shouldn't matter
+		crc_new_byte <= "00000000";          -- Shouldn't matter
+		crc_prev_crc <= "00000000";          -- Shouldn't matter
+	elsif rising_edge(mclk) then
 		state <= next_state;
 		state_out <= next_state_out;
 		data_source <= next_data_source;

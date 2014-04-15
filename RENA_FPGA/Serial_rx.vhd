@@ -28,7 +28,8 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use UNISIM.VComponents.all;
 
 entity Serial_rx is
-    Port ( mclkx2   : in   STD_LOGIC;
+    Port ( reset    : in   STD_LOGIC;
+           mclkx2   : in   STD_LOGIC;
            rx       : in   STD_LOGIC;
            data     : out  STD_LOGIC_VECTOR (7 downto 0);
            new_data : out  STD_LOGIC);
@@ -97,7 +98,20 @@ rx_buffered <= rx_shiftreg(1);
 -- DFFs
 process(mclkx2)
  begin
-	if rising_edge(mclkx2) then
+	if reset = '1' then
+		rx_shiftreg <= "11";
+		state <= IDLE;
+		new_data_bit_state <= LO; -- ???
+		bit_counter <= 0;         -- Should get set by IDLE state.
+		baudrate_counter <= 0;    -- Should get set by IDLE state.
+		sysspeed_counter <=  max_counter_sys - 1; --???
+		shift_register <= "00000000";
+		-- Due to jitter between the mclk and mclkx2 clock domains,
+		-- delay by one mlkX2 cycle for good measure.
+		new_data <= '0';
+		next_new_data1 <= '0';
+		data_temp <= "00000000";
+	elsif rising_edge(mclkx2) then
 		rx_shiftreg <= rx_shiftreg(0) & rx; -- 2-bit shift register
 		state <= next_state;
 		new_data_bit_state <= next_new_data_bit_state;
