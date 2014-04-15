@@ -65,8 +65,10 @@ entity BrdCfg_48RENA_50MHzSMA is
 end BrdCfg_48RENA_50MHzSMA;
 
 architecture Structural of BrdCfg_48RENA_50MHzSMA is
-	-- Reset and Clocks
-	signal reset_i                  : std_logic;
+	-- Reset
+	signal reset_i                  : std_logic; -- Use this or a derivative for everything in the design.
+	signal reset_synch_FFs          : std_logic_vector(2 downto 0); -- For reset synchronization logic.
+	-- Clocks
 	signal clk_200MHz_i             : std_logic;
 	signal clk_125MHz_i             : std_logic;
 	signal clk_50MHz_in             : std_logic;
@@ -154,7 +156,6 @@ begin
 	--
 	-- Port connections
 	--
-	reset_i         <= reset;
 	debug_clk_50MHz <= clk_50MHz_sys;
 	-- Other
 	boardid_i          <= boardid;
@@ -231,6 +232,22 @@ begin
 		frontend_rx_array( 2) &
 		frontend_rx_array( 1) &
 		frontend_rx_array( 0);
+
+	----------------------------------------------------------------------------
+	-- Reset Synchronizer
+	-- - Asynchronously triggered.
+	-- - Triple registered to have a great, clean, synchronous release of reset.
+	----------------------------------------------------------------------------
+	reset_synchronizer: process( clk_50MHz_sys, reset)
+	begin
+		if ( reset = '1') then
+			reset_synch_FFs <= "111";
+		elsif ( clk_50MHz_sys'event and clk_50MHz_sys = '1') then
+			reset_synch_FFs(0) <= '0';
+			reset_synch_FFs(2 downto 1) <= reset_synch_FFs(1 downto 0);
+		end if;
+	end process;
+	reset_i <= reset_synch_FFs(2);
 
 	-------------------------------------------------------------------------------------------
 	-- Internal module instantiation
