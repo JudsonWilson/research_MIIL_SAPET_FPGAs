@@ -60,7 +60,10 @@ entity datatransmission is
 		     frontend_tx          : out std_logic;
 		     frontend_rx_array    : in  std_logic_vector(47 downto 0);
 		     -- Other
-		     boardid						: in std_logic_vector(2 downto 0)
+		     boardid						: in std_logic_vector(2 downto 0);
+		     -- Signals for LEDs/etc.
+		     gtp_tx_active        : out std_logic;
+		     gtp_rx_active        : out std_logic
 	     );
 
 end datatransmission;
@@ -309,6 +312,10 @@ begin
 			gtp_clkp_pin	=> gtp_clkp_pin,
 			gtp_clkn_pin	=> gtp_clkn_pin
 		);
+
+	gtp_tx_active <= dout_to_GTP_wr;
+	gtp_rx_active <= din_from_GTP_wr;
+
 	Inst_Daisychain_module: Daisychain_module
 	port map (
 		     acquisition_data_receive_data_number => acquisition_data_receive_data_number_i,

@@ -151,3 +151,7 @@ NET "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin" LOC = H17;
 NET "boardid[0]" LOC = AE26;
 NET "boardid[1]" LOC = AC25;
 NET "boardid[2]" LOC = AC24;
+
+#GPIO LEDs
+NET "LED_gtp_tx" LOC = AD26; # GPIO LED 3
+NET "LED_gtp_rx" LOC = G16;  # GPIO LED 4

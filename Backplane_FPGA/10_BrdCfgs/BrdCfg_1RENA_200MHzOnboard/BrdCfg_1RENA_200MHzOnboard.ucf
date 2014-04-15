@@ -109,3 +109,7 @@ NET "dip_switch[2]" LOC = AG27;
 NET "dip_switch[3]" LOC = AF25;
 NET "dip_switch[4]" LOC = AF26;
 NET "dip_switch[5]" LOC = AE27;
+
+#GPIO LEDs
+NET "LED_gtp_tx" LOC = AD26; # GPIO LED 3
+NET "LED_gtp_rx" LOC = G16;  # GPIO LED 4

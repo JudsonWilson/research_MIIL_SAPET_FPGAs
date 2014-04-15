@@ -60,7 +60,9 @@ entity BrdCfg_48RENA_50MHzSMA is
 		frontend_tx              : out std_logic;
 		frontend_rx_array        : in  std_logic_vector(47 downto 0);
 		-- Other
-		boardid                  : in std_logic_vector(2 downto 0)
+		boardid                  : in std_logic_vector(2 downto 0);
+		LED_gtp_tx               : out std_logic;
+		LED_gtp_rx               : out std_logic
 	);
 end BrdCfg_48RENA_50MHzSMA;
 
@@ -95,6 +97,9 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 	-- GTP clock
 	signal gtp_clkp_pin_i           : std_logic;
 	signal gtp_clkn_pin_i           : std_logic;	
+	-- GTP active signals (for LEDs)
+	signal gtp_tx_active            : std_logic;
+	signal gtp_rx_active            : std_logic;
 	-- Frontend Board connections
 	signal frontend_tx_i            : std_logic;
 	signal frontend_rx_array_i      : std_logic_vector(47 downto 0);
@@ -114,6 +119,15 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 			clk_50MHz     : out std_logic;
 			-- for USB commnunication (no longer used)
 			clk_12MHz     : out std_logic
+		);
+	end component;
+
+	component LED_extender
+		port (
+			reset : in  std_logic;
+			clk   : in  std_logic;
+			din   : in  std_logic;
+			dout  : out std_logic
 		);
 	end component;
 
@@ -148,7 +162,10 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 			frontend_tx              : out std_logic;
 			frontend_rx_array        : in  std_logic_vector(47 downto 0);
 			-- Other
-			boardid                  : in std_logic_vector(2 downto 0)
+			boardid                  : in std_logic_vector(2 downto 0);
+			-- Signals for LEDs/etc.
+			gtp_tx_active        : out std_logic;
+			gtp_rx_active        : out std_logic
 		);	
 	end component;
 
@@ -250,6 +267,28 @@ begin
 	reset_i <= reset_synch_FFs(2);
 
 	-------------------------------------------------------------------------------------------
+	-- LED extenders
+	-- - Take in various signals with possibly tiny pulses, and output a signal
+	--   of approximately 1/10th of a second guaranteed minimum pulse for
+	--   LEDs. (Should always be visible).
+	----------------------------------------------------------------------------
+	gtp_tx_LED_extender : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => gtp_tx_active,
+			dout  => LED_gtp_tx
+		);
+
+	gtp_rx_LED_extender : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => gtp_rx_active,
+			dout  => LED_gtp_rx
+		);
+
+	----------------------------------------------------------------------------
 	-- Internal module instantiation
 	-------------------------------------------------------------------------------------------
 
@@ -308,6 +347,9 @@ begin
 			frontend_tx       => frontend_tx_i,
 			frontend_rx_array => frontend_rx_array_i,
 			-- Other
-			boardid         => boardid_i
+			boardid         => boardid_i,
+			-- Signals for LEDs/etc.
+			gtp_tx_active => gtp_tx_active,
+			gtp_rx_active => gtp_rx_active
 		);
 end Structural;
