@@ -62,7 +62,13 @@ entity BrdCfg_48RENA_50MHzSMA is
 		-- Other
 		boardid                  : in std_logic_vector(2 downto 0);
 		LED_gtp_tx               : out std_logic;
-		LED_gtp_rx               : out std_logic
+		LED_gtp_rx               : out std_logic;
+		-- The following LEDs indicate problems detected in the FIFOs, where a packet
+		-- was too long and overflowed the FIFO.
+		LED_fifo_corruption_full_error_UDP_in                : out std_logic;
+		LED_fifo_corruption_full_error_gtpj40_in             : out std_logic;
+		LED_fifo_corruption_full_error_acquistion_top_in     : out std_logic;
+		LED_fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 	);
 end BrdCfg_48RENA_50MHzSMA;
 
@@ -105,6 +111,11 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 	signal frontend_rx_array_i      : std_logic_vector(47 downto 0);
 	-- Other
 	signal boardid_i                : std_logic_vector(2 downto 0);
+	-- Error Signals for LEDs
+	signal fifo_corruption_full_error_UDP_in                : std_logic;
+	signal fifo_corruption_full_error_gtpj40_in             : std_logic;
+	signal fifo_corruption_full_error_acquistion_top_in     : std_logic;
+	signal fifo_corruption_full_error_acquistion_bottom_in  : std_logic;
 
 	component Clock_module_50MHzIn_Differential
 		port (
@@ -165,7 +176,11 @@ architecture Structural of BrdCfg_48RENA_50MHzSMA is
 			boardid                  : in std_logic_vector(2 downto 0);
 			-- Signals for LEDs/etc.
 			gtp_tx_active        : out std_logic;
-			gtp_rx_active        : out std_logic
+			gtp_rx_active        : out std_logic;
+			fifo_corruption_full_error_UDP_in                : out std_logic;
+			fifo_corruption_full_error_gtpj40_in             : out std_logic;
+			fifo_corruption_full_error_acquistion_top_in     : out std_logic;
+			fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 		);	
 	end component;
 
@@ -288,6 +303,38 @@ begin
 			dout  => LED_gtp_rx
 		);
 
+	LED_extender_fifo_corruption_full_error_UDP_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_UDP_in,
+			dout  => LED_fifo_corruption_full_error_UDP_in
+		);
+
+	LED_extender_fifo_corruption_full_error_gtpj40_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_gtpj40_in,
+			dout  => LED_fifo_corruption_full_error_gtpj40_in
+		);
+
+	LED_extender_fifo_corruption_full_error_acquistion_top_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_acquistion_top_in,
+			dout  => LED_fifo_corruption_full_error_acquistion_top_in
+		);
+
+	LED_extender_fifo_corruption_full_error_acquistion_bottom_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_acquistion_bottom_in,
+			dout  => LED_fifo_corruption_full_error_acquistion_bottom_in
+		);
+
 	----------------------------------------------------------------------------
 	-- Internal module instantiation
 	-------------------------------------------------------------------------------------------
@@ -350,6 +397,10 @@ begin
 			boardid         => boardid_i,
 			-- Signals for LEDs/etc.
 			gtp_tx_active => gtp_tx_active,
-			gtp_rx_active => gtp_rx_active
+			gtp_rx_active => gtp_rx_active,
+			fifo_corruption_full_error_UDP_in                => fifo_corruption_full_error_UDP_in,
+			fifo_corruption_full_error_gtpj40_in             => fifo_corruption_full_error_gtpj40_in,
+			fifo_corruption_full_error_acquistion_top_in     => fifo_corruption_full_error_acquistion_top_in,
+			fifo_corruption_full_error_acquistion_bottom_in  => fifo_corruption_full_error_acquistion_bottom_in
 		);
 end Structural;

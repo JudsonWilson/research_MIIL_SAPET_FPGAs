@@ -63,7 +63,11 @@ entity datatransmission is
 		     boardid						: in std_logic_vector(2 downto 0);
 		     -- Signals for LEDs/etc.
 		     gtp_tx_active        : out std_logic;
-		     gtp_rx_active        : out std_logic
+		     gtp_rx_active        : out std_logic;
+		     fifo_corruption_full_error_UDP_in                : out std_logic;
+		     fifo_corruption_full_error_gtpj40_in             : out std_logic;
+		     fifo_corruption_full_error_acquistion_top_in     : out std_logic;
+		     fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 	     );
 
 end datatransmission;
@@ -126,6 +130,13 @@ architecture Behavioral of datatransmission is
 	-- Frontend Board related
 	signal frontend_tx_i        : std_logic; -- Shared tx amongst all Frontend Boards.
 	signal frontend_rx_array_i  : std_logic_vector(47 downto 0);
+
+	-- FIFO error signals going out to the LEDs
+	signal fifo_corruption_full_error_UDP_in_i                : std_logic;
+	signal fifo_corruption_full_error_gtpj40_in_i             : std_logic;
+	signal fifo_corruption_full_error_acquistion_top_in_i     : std_logic;
+	signal fifo_corruption_full_error_acquistion_bottom_in_i  : std_logic;
+
 
 	component UDP_module
 		port (
@@ -210,7 +221,11 @@ architecture Behavioral of datatransmission is
 			     din_from_acquisition               : in std_logic_vector(15 downto 0);
 		     -- current board configing data
 			     dout_to_serializing_wr		: out std_logic;
-			     dout_to_serializing		: out std_logic_vector(15 downto 0)
+			     dout_to_serializing		: out std_logic_vector(15 downto 0);
+		     -- Signals for LEDs/etc.
+			     fifo_corruption_full_error_UDP_in                : out std_logic;
+			     fifo_corruption_full_error_gtpj40_in             : out std_logic;
+			     fifo_corruption_full_error_acquistion_top_in     : out std_logic
 		     );
 	end component;
 	component acquisition_module is
@@ -223,7 +238,9 @@ architecture Behavioral of datatransmission is
 			dout_wr_en  : out std_logic;
 			dout        : out std_logic_vector(15 downto 0);
 			-- Input from IOBs
-			frontend_rx_array  : in std_logic_vector(N_sources-1 downto 0)
+			frontend_rx_array  : in std_logic_vector(N_sources-1 downto 0);
+			-- Fifo error detection output for LEDs
+			fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 		);
 	end component;
 
@@ -337,8 +354,19 @@ begin
 			 din_from_acquisition   => acquisition_data_from_local_to_GTP,
 			 -- current board configure data
 			 dout_to_serializing_wr => current_board_configure_data_wr,
-			 dout_to_serializing    => current_board_configure_data
+			 dout_to_serializing    => current_board_configure_data,
+			 -- Diagnostic signals for LEDs
+			 fifo_corruption_full_error_UDP_in                       => fifo_corruption_full_error_UDP_in_i,
+			 fifo_corruption_full_error_gtpj40_in                    => fifo_corruption_full_error_gtpj40_in_i,
+			 fifo_corruption_full_error_acquistion_top_in            => fifo_corruption_full_error_acquistion_top_in_i
 		 );
+
+	fifo_corruption_full_error_UDP_in               <= fifo_corruption_full_error_UDP_in_i;
+	fifo_corruption_full_error_gtpj40_in            <= fifo_corruption_full_error_gtpj40_in_i;
+	fifo_corruption_full_error_acquistion_top_in    <= fifo_corruption_full_error_acquistion_top_in_i;
+	fifo_corruption_full_error_acquistion_bottom_in <= fifo_corruption_full_error_acquistion_bottom_in_i;
+
+
 	Inst_acquisition_module: acquisition_module
 	generic map (N_sources => 48)
 	port map (
@@ -349,7 +377,9 @@ begin
 		dout_wr_en  => acquisition_data_from_local_to_GTP_wr,
 		dout        => acquisition_data_from_local_to_GTP,
 		-- Input from IOBs
-		frontend_rx_array    => frontend_rx_array_i
+		frontend_rx_array    => frontend_rx_array_i,
+		-- Fifo error detection output for LEDs
+		fifo_corruption_full_error_acquistion_bottom_in         => fifo_corruption_full_error_acquistion_bottom_in_i
 	);
 
 	-- This component proprocesses the data before it goes to the serializer.

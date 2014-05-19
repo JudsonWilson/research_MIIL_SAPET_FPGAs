@@ -58,7 +58,11 @@ entity Daisychain_module is
 		din_from_acquisition               : in std_logic_vector(15 downto 0);
 		-- current board configing data
 		dout_to_serializing_wr		: out std_logic;
-		dout_to_serializing		: out std_logic_vector(15 downto 0)
+		dout_to_serializing		: out std_logic_vector(15 downto 0);
+		-- Signals for LEDs/etc.
+		fifo_corruption_full_error_UDP_in                : out std_logic;
+		fifo_corruption_full_error_gtpj40_in             : out std_logic;
+		fifo_corruption_full_error_acquistion_top_in     : out std_logic
      );
 end Daisychain_module;
 
@@ -72,6 +76,12 @@ architecture Behavioral of Daisychain_module is
 	-- global signals
 	signal reset_fifo			: std_logic := '1';
 	signal reset_fifo_vec			: std_logic_vector(3 downto 0) := "1111";
+
+	-- FIFO error signals going out to the LEDs
+	signal fifo_corruption_full_error_UDP_in_i                : std_logic;
+	signal fifo_corruption_full_error_gtpj40_in_i             : std_logic;
+	signal fifo_corruption_full_error_acquistion_top_in_i     : std_logic;
+	
 	-- config data related variables
 	signal config_data_from_UDP_to_GTP_wr_i : std_logic := '0';
 	signal config_data_from_UDP_to_GTP_i    : std_logic_vector(15 downto 0) := x"0000";
@@ -167,7 +177,8 @@ architecture Behavioral of Daisychain_module is
 			dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
 			dout        : out std_logic_vector(15 downto 0);
 			dout_end_of_packet : out std_logic;
-			bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
+			bytes_received     : out std_logic_vector(63 downto 0); -- includes those that are thrown away to preempt buffer overflow
+			full_error         : out std_logic
 		);
 	end component;
 
@@ -251,6 +262,13 @@ begin
 		end if;
 	end process;
 
+	---------------------------------------------------------------------
+	-- FIFO error passthrough signals
+	---------------------------------------------------------------------
+	fifo_corruption_full_error_UDP_in               <= fifo_corruption_full_error_UDP_in_i;
+	fifo_corruption_full_error_gtpj40_in            <= fifo_corruption_full_error_gtpj40_in_i;
+	fifo_corruption_full_error_acquistion_top_in    <= fifo_corruption_full_error_acquistion_top_in_i;
+
 	--====================================================================
 	--====================================================================
 	-- Configure Data: Data from the PC, going out to the various nodes.
@@ -270,7 +288,8 @@ begin
 		dout_empty_notready   => config_data_fifo_dout_empty_notready,
 		dout                  => config_data_fifo_dout,
 		dout_end_of_packet    => config_data_fifo_dout_end_of_packet,
-		bytes_received  => open
+		bytes_received  => open,
+		full_error      => fifo_corruption_full_error_UDP_in_i
 	);
 
 
@@ -297,7 +316,8 @@ begin
 		dout_empty_notready   => local_acquisition_data_fifo_dout_empty_notready,
 		dout                  => local_acquisition_data_fifo_dout,
 		dout_end_of_packet    => local_acquisition_data_fifo_dout_end_of_packet,
-		bytes_received  => acquisition_data_receive_data_number_i -- diagnostic??
+		bytes_received  => acquisition_data_receive_data_number_i, -- diagnostic??
+		full_error      => fifo_corruption_full_error_acquistion_top_in_i
 	);
 
 
@@ -324,7 +344,8 @@ begin
 		dout_empty_notready   => J40_data_fifo_dout_empty_notready,
 		dout                  => J40_data_fifo_dout,
 		dout_end_of_packet    => J40_data_fifo_dout_end_of_packet,
-		bytes_received  => open
+		bytes_received  => open,
+		full_error      => fifo_corruption_full_error_gtpj40_in_i
 	);
 
 

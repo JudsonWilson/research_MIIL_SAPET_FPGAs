@@ -64,7 +64,13 @@ entity BrdCfg_1RENA_200MHzOnBoard is
 		boardid                  : in std_logic_vector(2 downto 0);
 		dip_switch               : in std_logic_vector(5 downto 1);
 		LED_gtp_tx               : out std_logic;
-		LED_gtp_rx               : out std_logic
+		LED_gtp_rx               : out std_logic;
+		-- The following LEDs indicate problems detected in the FIFOs, where a packet
+		-- was too long and overflowed the FIFO.
+		LED_fifo_corruption_full_error_UDP_in                : out std_logic;
+		LED_fifo_corruption_full_error_gtpj40_in             : out std_logic;
+		LED_fifo_corruption_full_error_acquistion_top_in     : out std_logic;
+		LED_fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 	);
 end BrdCfg_1RENA_200MHzOnBoard;
 
@@ -108,6 +114,12 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 	signal frontend_rx_switch_out   : std_logic;
 	-- Other
 	signal boardid_i                : std_logic_vector(2 downto 0);
+	-- Error Signals for LEDs
+	signal fifo_corruption_full_error_UDP_in                : std_logic;
+	signal fifo_corruption_full_error_gtpj40_in             : std_logic;
+	signal fifo_corruption_full_error_acquistion_top_in     : std_logic;
+	signal fifo_corruption_full_error_acquistion_bottom_in  : std_logic;
+
 
 	component Clock_module_200MHzIn_SingEnd
 		port (
@@ -168,7 +180,11 @@ architecture Structural of BrdCfg_1RENA_200MHzOnBoard is
 			boardid                  : in std_logic_vector(2 downto 0);
 			-- Signals for LEDs/etc.
 			gtp_tx_active        : out std_logic;
-			gtp_rx_active        : out std_logic
+			gtp_rx_active        : out std_logic;
+			fifo_corruption_full_error_UDP_in                : out std_logic;
+			fifo_corruption_full_error_gtpj40_in             : out std_logic;
+			fifo_corruption_full_error_acquistion_top_in     : out std_logic;
+			fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 		);	
 	end component;
 
@@ -295,6 +311,38 @@ begin
 			dout  => LED_gtp_rx
 		);
 
+	LED_extender_fifo_corruption_full_error_UDP_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_UDP_in,
+			dout  => LED_fifo_corruption_full_error_UDP_in
+		);
+
+	LED_extender_fifo_corruption_full_error_gtpj40_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_gtpj40_in,
+			dout  => LED_fifo_corruption_full_error_gtpj40_in
+		);
+
+	LED_extender_fifo_corruption_full_error_acquistion_top_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_acquistion_top_in,
+			dout  => LED_fifo_corruption_full_error_acquistion_top_in
+		);
+
+	LED_extender_fifo_corruption_full_error_acquistion_bottom_in : LED_extender
+		port map (
+			reset => reset_i,
+			clk   => clk_50MHz_sys,
+			din   => fifo_corruption_full_error_acquistion_bottom_in,
+			dout  => LED_fifo_corruption_full_error_acquistion_bottom_in
+		);
+
 	----------------------------------------------------------------------------
 	-- Input Switch flipflop
 	-- - Select either 1 input, or 0 inputs, depending on what we are using
@@ -363,6 +411,10 @@ begin
 			boardid         => boardid_i,
 			-- Signals for LEDs/etc.
 			gtp_tx_active => gtp_tx_active,
-			gtp_rx_active => gtp_rx_active
+			gtp_rx_active => gtp_rx_active,
+			fifo_corruption_full_error_UDP_in                => fifo_corruption_full_error_UDP_in,
+			fifo_corruption_full_error_gtpj40_in             => fifo_corruption_full_error_gtpj40_in,
+			fifo_corruption_full_error_acquistion_top_in     => fifo_corruption_full_error_acquistion_top_in,
+			fifo_corruption_full_error_acquistion_bottom_in  => fifo_corruption_full_error_acquistion_bottom_in
 		);
 end Structural;

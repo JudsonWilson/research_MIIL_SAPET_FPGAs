@@ -155,3 +155,7 @@ NET "boardid[2]" LOC = AC24;
 #GPIO LEDs
 NET "LED_gtp_tx" LOC = AD26; # GPIO LED 3
 NET "LED_gtp_rx" LOC = G16;  # GPIO LED 4
+NET "LED_fifo_corruption_full_error_UDP_in" LOC = AF23;              # DS23 LED - West
+NET "LED_fifo_corruption_full_error_gtpj40_in" LOC = AF13;           # DS20 LED - North
+NET "LED_fifo_corruption_full_error_acquistion_top_in" LOC = AG23;   # DS21 LED - East
+NET "LED_fifo_corruption_full_error_acquistion_bottom_in" LOC = E8;  # DS24 LED - Center

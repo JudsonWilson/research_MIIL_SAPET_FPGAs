@@ -45,7 +45,8 @@ architecture Behavioral of smart_packets_fifo_1024_16_testbench is
 		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
 		dout        : out std_logic_vector(15 downto 0);
 		dout_end_of_packet : out std_logic;
-		bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
+		bytes_received     : out std_logic_vector(63 downto 0); -- includes those that are thrown away to preempt buffer overflow
+		full_error         : out std_logic -- True when the underlying word fifo is full. Should never happen.
 	);	
 	end component;	
 
@@ -94,7 +95,8 @@ begin
 		dout_empty_notready    => dout_empty_notready,
 		dout        => dout,
 		dout_end_of_packet     => dout_end_of_packet,
-		bytes_received         => bytes_received
+		bytes_received         => bytes_received,
+		full_error             => open -- TODO TEST ME
 	);
 
 

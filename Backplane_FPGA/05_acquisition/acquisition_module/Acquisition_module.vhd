@@ -40,7 +40,9 @@ entity acquisition_module is
 		dout_wr_en  : out std_logic;
 		dout        : out std_logic_vector(15 downto 0);
 		-- Input from IOBs
-		frontend_rx_array : in std_logic_vector(N_sources-1 downto 0)
+		frontend_rx_array : in std_logic_vector(N_sources-1 downto 0);
+		-- Fifo error detection output for LEDs
+		fifo_corruption_full_error_acquistion_bottom_in  : out std_logic
 	);
 end acquisition_module;
 
@@ -56,6 +58,7 @@ architecture Behavioral of acquisition_module is
 	signal fifos_empty_notready    : std_logic_vector(N_sources-1 downto 0);
 	signal fifos_dout              : multi_bus_16_bit(N_sources-1 downto 0);
 	signal fifos_end_of_packet     : std_logic_vector(N_sources-1 downto 0);
+	signal fifos_full_errors       : std_logic_vector(N_sources-1 downto 0);
 
 	signal chooser_dout_rd_en          : std_logic;
 	signal chooser_dout_empty_notready : std_logic;
@@ -84,7 +87,8 @@ architecture Behavioral of acquisition_module is
 			dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
 			dout        : out std_logic_vector(15 downto 0);
 			dout_end_of_packet : out std_logic;
-			bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
+			bytes_received     : out std_logic_vector(63 downto 0); -- includes those that are thrown away to preempt buffer overflow
+			full_error         : out std_logic -- True when the underlying word fifo is full. Should never happen.
 		);
 	end component;
 
@@ -159,11 +163,16 @@ begin
 			dout_empty_notready   => fifos_empty_notready(i),
 			dout        => fifos_dout(i),
 			dout_end_of_packet => fifos_end_of_packet(i),
-			bytes_received     => open
+			bytes_received     => open,
+			full_error         => fifos_full_errors(i)
 		);
 
 	end generate;
 
+	-- OR together all the full_errors
+	fifo_corruption_full_error_acquistion_bottom_in <=
+			'0' WHEN fifos_full_errors = (fifos_full_errors'range => '0')
+			ELSE '1';
 
 	--====================================================================
 	--====================================================================

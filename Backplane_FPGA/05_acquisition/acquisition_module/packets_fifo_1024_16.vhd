@@ -48,7 +48,8 @@ entity packets_fifo_1024_16 is
 		dout_empty_notready   : out std_logic; -- Indicates the user should not try and read (rd_en). May happen mid-packet! Always check this!
 		dout        : out std_logic_vector(15 downto 0);
 		dout_end_of_packet : out std_logic;
-		bytes_received     : out std_logic_vector(63 downto 0) -- includes those that are thrown away to preempt buffer overflow
+		bytes_received     : out std_logic_vector(63 downto 0); -- includes those that are thrown away to preempt buffer overflow
+		full_error         : out std_logic -- True when the underlying word fifo is full. Should never happen.
 	);
 end packets_fifo_1024_16;
 
@@ -74,6 +75,7 @@ architecture Behavioral of packets_fifo_1024_16 is
 	signal word_fifo_din 	     : std_logic_vector(15 downto 0);
 	signal word_fifo_dout        : std_logic_vector(15 downto 0);
 	signal word_fifo_empty       : std_logic;
+	signal word_fifo_full        : std_logic;
 
 	-- packet depth counter signals
 	signal packet_depth_counter_decrement : std_logic := '0';
@@ -81,7 +83,7 @@ architecture Behavioral of packets_fifo_1024_16 is
 	signal packet_depth_counter  : unsigned(15 downto 0);
 
 	-- input-manager state machine states.
-	type   input_manager_state_type is ( start_word_judge, receive_data, wait_for_fifo_ready);
+	type   input_manager_state_type is ( start_word_judge, receive_data, cap_overflowed_packet, wait_for_fifo_ready);
 	signal input_manager_state      : input_manager_state_type := start_word_judge;
 	signal input_manager_state_next : input_manager_state_type := start_word_judge;
 
@@ -153,6 +155,7 @@ begin
 	dout                   <= dout_i;
 	dout_end_of_packet     <= dout_end_of_packet_i;
 	bytes_received <= bytes_received_i;
+	full_error <= word_fifo_full;
 
 	--------------------------------------------------------------------
 	-- The underlying FIFO, which stores 1024 words. 
@@ -166,7 +169,7 @@ begin
 			wr_en   => word_fifo_wr_en,
 			rd_en   => word_fifo_rd_en,
 			dout    => word_fifo_dout,
-			full    => open, -- todo: might be a good thing to use for diagnostics?
+			full    => word_fifo_full,
 			empty   => word_fifo_empty,
 			-- Depth Counters --
 			--  - rd_data_count never over-reports usage (may under-report,
@@ -254,15 +257,46 @@ begin
 		-- }
 		when receive_data =>
 		-- {
-			-- keep receiving until end signal
-			if din_wr_en = '1' and word_contains_packet_end_token(din) then
-				packet_depth_counter_increment <= '1'; --signal that we just finished writing a packet, for counting purposes
-				input_manager_state_next <= start_word_judge;
+			-- keep receiving until end signal, unless a bug occurs and this is full.
+			if din_wr_en = '1' then
+				-- Expected behavior: not full, do this
+				if word_fifo_full = '0' then
+					word_fifo_wr_en <= '1';
+					if word_contains_packet_end_token(din) then
+						packet_depth_counter_increment <= '1'; --signal that we just finished writing a packet, for counting purposes
+						input_manager_state_next <= start_word_judge;
+					else
+						packet_depth_counter_increment <= '0';
+						input_manager_state_next <= receive_data;
+					end if;
+				-- If we somehow overflowed the FIFO (SHOULD NOT HAPPEN, most likely a super duper long packet)
+				-- then go to a special state that will cap it off.
+				elsif word_fifo_full = '1' then
+					word_fifo_wr_en <= '0';
+					packet_depth_counter_increment <= '1'; -- increment now, need to prevent locking up on full FIFO with less than 1 packet in it.
+					input_manager_state_next <= cap_overflowed_packet;
+				end if;
+			-- If nothing being written, do nothing
 			else
+				word_fifo_wr_en <= '0';
 				packet_depth_counter_increment <= '0';
 				input_manager_state_next <= receive_data;
 			end if;
-			word_fifo_wr_en <= din_wr_en;
+		-- }
+		when cap_overflowed_packet =>
+		-- {
+			-- If it's not full now, cap the previous packet, start waiting for next packet.
+			if word_fifo_full = '0' then
+				packet_depth_counter_increment <= '0'; --already signaled
+				word_fifo_din <= x"FF00"; -- Cap the packet
+				word_fifo_wr_en <= '1';
+				input_manager_state_next <= start_word_judge;
+			-- If it's still full, can't cap it yet, so wait.
+			else
+				packet_depth_counter_increment <= '0';
+				word_fifo_wr_en <= '0';
+				input_manager_state_next <= cap_overflowed_packet;
+			end if;
 		-- }
 		when wait_for_fifo_ready =>
 		-- {
