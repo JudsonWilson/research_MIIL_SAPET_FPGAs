@@ -141,12 +141,14 @@ architecture Behavioral of Daisychain_module is
 	signal output_switch_channels_mask : std_logic_vector(3 downto 1) := OUTPUT_MASK_NOWHERE;
 	signal output_switch_set_channels  : std_logic := '0';
 	signal output_switch_wr_en         : std_logic := '0';
+	signal output_switch_dout_busy     : std_logic := '0';
 
 	signal output_J41_is_echo          : std_logic := '0';
 	signal output_J41_is_echo_next     : std_logic := '0';
 	
 	-- Signals going from the router to the echo_shaper, before heading out to
 	-- the GTP port.
+	signal is_GTP_busy          : std_logic := '1';
 	signal dout_to_GTP_pre_echo_shaper         : std_logic_vector(15 downto 0) := x"0000";
 	signal dout_to_GTP_wr_pre_echo_shaper      : std_logic := '0';
 	signal dout_to_GTP_post_echo_shaper        : std_logic_vector(15 downto 0) := x"0000";
@@ -223,7 +225,11 @@ architecture Behavioral of Daisychain_module is
 		set_channels : in std_logic;
 		-- input signal
 		in_wr_en      : in std_logic;
+		out_busy_1    : in std_logic;
+		out_busy_2    : in std_logic;
+		out_busy_3    : in std_logic;
 		-- output signal
+		out_busy       : out std_logic;
 		out_wr_en_1    : out std_logic;
 		out_wr_en_2    : out std_logic;
 		out_wr_en_3    : out std_logic
@@ -501,6 +507,8 @@ begin
 	dout_to_GTP_pre_echo_shaper  <= input_switch_dout;
 	dout_to_serializing          <= input_switch_dout;
 
+	is_GTP_busy <= '1' when is_GTP_ready = '0' else '0';
+
 	-- Output switch
 	output_switch_instance : output_fifo_switch
 	port map (
@@ -513,7 +521,11 @@ begin
 		set_channels => output_switch_set_channels,
 		-- input signal
 		in_wr_en     => output_switch_wr_en,
+		out_busy_1 => '0',
+		out_busy_2 => is_GTP_busy,
+		out_busy_3 => '0',
 		-- output signal
+		out_busy     => output_switch_dout_busy,
 		out_wr_en_1  => dout_to_UDP_wr,
 		out_wr_en_2  => dout_to_GTP_wr_pre_echo_shaper,
 		out_wr_en_3  => dout_to_serializing_wr
@@ -581,160 +593,172 @@ begin
 		-- Override this when actually sending from one of the bottom-tier sources.
 		router_bottom_tier_highest_priority_source_next <= router_bottom_tier_highest_priority_source;
 
-		case router_state_machine_state is
-		when idle =>
-			-- Always true in this state, as input_switch_dout is not ready because
-			-- input_switch_rd_en has not pulled out the first byte yet.
-			output_switch_wr_en <= '0';  
-
-			-- UDP configuration data - highest priority to be transmitted
-			if config_data_fifo_dout_packet_available = '1' and config_data_fifo_dout_empty_notready = '0' then
-
-				-- Transmit down the GTP, even if node 1 is destination. This keeps code simpler (1 case).
-				-- Don't need to setup an echo source/destination byte swapper to respond back to UDP if node 1 is destination.
-				input_switch_channel <= INPUT_CHANNEL_UDP;
-				input_switch_rd_en <= '1';
-				output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
-				output_switch_set_channels <= '1';
-				output_J41_is_echo_next <= '0';
-				router_state_machine_state_next <= transferring;
-
-			-- Data from the former Virtex-5 board on J40 input - shares priority with data from
-			-- the local acquistion module.
-			elsif router_ok_receive_gtpj40 = '1' then
-			
-				-- Update bottom-tier priority to acquisition, since gtpj40 is getting handled this time.
-				router_bottom_tier_highest_priority_source_next <= acquisition;
-
-				-- GTPJ40 Input is available, so we will for sure read it (even if to just delete it).
-				input_switch_channel <= INPUT_CHANNEL_GTPJ40;
-				input_switch_rd_en <= '1';
-				-- Specific output channels chosen below, but source will always be set (even if to NOWHERE).
-				output_switch_set_channels <= '1';
-				-- Transfer will happen.
-				router_state_machine_state_next <= transferring;
-				
-				-- Default values (overriden if needed):
-				output_J41_is_echo_next <= '0';
-
-				-- If from PC
-				if ( J40_data_fifo_dout_source_node = x"0") then
-					-- Check node is valid, otherwise garbage.
-					if ('0' & J40_data_fifo_dout_destination_node >= x"1" and '0' & J40_data_fifo_dout_destination_node <= x"04" ) then
-						-- If this is the destination node, send to serializing port
-						if ( J40_data_fifo_dout_destination_node = boardid ) then
-							-- Send this data out to serializing
-							-- Echo back the config data to the computer, via GTP (regardless of
-							-- what node this is, for simplicity, the circular chain will handle it).
-							output_switch_channels_mask <= OUTPUT_MASK_GTPJ41 or OUTPUT_MASK_SERIALIZER;
-							output_J41_is_echo_next <= '1';
-						-- If the destination is another node (not THIS node).
-						else
-							-- If data from the PC has tranversed all the nodes back to node 001, discard it. It is done.
-							-- Note this occurs after the check to see if this packet is destined for this board. This is important
-							-- because configuration data from the PC intended for boardid="001" actually traverses the whole loop,
-							-- so that a special case doesn't have to be writen to route from the UDP output to the serializing.
-							if ( boardid = "001") then 
-								output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
-							-- If this packet truly needs to go to another node, then pass to the next node.
-							else
-								output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
-							end if;
-						end if;
-					-- Invalid destination (source is PC). Dump the packet, it's an error.
-					else
-						output_switch_channels_mask <= OUTPUT_MASK_NOWHERE; -- send it nowhere
-					end if;
-
-				-- Source is a node
-				elsif '0' & J40_data_fifo_dout_source_node >= x"1" and '0' & J40_data_fifo_dout_source_node <= x"4" then
-					-- Destination is the PC, as it should be.
-					if '0' & J40_data_fifo_dout_destination_node = x"0" then
-					-- acquisition data (or any data from a node to PC)
-						-- Master node sends via UDP to PC
-						if boardid = "001" then
-							output_switch_channels_mask <= OUTPUT_MASK_UDP;
-						-- Non-Master nodes pass to adjacent nodes.
-						else
-							output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
-						end if;
-					-- If source is node, and destination is not the PC, dump the packet. It is an error.
-					else
-						output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
-					end if;
-				-- Invalid source, dump packet.
-				else
-					output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
-				end if;		
-
-			-- Data from a local RENA frontend board, via the acquisition module - shares priority with data from
-			-- the previous backplane node via GTP40.
-			elsif router_ok_receive_acquisition = '1' then
-
-				-- Update bottom-tier priority to gtpj40, since aquisition is getting handled this time.
-				router_bottom_tier_highest_priority_source_next <= gtpj40;
-
-				-- Available, so we will for sure read it (even if to just delete it).
-				input_switch_channel <= INPUT_CHANNEL_ACQUISITION;
-				input_switch_rd_en <= '1';
-				-- Specific output channels chosen below, but source will always be set (even if to NOWHERE).
-				output_switch_set_channels <= '1';
-				-- This data is never echoed.
-				output_J41_is_echo_next <= '0';
-				-- Transfer will happen.
-				router_state_machine_state_next <= transferring;
-
-				-- The only valid source/destination for the local_acquisition is from this node to the PC.
-				if local_acquisition_data_fifo_dout_source_node = boardid and '0' & local_acquisition_data_fifo_dout_destination_node = x"0" then
-					-- If this is node 1, sent it via UDP
-					if boardid = "001" then
-						output_switch_channels_mask <= OUTPUT_MASK_UDP;
-					else
-						output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
-					end if;
-				else
-					output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
-				end if;
-
-			-- No data to transmit.
-			else
-				input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
-				input_switch_rd_en <= '0';
-				output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
-				output_switch_set_channels <= '0';
-				output_J41_is_echo_next <= '0';
-				router_state_machine_state_next <= idle;
-				router_bottom_tier_highest_priority_source_next <= gtpj40; -- Doesn't matter which.
-			end if;
-
-		-- In this state, keep sending packet bytes until the packet is done.
-		when transferring =>
-			
+		-- First check to see if we can output data! If not, just wait.
+		if output_switch_dout_busy = '1' then
 			input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
 			output_switch_channels_mask <= OUTPUT_MASK_NOWHERE; -- ignored
 			output_switch_set_channels <= '0';
 			output_J41_is_echo_next <= output_J41_is_echo;
-			
-			-- If the packet is done, finish up.
-			if input_switch_dout_end_of_packet = '1' then
-				input_switch_rd_en <= '0';
-				output_switch_wr_en <= '1'; -- Send the output switch the final word.
-				router_state_machine_state_next <= idle;
-			-- If not at end of packet, clock more data if available.
-			else
-				-- If data isn't ready, hold state, don't ask for more, wait till later
-				-- to write the output so we don't need to track that we have done that.
-				if input_switch_dout_empty_notready = '1' then
-					input_switch_rd_en <= '0';
-					output_switch_wr_en <= '0';
-				-- If data is ready, get it, send previous output.
-				else
+			input_switch_rd_en <= '0';
+			output_switch_wr_en <= '0';
+			router_state_machine_state_next <= router_state_machine_state;
+		
+		--If we CAN send data, then do the state machine stuff..
+		else
+			case router_state_machine_state is
+			when idle =>
+				-- Always true in this state, as input_switch_dout is not ready because
+				-- input_switch_rd_en has not pulled out the first byte yet.
+				output_switch_wr_en <= '0';  
+
+				-- UDP configuration data - highest priority to be transmitted
+				if config_data_fifo_dout_packet_available = '1' and config_data_fifo_dout_empty_notready = '0' then
+
+					-- Transmit down the GTP, even if node 1 is destination. This keeps code simpler (1 case).
+					-- Don't need to setup an echo source/destination byte swapper to respond back to UDP if node 1 is destination.
+					input_switch_channel <= INPUT_CHANNEL_UDP;
 					input_switch_rd_en <= '1';
-					output_switch_wr_en <= '1';
+					output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+					output_switch_set_channels <= '1';
+					output_J41_is_echo_next <= '0';
+					router_state_machine_state_next <= transferring;
+
+				-- Data from the former Virtex-5 board on J40 input - shares priority with data from
+				-- the local acquistion module.
+				elsif router_ok_receive_gtpj40 = '1' then
+				
+					-- Update bottom-tier priority to acquisition, since gtpj40 is getting handled this time.
+					router_bottom_tier_highest_priority_source_next <= acquisition;
+
+					-- GTPJ40 Input is available, so we will for sure read it (even if to just delete it).
+					input_switch_channel <= INPUT_CHANNEL_GTPJ40;
+					input_switch_rd_en <= '1';
+					-- Specific output channels chosen below, but source will always be set (even if to NOWHERE).
+					output_switch_set_channels <= '1';
+					-- Transfer will happen.
+					router_state_machine_state_next <= transferring;
+					
+					-- Default values (overriden if needed):
+					output_J41_is_echo_next <= '0';
+
+					-- If from PC
+					if ( J40_data_fifo_dout_source_node = x"0") then
+						-- Check node is valid, otherwise garbage.
+						if ('0' & J40_data_fifo_dout_destination_node >= x"1" and '0' & J40_data_fifo_dout_destination_node <= x"04" ) then
+							-- If this is the destination node, send to serializing port
+							if ( J40_data_fifo_dout_destination_node = boardid ) then
+								-- Send this data out to serializing
+								-- Echo back the config data to the computer, via GTP (regardless of
+								-- what node this is, for simplicity, the circular chain will handle it).
+								output_switch_channels_mask <= OUTPUT_MASK_GTPJ41 or OUTPUT_MASK_SERIALIZER;
+								output_J41_is_echo_next <= '1';
+							-- If the destination is another node (not THIS node).
+							else
+								-- If data from the PC has tranversed all the nodes back to node 001, discard it. It is done.
+								-- Note this occurs after the check to see if this packet is destined for this board. This is important
+								-- because configuration data from the PC intended for boardid="001" actually traverses the whole loop,
+								-- so that a special case doesn't have to be writen to route from the UDP output to the serializing.
+								if ( boardid = "001") then 
+									output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+								-- If this packet truly needs to go to another node, then pass to the next node.
+								else
+									output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+								end if;
+							end if;
+						-- Invalid destination (source is PC). Dump the packet, it's an error.
+						else
+							output_switch_channels_mask <= OUTPUT_MASK_NOWHERE; -- send it nowhere
+						end if;
+
+					-- Source is a node
+					elsif '0' & J40_data_fifo_dout_source_node >= x"1" and '0' & J40_data_fifo_dout_source_node <= x"4" then
+						-- Destination is the PC, as it should be.
+						if '0' & J40_data_fifo_dout_destination_node = x"0" then
+						-- acquisition data (or any data from a node to PC)
+							-- Master node sends via UDP to PC
+							if boardid = "001" then
+								output_switch_channels_mask <= OUTPUT_MASK_UDP;
+							-- Non-Master nodes pass to adjacent nodes.
+							else
+								output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+							end if;
+						-- If source is node, and destination is not the PC, dump the packet. It is an error.
+						else
+							output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+						end if;
+					-- Invalid source, dump packet.
+					else
+						output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+					end if;		
+
+				-- Data from a local RENA frontend board, via the acquisition module - shares priority with data from
+				-- the previous backplane node via GTP40.
+				elsif router_ok_receive_acquisition = '1' then
+
+					-- Update bottom-tier priority to gtpj40, since aquisition is getting handled this time.
+					router_bottom_tier_highest_priority_source_next <= gtpj40;
+
+					-- Available, so we will for sure read it (even if to just delete it).
+					input_switch_channel <= INPUT_CHANNEL_ACQUISITION;
+					input_switch_rd_en <= '1';
+					-- Specific output channels chosen below, but source will always be set (even if to NOWHERE).
+					output_switch_set_channels <= '1';
+					-- This data is never echoed.
+					output_J41_is_echo_next <= '0';
+					-- Transfer will happen.
+					router_state_machine_state_next <= transferring;
+
+					-- The only valid source/destination for the local_acquisition is from this node to the PC.
+					if local_acquisition_data_fifo_dout_source_node = boardid and '0' & local_acquisition_data_fifo_dout_destination_node = x"0" then
+						-- If this is node 1, sent it via UDP
+						if boardid = "001" then
+							output_switch_channels_mask <= OUTPUT_MASK_UDP;
+						else
+							output_switch_channels_mask <= OUTPUT_MASK_GTPJ41;
+						end if;
+					else
+						output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+					end if;
+
+				-- No data to transmit.
+				else
+					input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
+					input_switch_rd_en <= '0';
+					output_switch_channels_mask <= OUTPUT_MASK_NOWHERE;
+					output_switch_set_channels <= '0';
+					output_J41_is_echo_next <= '0';
+					router_state_machine_state_next <= idle;
+					router_bottom_tier_highest_priority_source_next <= gtpj40; -- Doesn't matter which.
 				end if;
-				router_state_machine_state_next <= transferring;
-			end if;
-		end case;
-	
+
+			-- In this state, keep sending packet bytes until the packet is done.
+			when transferring =>
+				
+				input_switch_channel <= INPUT_CHANNEL_DONT_CHANGE;
+				output_switch_channels_mask <= OUTPUT_MASK_NOWHERE; -- ignored
+				output_switch_set_channels <= '0';
+				output_J41_is_echo_next <= output_J41_is_echo;
+				
+				-- If the packet is done, finish up.
+				if input_switch_dout_end_of_packet = '1' then
+					input_switch_rd_en <= '0';
+					output_switch_wr_en <= '1'; -- Send the output switch the final word.
+					router_state_machine_state_next <= idle;
+				-- If not at end of packet, clock more data if available.
+				else
+					-- If data isn't ready, hold state, don't ask for more, wait till later
+					-- to write the output so we don't need to track that we have done that.
+					if input_switch_dout_empty_notready = '1' then
+						input_switch_rd_en <= '0';
+						output_switch_wr_en <= '0';
+					-- If data is ready, get it, send previous output.
+					else
+						input_switch_rd_en <= '1';
+						output_switch_wr_en <= '1';
+					end if;
+					router_state_machine_state_next <= transferring;
+				end if;
+			end case;
+		end if;
 	end process;
 end Behavioral;

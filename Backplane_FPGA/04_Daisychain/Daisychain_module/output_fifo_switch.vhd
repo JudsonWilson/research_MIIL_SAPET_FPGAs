@@ -40,7 +40,11 @@ entity output_fifo_switch is
 		set_channels : in std_logic;
 		-- input signal
 		in_wr_en      : in std_logic;
+		out_busy_1    : in std_logic;
+		out_busy_2    : in std_logic;
+		out_busy_3    : in std_logic;
 		-- output signal
+		out_busy       : out std_logic;
 		out_wr_en_1    : out std_logic;
 		out_wr_en_2    : out std_logic;
 		out_wr_en_3    : out std_logic
@@ -70,6 +74,13 @@ begin
 	out_wr_en_2 <= out_wr_en(2);
 	out_wr_en_3 <= out_wr_en(3);
 
+	-- OR together all the relevent busy signals.
+	WITH    (set_channels = '1' and ((en_ch_1 = '1' and out_busy_1 = '1' )          or (en_ch_2 = '1' and out_busy_2 = '1' )          or (en_ch_3 = '1' and out_busy_3 = '1' )))
+	     or (set_channels = '0' and ((previous_en_ch(1) = '1' and out_busy_1 = '1') or (previous_en_ch(2) = '1' and out_busy_2 = '1') or (previous_en_ch(3) = '1' and out_busy_3 = '1')))
+	SELECT
+		out_busy <= '1' WHEN true,
+		            '0' WHEN OTHERS;
+	
 	-------------------------------------------------------------------------------
 	-- State Machine
 	-------------------------------------------------------------------------------
