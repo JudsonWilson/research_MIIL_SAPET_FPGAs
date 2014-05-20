@@ -228,10 +228,10 @@ begin
 		'1' & --frontend_rx_array(38) &
 		'1' & --frontend_rx_array(37) &
 		'1' & --frontend_rx_array(36) &
-		'1' & --frontend_rx_array(35) &
-		'1' & --frontend_rx_array(34) &
-		'1' & --frontend_rx_array(33) &
-		'1' & --frontend_rx_array(32) &
+		frontend_rx_array(35) &
+		frontend_rx_array(34) &
+		frontend_rx_array(33) &
+		frontend_rx_array(32) &
 		'1' & --frontend_rx_array(31) &
 		'1' & --frontend_rx_array(30) &
 		'1' & --frontend_rx_array(29) &
@@ -244,10 +244,10 @@ begin
 		'1' & --frontend_rx_array(22) &
 		'1' & --frontend_rx_array(21) &
 		'1' & --frontend_rx_array(20) &
-		'1' & --frontend_rx_array(19) &
-		'1' & --frontend_rx_array(18) &
-		'1' & --frontend_rx_array(17) &
-		'1' & --frontend_rx_array(16) &
+		frontend_rx_array(19) &
+		frontend_rx_array(18) &
+		frontend_rx_array(17) &
+		frontend_rx_array(16) &
 		'1' & --frontend_rx_array(15) &
 		'1' & --frontend_rx_array(14) &
 		'1' & --frontend_rx_array(13) &
