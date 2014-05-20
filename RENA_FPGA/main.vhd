@@ -165,6 +165,7 @@ component RX_Decode
 		FOLLOWER_MODE2      : out  STD_LOGIC;
 		FOLLOWER_MODE_CHAN  : out  STD_LOGIC_VECTOR(5 downto 0);
 		FOLLOWER_MODE_TCLK  : out  STD_LOGIC_VECTOR(1 downto 0);
+		ELECTRODE_MASK      : out  STD_LOGIC_VECTOR(1 downto 0);
 		CS1                 : out  STD_LOGIC;
 		CSHIFT1             : out  STD_LOGIC;
 		CIN1                : out  STD_LOGIC;
@@ -397,20 +398,18 @@ signal follower_mode1     : std_logic;
 signal follower_mode2     : std_logic;
 signal follower_mode_chan : std_logic_vector(5 downto 0);
 signal follower_mode_tclk : std_logic_vector(1 downto 0);
+signal electrode_mask     : std_logic_vector(1 downto 0);
 signal readingRenaHR1     : std_logic_vector(1 downto 0);
 signal readingRenaHR2     : std_logic_vector(1 downto 0);
 
--- Actual hardware
-signal anode_mask1        : std_logic_vector(35 downto 0) := "000000000001111111111111111111110000";
-signal cathode_mask1      : std_logic_vector(35 downto 0) := "000000011110000000000000000000000000";
-signal anode_mask2        : std_logic_vector(35 downto 0) := "000000000001111111111111111110000000";
-signal cathode_mask2      : std_logic_vector(35 downto 0) := "000000011110000000000000000000000000";
-
----- Pulser debugging
---signal anode_mask1        : std_logic_vector(35 downto 0) := "000000011111111111111111111100110000";
---signal cathode_mask1      : std_logic_vector(35 downto 0) := "000000000000000000000000000011000000";
---signal anode_mask2        : std_logic_vector(35 downto 0) := "000000011111111111111111100110000000";
---signal cathode_mask2      : std_logic_vector(35 downto 0) := "000000000000000000000000011000000000";
+signal anode_mask1        : std_logic_vector(35 downto 0);
+signal cathode_mask1      : std_logic_vector(35 downto 0);
+signal anode_mask2        : std_logic_vector(35 downto 0);
+signal cathode_mask2      : std_logic_vector(35 downto 0);
+signal next_anode_mask1   : std_logic_vector(35 downto 0);
+signal next_cathode_mask1 : std_logic_vector(35 downto 0);
+signal next_anode_mask2   : std_logic_vector(35 downto 0);
+signal next_cathode_mask2 : std_logic_vector(35 downto 0);
 
 signal an_trig_1          : std_logic;
 signal an_trig_2          : std_logic;
@@ -565,16 +564,52 @@ clockSource : systemClkX2DiffIn port map(
 debugOutMain <= ledOut;
 fpga_address <= ADDR;
 
+process (electrode_mask) begin
+	case electrode_mask is
+		-- Connected to anode handed intermediate board
+		when "00" =>
+			next_anode_mask1   <= "000000000001111111111111111111110000";
+			next_cathode_mask1 <= "000000011110000000000000000000000000";
+			next_anode_mask2   <= "000000000001111111111111111110000000";
+			next_cathode_mask2 <= "000000011110000000000000000000000000";
+			
+		-- Connected to cathode handed intermediate board
+		when "01" =>
+			next_anode_mask1   <= "000000011111111111111111111100000000";
+			next_cathode_mask1 <= "000000000000000000000000000011110000";
+			next_anode_mask2   <= "000000011111111111111111100000000000";
+			next_cathode_mask2 <= "000000000000000000000000011110000000";
+			
+		-- For debugging
+		when "10" =>
+			next_anode_mask1   <= "000000011111111111111111111100110000";
+			next_cathode_mask1 <= "000000000000000000000000000011000000";
+			next_anode_mask2   <= "000000011111111111111111100110000000";
+			next_cathode_mask2 <= "000000000000000000000000011000000000";
+			
+		-- Defaults to assuming connection to anode handed intermediate board
+		when others =>
+			next_anode_mask1   <= "000000000001111111111111111111110000";
+			next_cathode_mask1 <= "000000011110000000000000000000000000";
+			next_anode_mask2   <= "000000000001111111111111111110000000";
+			next_cathode_mask2 <= "000000011110000000000000000000000000";
+	end case;
+end process;
+
 --========================================================================
 -- D flip flops
 --========================================================================
 process(systemClk)
 begin
 	if rising_edge(systemClk) then
-		if reset_timestamp = '0' then
-				slow_timestamp <= next_slow_timestamp;
+		if (RST = '1') then
+			slow_timestamp <= "000000000000000000000000000000000000000000";
 		else
-				slow_timestamp <= "000000000000000000000000000000000000000000";
+			if reset_timestamp = '0' then
+					slow_timestamp <= next_slow_timestamp;
+			else
+					slow_timestamp <= "000000000000000000000000000000000000000000";
+			end if;
 		end if;
 	end if;						  
 end process;
@@ -588,6 +623,10 @@ begin
 		nTS1clked <= nTS1;
 		nTF2clked <= nTF2;
 		nTS2clked <= nTS2;
+		anode_mask1 <= next_anode_mask1;
+		cathode_mask1 <= next_cathode_mask1;
+		anode_mask2 <= next_anode_mask2;
+		cathode_mask2 <= next_cathode_mask2;
 	end if;
 end process;
 	
@@ -643,6 +682,7 @@ RX_Decoder:  RX_Decode port map(
 			  FOLLOWER_MODE2 => follower_mode2,
 			  FOLLOWER_MODE_CHAN => follower_mode_chan,
 			  FOLLOWER_MODE_TCLK => follower_mode_tclk,
+			  ELECTRODE_MASK => electrode_mask,
            CS1  => CS1,
            CSHIFT1  => CSHIFT1,
            CIN1  => CIN1,

@@ -50,14 +50,12 @@ begin
 
 process(mclk)
 begin
-   if rising_edge(mclk) then
-		if (rst = '1') then
-			counter <= "000000000000000000000000";
-			ledOut  <= '0';
-		else
-			counter <= nextCounter;
-			ledOut <= nextLedOut;
-		end if;
+	if rst = '1' then
+		counter <= "000000000000000000000000";
+		ledOut  <= '0';
+	elsif rising_edge(mclk) then
+		counter <= nextCounter;
+		ledOut <= nextLedOut;
 	end if;
 end process;
 

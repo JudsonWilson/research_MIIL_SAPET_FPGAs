@@ -101,10 +101,12 @@ end OperationalStateController;
 -- Readout modes:
 -- If multiple readout modes are selected, the order of precedence is as
 -- follows (1 being the highest priority):
--- 1. Follower mode (Ignores Readout Enable)
--- 2. Readout enable (Necessary for Force Trigger and OR modes)
--- 3. Force Trigger mode
--- 4. OR mode (Ignored if Force Trigger mode is also on)
+-- 1. Follower mode (Ignores Readout Enable).
+-- 2. Readout enable (Necessary for Force Trigger and OR modes).
+-- 3. Force Trigger mode.
+-- 4. OR mode (Ignored if Force Trigger mode is also on).
+-- 5. Selective read is mutually exclusive with OR mode, and is overridden
+--    by force trigger mode.
 --
 -- Readout state machine: remains in IDLE state is the follower state
 --     machine is running.
@@ -456,6 +458,7 @@ begin
 				next_SEND_TX_DATA <= '1';
 				
 			-- Bytes 10-15: fast trigger list.
+			-- Note: In force trigger mode, every channel gets read.
 			-- Decimal 27
 			when "00011011" =>
 				-- 6 bytes of one-hot trigger data that covers all 36 channels
@@ -692,11 +695,12 @@ begin
 		-- Change this code to modify how we want to read out channels.
 		if (next_state = WRITE_HIT_REGISTER_CLK_LO) or (next_state = WRITE_HIT_REGISTER_CLK_HI) then
 			-- Use the following lines to read out only the channels that
-			-- triggered. Also, we do not read channels 0, 1, 34 and 35.
+			-- triggered.
 			-- Push out the MSB first, read_counter counts up from 0.
 			if (FORCE_TRIGGER = '0') then
 				next_int_FIN <= fast_triggered(conv_integer(read_counter));
 				next_int_SIN <= slow_triggered(conv_integer(read_counter));
+			-- Note: In force trigger mode, every channel gets read.
 			else
 				next_int_FIN <= '1';
 				next_int_SIN <= '1';
