@@ -48,6 +48,7 @@ entity RX_Decode is
 			  FOLLOWER_MODE2      : out  STD_LOGIC;
 			  FOLLOWER_MODE_CHAN  : out  STD_LOGIC_VECTOR(5 downto 0);
 			  FOLLOWER_MODE_TCLK  : out  STD_LOGIC_VECTOR(1 downto 0);
+			  ELECTRODE_MASK      : out  STD_LOGIC_VECTOR(1 downto 0);
            CS1                 : out  STD_LOGIC;  -- RENA-3 1 chip select
            CSHIFT1             : out  STD_LOGIC;  -- RENA-3 1 configuration clock
            CIN1                : out  STD_LOGIC;  -- RENA-3 1 configuration data
@@ -114,6 +115,9 @@ architecture Behavioral of RX_Decode is
   signal int_enable_readout2   : std_logic;
   signal next_enable_readout2  : std_logic;
   
+  signal int_electrode_mask  : std_logic_vector(1 downto 0);
+  signal next_electrode_mask : std_logic_vector(1 downto 0);
+
   signal int_cs1     : std_logic;
   signal int_cin1    : std_logic;
   signal int_cshift1 : std_logic;
@@ -176,6 +180,7 @@ FOLLOWER_MODE1   <= int_follower_mode1;
 FOLLOWER_MODE2   <= int_follower_mode2;
 FOLLOWER_MODE_CHAN <= int_follower_mode_chan;
 FOLLOWER_MODE_TCLK <= int_follower_mode_tclk;
+ELECTRODE_MASK <= int_electrode_mask;
 DIAGNOSTIC_RENA1_SETTINGS <= int_diagnostic_rena1_settings;
 DIAGNOSTIC_RENA2_SETTINGS <= int_diagnostic_rena2_settings;
 DIAGNOSTIC_SEND <= int_diagnostic_send;
@@ -212,6 +217,7 @@ process(mclk)
 		int_follower_mode2     <= next_follower_mode2;
 		int_follower_mode_chan <= next_follower_mode_chan;
 		int_follower_mode_tclk <= next_follower_mode_tclk;
+		int_electrode_mask     <= next_electrode_mask;
 
 		int_diagnostic_rena1_settings <= next_diagnostic_rena1_settings;
 		int_diagnostic_rena2_settings <= next_diagnostic_rena2_settings;
@@ -250,6 +256,7 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 		next_follower_mode2  <= int_follower_mode2;
 		next_follower_mode_chan <= int_follower_mode_chan;
 		next_follower_mode_tclk <= int_follower_mode_tclk;
+		next_electrode_mask <= int_electrode_mask;
 		
 		next_diagnostic_rena1_settings <= int_diagnostic_rena1_settings;
 		next_diagnostic_rena2_settings <= int_diagnostic_rena2_settings;
@@ -305,7 +312,11 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 							when "1001" =>
 								next_enable_readout1 <= rx_buffer(0)(0);
 								next_enable_readout2 <= rx_buffer(0)(1);
-								
+							
+							-- Set channel mapping, which depends on the intermediate board "handedness"
+							when "1010" =>
+								next_electrode_mask <= rx_buffer(0)(1 downto 0);
+							
 							-- Follower mode
 							when "1101" =>
 								case (rx_buffer(0)(5 downto 0)) is
@@ -368,7 +379,7 @@ process( sync_new_data, sync_ms_bits, sync_fpga_instr_bits, sync_rena_instr_bits
 						-- Command to latch value of FPGA address field in packet
 						when "000011" =>
 							next_rx_counter <= 0;
-							next_fpga_address_reg <= rx_buffer(0);
+							next_fpga_address_reg <= rx_buffer(0)(5 downto 0);
 							
 						when others =>
 							null;
